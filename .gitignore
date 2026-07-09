@@ -16,3 +16,4 @@ dist-ssr/
 *.log
 .vscode/
 .idea/
+package-lock.json
