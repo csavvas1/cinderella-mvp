@@ -35,21 +35,33 @@ function Shell() {
     setTimeout(() => setAcctClosing(false), 300);
   }
 
-  // swipe-down-to-dismiss on the account sheet: drag the sheet with the finger,
-  // let go past a threshold to close, otherwise snap back.
-  const [dragY, setDragY] = useState(0);
+  // swipe-down-to-dismiss on the account sheet. Driven by DIRECT DOM transform
+  // (no React state per frame) so the sheet tracks the thumb 1:1 with no lag.
+  const sheetRef = useRef<HTMLDivElement | null>(null);
   const dragStart = useRef<number | null>(null);
-  function onDragStart(e: React.TouchEvent) { dragStart.current = e.touches[0].clientY; }
+  const dragCur = useRef(0);
+  function onDragStart(e: React.TouchEvent) {
+    dragStart.current = e.touches[0].clientY;
+    dragCur.current = 0;
+    if (sheetRef.current) sheetRef.current.style.transition = "none"; // follow the finger, no easing
+  }
   function onDragMove(e: React.TouchEvent) {
-    if (dragStart.current == null) return;
-    const dy = e.touches[0].clientY - dragStart.current;
-    if (dy > 0) setDragY(dy);           // only allow dragging DOWN
+    if (dragStart.current == null || !sheetRef.current) return;
+    const dy = Math.max(0, e.touches[0].clientY - dragStart.current); // down only
+    dragCur.current = dy;
+    sheetRef.current.style.transform = `translateY(${dy}px)`;
   }
   function onDragEnd() {
-    if (dragStart.current == null) return;
+    if (dragStart.current == null || !sheetRef.current) return;
     dragStart.current = null;
-    if (dragY > 110) { setDragY(0); dismissAccount(); }  // dragged far enough -> close
-    else setDragY(0);                                     // snap back
+    const el = sheetRef.current;
+    el.style.transition = "transform .28s cubic-bezier(.32,.72,.35,1)";
+    if (dragCur.current > 110) {
+      el.style.transform = "translateY(100%)";   // fling it out, then unmount
+      setTimeout(() => { el.style.transform = ""; el.style.transition = ""; dismissAccount(); }, 200);
+    } else {
+      el.style.transform = "translateY(0)";       // snap back
+    }
   }
 
   // On (re)entering the app after login, land on the side the launch preference
@@ -107,9 +119,8 @@ function Shell() {
           route — the page you were on stays mounted behind it. */}
       {(accountOpen || acctClosing) && (
         <div className={"acctsheet__backdrop" + (acctClosing ? " closing" : "")} onClick={dismissAccount}>
-          <div className={"acctsheet" + (acctClosing ? " closing" : "")} onClick={(e) => e.stopPropagation()}
-            style={dragY ? { transform: `translateY(${dragY}px)`, transition: "none" } : undefined}>
-            {/* grab handle — drag it down to dismiss */}
+          <div ref={sheetRef} className={"acctsheet" + (acctClosing ? " closing" : "")} onClick={(e) => e.stopPropagation()}>
+            {/* grab handle — drag it down to dismiss (tracks the thumb 1:1) */}
             <div className="acctsheet__grabzone"
               onTouchStart={onDragStart} onTouchMove={onDragMove} onTouchEnd={onDragEnd}>
               <div className="acctsheet__grab" />
