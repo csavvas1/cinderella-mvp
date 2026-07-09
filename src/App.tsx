@@ -47,20 +47,29 @@ function Shell() {
   }
   function onDragMove(e: React.TouchEvent) {
     if (dragStart.current == null || !sheetRef.current) return;
-    const dy = Math.max(0, e.touches[0].clientY - dragStart.current); // down only
+    // clamp to >= 0: dragging back UP past the start just holds at the top
+    // (lets the user pull down then change their mind and keep it open).
+    const dy = Math.max(0, e.touches[0].clientY - dragStart.current);
     dragCur.current = dy;
     sheetRef.current.style.transform = `translateY(${dy}px)`;
+    // stop the browser's own pull-to-refresh / rubber-band fighting the drag
+    if (dy > 0 && e.cancelable) e.preventDefault();
   }
   function onDragEnd() {
     if (dragStart.current == null || !sheetRef.current) return;
     dragStart.current = null;
     const el = sheetRef.current;
-    el.style.transition = "transform .28s cubic-bezier(.32,.72,.35,1)";
-    if (dragCur.current > 110) {
-      el.style.transform = "translateY(100%)";   // fling it out, then unmount
-      setTimeout(() => { el.style.transform = ""; el.style.transition = ""; dismissAccount(); }, 200);
+    const dy = dragCur.current;
+    dragCur.current = 0;
+    if (dy > 120) {
+      // close: animate the sheet out ONCE (no .closing class collision), then unmount
+      el.style.transition = "transform .26s cubic-bezier(.32,.72,.35,1)";
+      el.style.transform = "translateY(100%)";
+      setTimeout(() => { closeAccount(); }, 240);
     } else {
-      el.style.transform = "translateY(0)";       // snap back
+      // cancel / snap back to fully open
+      el.style.transition = "transform .22s cubic-bezier(.32,.72,.35,1)";
+      el.style.transform = "translateY(0)";
     }
   }
 

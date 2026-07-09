@@ -87,6 +87,9 @@ body {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   background: var(--bg);
+  /* stop the browser's native pull-to-refresh / chained scroll bounce so custom
+     drag gestures (account sheet) don't accidentally reload the page */
+  overscroll-behavior-y: contain;
 }
 .screen::-webkit-scrollbar { width: 0; }
 
