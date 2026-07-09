@@ -1,0 +1,1101 @@
+import { useEffect, useRef, useState } from "react";
+import { useStore } from "../../context/AppStore";
+import { BrandIcon } from "../../components/PaymentPicker";
+import DetailsModal from "../../components/DetailsModal";
+import Dropdown from "../../components/Dropdown";
+import TimeSelect from "../../components/TimeSelect";
+import CameraCapture, { type CapturedPhoto } from "../../components/CameraCapture";
+import { APP_NAME, APP_VERSION } from "../../data/brand";
+import { syncListing } from "../../data/ical";
+import { marketStats } from "../../data/cleaners";
+import { cardExpiryStatus } from "../../data/platform";
+import { CY_CITIES } from "../../data/addressPresets";
+import LegalDocModal from "../../components/LegalDocModal";
+import ConsentGate from "../../components/ConsentGate";
+import { CLEANER_DOC_IDS, LEGAL_DOCS } from "../../data/legal";
+import type { Booking, Card, PropertyAddress, ListingPlatform } from "../../types";
+
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const YEARS = ["2026", "2025", "2024"];
+const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const DAY_FULL: Record<string, string> = {
+  Mon: "Monday", Tue: "Tuesday", Wed: "Wednesday", Thu: "Thursday",
+  Fri: "Friday", Sat: "Saturday", Sun: "Sunday",
+};
+
+function downloadExpenses(period: string) {
+  alert(`Downloading expense statement for ${period} (PDF).`);
+}
+
+// Statement pickers default to the PREVIOUS month (last complete period).
+function prevMonthDefaults() {
+  const d = new Date();
+  d.setMonth(d.getMonth() - 1);
+  return { month: MONTHS[d.getMonth()], year: String(d.getFullYear()) };
+}
+
+// Biometric login is called "Face ID" on Apple devices and "Biometric" (usually
+// fingerprint) on Android, so the label matches what the user actually sees.
+function biometricLabel(): string {
+  const ua = navigator.userAgent || "";
+  if (/Android/i.test(ua)) return "Biometric login";
+  if (/iPhone|iPad|iPod|Mac/i.test(ua)) return "Face ID";
+  return "Face ID";
+}
+const THEME_OPTS = [
+  { v: "system", t: "System" },
+  { v: "light", t: "Light" },
+  { v: "dark", t: "Dark" },
+] as const;
+
+export default function Account() {
+  const {
+    userName, userEmail, userPhone, setUserPhone, accountNo,
+    addresses, addAddress, updateAddress, deleteAddress,
+    cards, addCard, deleteCard, logout, themePref, setThemePref,
+    agentActivated, activateAgent, deactivateAgent, bookings, updateBooking, notify,
+    launchSide, setLaunchSide, setRole, changePassword,
+    biometricEnabled, biometricEmail, enableBiometric, disableBiometric, lastAccount,
+    connectedListings, addListing, removeListing,
+    recordConsent, consents, hasAcceptedCurrent,
+    agentProfile, setAgentProfile,
+    pushEnabled, requestPushPermission,
+  } = useStore();
+
+  const bioOn = biometricEnabled && biometricEmail === lastAccount?.email;
+  function toggleBio() {
+    if (bioOn) disableBiometric();
+    else if (lastAccount) enableBiometric(lastAccount.email);
+  }
+
+  // shared profile
+  const [editProfile, setEditProfile] = useState(false);
+
+  // customer: properties + payment
+  const [showAdd, setShowAdd] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [showAddCard, setShowAddCard] = useState(false);
+  const [cardForm, setCardForm] = useState({ nickname: "", number: "" });
+  const [removeProp, setRemoveProp] = useState<PropertyAddress | null>(null);
+  const [showExp, setShowExp] = useState(false);
+  const _pm = prevMonthDefaults();
+  const [expMonth, setExpMonth] = useState(_pm.month);
+  const [expYear, setExpYear] = useState(_pm.year);
+  const [expYearAnnual, setExpYearAnnual] = useState(String(new Date().getFullYear() - 1));
+
+  // cleaner activation + legal
+  const [showActivate, setShowActivate] = useState(false);
+  const [showOff, setShowOff] = useState(false);
+  const [showCleanerConsent, setShowCleanerConsent] = useState(false);
+  const [showReferHint, setShowReferHint] = useState(false);
+  const [viewDoc, setViewDoc] = useState<string | null>(null);
+  const [showLegal, setShowLegal] = useState(false);
+
+  // cleaner: earnings / payout / rates / disputes / verification
+  const [showPayout, setShowPayout] = useState(false);
+  const [payType, setPayType] = useState<"bank" | "card">(agentProfile.payoutType || "bank");
+  const [payName, setPayName] = useState(agentProfile.payoutName || "");
+  const [payNum, setPayNum] = useState("");
+  const [payExp, setPayExp] = useState(agentProfile.payoutExpiry || "");
+  const [payCvc, setPayCvc] = useState("");
+  const [showRates, setShowRates] = useState(false);
+  const [editDay, setEditDay] = useState<string | null>(null);
+  const [showDisputes, setShowDisputes] = useState(false);
+  const [disputeFor, setDisputeFor] = useState<Booking | null>(null);
+  const [showVerify, setShowVerify] = useState(false);
+  const [verifyStatus, setVerifyStatus] = useState<"none" | "submitted" | "verified">("none");
+  const [idUp, setIdUp] = useState(false);
+  const [idName, setIdName] = useState("");
+  const [idNumber, setIdNumber] = useState("");
+  const [idExpiry, setIdExpiry] = useState("");
+  const [docType, setDocType] = useState<"id" | "passport">("id");
+  const idInput = useRef<HTMLInputElement>(null);
+  const [idCam, setIdCam] = useState(false);
+  const verified = verifyStatus === "verified";
+
+  const spentThisMonth = bookings.filter((b) => b.status === "completed").reduce((s, b) => s + b.total, 0);
+  const spentCount = bookings.filter((b) => b.status === "completed").length;
+
+  const [form, setForm] = useState<{ nickname: string; address: string; propertyType: "apartment" | "house"; apartmentNumber: string; floor: string; bedrooms: number; bathrooms: number; kitchens: number; commonRooms: number }>({ nickname: "", address: "", propertyType: "apartment", apartmentNumber: "", floor: "", bedrooms: 1, bathrooms: 1, kitchens: 1, commonRooms: 1 });
+  const [addrFocus, setAddrFocus] = useState(false);
+  const [icalPlatform, setIcalPlatform] = useState<ListingPlatform>("airbnb");
+  const [icalUrl, setIcalUrl] = useState("");
+
+  // live address autocomplete via OpenStreetMap Nominatim (free, no key)
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [acLoading, setAcLoading] = useState(false);
+  const acSeq = useRef(0);
+  useEffect(() => {
+    const q = form.address.trim();
+    if (q.length < 3) { setSuggestions([]); setAcLoading(false); return; }
+    const seq = ++acSeq.current;
+    setAcLoading(true);
+    const t = setTimeout(async () => {
+      try {
+        const r = await fetch(
+          // countrycodes=cy restricts results to Cyprus only (the platform's
+          // service area) so the typeahead never surfaces foreign addresses.
+          `https://nominatim.openstreetmap.org/search?format=json&addressdetails=0&limit=6&countrycodes=cy&q=${encodeURIComponent(q)}`,
+          { headers: { "Accept-Language": "en" } }
+        );
+        const data = await r.json();
+        if (seq !== acSeq.current) return;
+        setSuggestions((data as { display_name: string }[]).map((d) => d.display_name));
+      } catch {
+        if (seq === acSeq.current) setSuggestions([]);
+      } finally {
+        if (seq === acSeq.current) setAcLoading(false);
+      }
+    }, 350);
+    return () => clearTimeout(t);
+  }, [form.address]);
+
+  function resetForm() {
+    setForm({ nickname: "", address: "", propertyType: "apartment", apartmentNumber: "", floor: "", bedrooms: 1, bathrooms: 1, kitchens: 1, commonRooms: 1 });
+    setIcalPlatform("airbnb"); setIcalUrl("");
+  }
+
+  function openEditProperty(a: PropertyAddress) {
+    setForm({
+      nickname: a.nickname === a.address ? "" : a.nickname,
+      address: a.address, propertyType: a.propertyType, apartmentNumber: a.apartmentNumber ?? "", floor: a.floor ?? "",
+      bedrooms: a.bedrooms, bathrooms: a.bathrooms, kitchens: a.kitchens, commonRooms: a.commonRooms,
+    });
+    const existing = connectedListings.find((l) => l.addressId === a.id);
+    setIcalPlatform(existing?.platform ?? "airbnb");
+    setIcalUrl(existing?.icalUrl ?? "");
+    setEditId(a.id);
+    setShowAdd(true);
+  }
+
+  function saveProperty() {
+    if (!form.address) return;
+    if (form.propertyType === "apartment" && !form.apartmentNumber.trim()) return;
+    const a: PropertyAddress = {
+      id: editId ?? crypto.randomUUID(), ...form,
+      nickname: form.nickname.trim() || form.address.trim(),
+      apartmentNumber: form.propertyType === "apartment" ? form.apartmentNumber.trim() : undefined,
+      floor: form.propertyType === "apartment" ? (form.floor.trim() || undefined) : undefined,
+    };
+    if (editId) updateAddress(a); else addAddress(a);
+    const url = icalUrl.trim();
+    const already = connectedListings.find((l) => l.addressId === a.id);
+    if (url && url !== already?.icalUrl) {
+      if (already) removeListing(already.id);
+      const { listing, bookings: bs } = syncListing(icalPlatform, url, a.id);
+      addListing(listing, bs);
+    } else if (!url && already) {
+      removeListing(already.id);
+    }
+    setShowAdd(false); setEditId(null);
+    resetForm();
+  }
+
+  function addCardViaJCC() {
+    if (!cardForm.nickname) return;
+    const jccToken = "jcc_tok_" + Math.random().toString(36).slice(2, 14);
+    const last4 = String(Math.floor(1000 + Math.random() * 9000));
+    const brand = Math.random() > 0.5 ? "Mastercard" : "Visa";
+    const c: Card = { id: crypto.randomUUID(), nickname: cardForm.nickname, last4, brand, jccToken };
+    addCard(c);
+    setShowAddCard(false);
+    setCardForm({ nickname: "", number: "" });
+  }
+
+  // ---- cleaner-side derived data + helpers ----
+  const wkdayStats = marketStats("weekday");
+  const wkendStats = marketStats("weekend");
+  function position(rate: number, s: ReturnType<typeof marketStats>) {
+    if (rate <= s.min) return { label: "Cheapest", cls: "green" };
+    if (rate >= s.max) return { label: "Premium", cls: "amber" };
+    return { label: "Around average", cls: "sky" };
+  }
+  const posWkday = position(agentProfile.rateWeekday, wkdayStats);
+  const posWkend = position(agentProfile.rateWeekend, wkendStats);
+
+  const serviceCities = agentProfile.serviceCities ?? [];
+  function toggleCity(city: string) {
+    const next = serviceCities.includes(city) ? serviceCities.filter((c) => c !== city) : [...serviceCities, city];
+    setAgentProfile({ ...agentProfile, serviceCities: next });
+  }
+
+  const sched = agentProfile.daySchedule ?? {};
+  function setSched(next: Record<string, { start: string; end: string }[]>) {
+    setAgentProfile({ ...agentProfile, daySchedule: next });
+  }
+  function toggleDay(d: string) {
+    const next = { ...sched };
+    if (next[d] && next[d].length) delete next[d];
+    else next[d] = [{ start: "09:00", end: "17:00" }];
+    setSched(next);
+  }
+  function setDaySlot(d: string, i: number, key: "start" | "end", v: string) {
+    const slots = (sched[d] ?? []).map((s, k) => {
+      if (k !== i) return s;
+      const next = { ...s, [key]: v };
+      if (key === "start" && next.end <= v) {
+        const [h, m] = v.split(":").map(Number);
+        const t = h * 60 + m + 30;
+        next.end = `${String(Math.min(23, Math.floor(t / 60))).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
+      }
+      return next;
+    });
+    setSched({ ...sched, [d]: slots });
+  }
+  function addDaySlot(d: string) {
+    const slots = sched[d] ?? [];
+    const last = slots[slots.length - 1];
+    setSched({ ...sched, [d]: [...slots, { start: last?.end || "14:00", end: "18:00" }] });
+  }
+  function removeDaySlot(d: string, i: number) {
+    setSched({ ...sched, [d]: (sched[d] ?? []).filter((_, k) => k !== i) });
+  }
+
+  const disputes = bookings.filter((b) => b.refund);
+  const disputesActionNeeded = disputes.filter((b) => b.refund!.status === "pending" && !b.refund!.agentResponse).length;
+
+  return (
+    <div className="pad">
+      <h1 className="h1">Hi {(agentProfile.displayName || userName || "there").split(" ")[0]}!</h1>
+
+      {/* ===================== PROFILE (compact, no photo/name) ===== */}
+      <div className="profcard profcard--v2" onClick={() => setEditProfile(true)}>
+        <div className="grow" style={{ minWidth: 0 }}>
+          <div className="profcard__val" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{userEmail}</div>
+          {userPhone
+            ? <div className="profcard__val" style={{ marginTop: 2 }}>{userPhone}</div>
+            : <div className="tiny" style={{ color: "var(--amber)", fontWeight: 700, marginTop: 3 }}>Phone required — tap to add</div>}
+          {accountNo && <div className="tiny muted" style={{ marginTop: 3 }}>Account #{accountNo}</div>}
+        </div>
+        <span className="profcard__chev">›</span>
+      </div>
+
+      {editProfile && (
+        <DetailsModal
+          email={userEmail} phone={userPhone}
+          onClose={() => setEditProfile(false)}
+          onSavePhone={setUserPhone}
+          onChangePassword={changePassword}
+        />
+      )}
+
+
+      {/* ===================== CUSTOMER ===================== */}
+      <div className="acct-sec">Customer</div>
+
+      {/* PROPERTIES */}
+      <div className="between">
+        <div className="label" style={{ margin: 0 }}>My properties</div>
+        <button className="btn sm secondary" onClick={() => { setEditId(null); resetForm(); setShowAdd(true); }}>+ Add</button>
+      </div>
+
+      {showAdd && (
+        <div className="modal__backdrop" onClick={() => { setShowAdd(false); setEditId(null); resetForm(); }}>
+          <div className="modal tall" onClick={(e) => e.stopPropagation()}>
+            <div className="between" style={{ marginBottom: 12 }}>
+              <b style={{ fontSize: 16 }}>{editId ? "Edit property" : "Add a property"}</b>
+              <button className="iconbtn" onClick={() => { setShowAdd(false); setEditId(null); resetForm(); }}>✕</button>
+            </div>
+            <div className="label">Nickname (optional)</div>
+            <input className="input" value={form.nickname} placeholder="e.g. Seaside Apartment" onChange={(e) => setForm({ ...form, nickname: e.target.value })} />
+            <div className="label">Address</div>
+            <div className="ac">
+              <input className="input" value={form.address} placeholder="Start typing your address…"
+                onChange={(e) => setForm({ ...form, address: e.target.value })}
+                onFocus={() => setAddrFocus(true)}
+                onBlur={() => setTimeout(() => setAddrFocus(false), 150)} />
+              {addrFocus && (acLoading || suggestions.length > 0) && (
+                <div className="ac__list">
+                  {acLoading && suggestions.length === 0 && (
+                    <div className="ac__item" style={{ color: "var(--muted)" }}><span className="ac__addr">Searching…</span></div>
+                  )}
+                  {suggestions.map((s) => (
+                    <button key={s} className="ac__item" onMouseDown={() => { setForm({ ...form, address: s }); setSuggestions([]); setAddrFocus(false); }}>
+                      <span className="ac__addr">{s}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="label">Property type</div>
+            <div className="ptype">
+              {([{ v: "apartment", t: "Apartment" }, { v: "house", t: "House" }] as const).map((o) => (
+                <button key={o.v} type="button" className={"ptype__opt" + (form.propertyType === o.v ? " sel" : "")}
+                  onClick={() => setForm({ ...form, propertyType: o.v })}>
+                  <span className="ptype__ic">
+                    {o.v === "house"
+                      ? <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M4 11 12 4l8 7" /><path d="M6 10v9h12v-9" /><path d="M10 19v-5h4v5" /></svg>
+                      : <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="6" y="3" width="12" height="18" rx="1.5" /><path d="M9.5 7h1M13.5 7h1M9.5 11h1M13.5 11h1M9.5 15h1M13.5 15h1" /></svg>}
+                  </span>
+                  <span className="ptype__t">{o.t}</span>
+                  <span className="ptype__check">{form.propertyType === o.v ? "✓" : ""}</span>
+                </button>
+              ))}
+            </div>
+
+            {form.propertyType === "apartment" && (
+              <>
+                <div className="row" style={{ gap: 10 }}>
+                  <div className="grow">
+                    <div className="label">Apartment no.</div>
+                    <input className="input" value={form.apartmentNumber} placeholder="e.g. 3B" onChange={(e) => setForm({ ...form, apartmentNumber: e.target.value })} />
+                  </div>
+                  <div className="grow">
+                    <div className="label">Floor</div>
+                    <input className="input" value={form.floor} placeholder="e.g. 2nd" onChange={(e) => setForm({ ...form, floor: e.target.value })} />
+                  </div>
+                </div>
+                <div className="tiny muted" style={{ marginTop: 4 }}>So your cleaner knows exactly which unit to go to.</div>
+              </>
+            )}
+
+            <div className="row wrap" style={{ gap: 10, marginTop: 8 }}>
+              {(["bedrooms", "bathrooms", "kitchens", "commonRooms"] as const).map((k) => (
+                <div key={k} style={{ flex: "1 1 44%" }}>
+                  <div className="label" style={{ margin: "6px 0 4px" }}>{k}</div>
+                  <input className="input" type="number" min={0} value={form[k]} onChange={(e) => setForm({ ...form, [k]: +e.target.value })} />
+                </div>
+              ))}
+            </div>
+
+            <div className="label" style={{ marginTop: 14 }}>Sync a calendar (optional)</div>
+            <div className="segmini" style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)" }}>
+              <button type="button" className={icalPlatform === "airbnb" ? "active" : ""} onClick={() => setIcalPlatform("airbnb")}>Airbnb</button>
+              <button type="button" className={icalPlatform === "booking" ? "active" : ""} onClick={() => setIcalPlatform("booking")}>Booking</button>
+            </div>
+            <input className="input" style={{ marginTop: 8 }} value={icalUrl} placeholder="Calendar link (iCal) — optional" onChange={(e) => setIcalUrl(e.target.value)} />
+            <div className="note" style={{ marginTop: 10 }}>
+              <b style={{ fontSize: 12.5 }}>How to find it on {icalPlatform === "airbnb" ? "Airbnb" : "Booking.com"}</b>
+              <ol style={{ margin: "6px 0 0", paddingLeft: 18, lineHeight: 1.5 }}>
+                {(icalPlatform === "airbnb"
+                  ? ["Open Airbnb on the website (airbnb.com).", "Menu → Listings → pick the property.", "Availability → Connect calendars → Export calendar.", "Copy the .ics link and paste it above."]
+                  : ["Sign in to the Booking.com host site (admin.booking.com).", "Open the property → Calendar → Sync calendars.", "Under Export, copy the .ics link.", "Paste it above."]
+                ).map((s, i) => <li key={i} style={{ fontSize: 12 }}>{s}</li>)}
+              </ol>
+            </div>
+
+            <div style={{ height: 14 }} />
+            {(() => {
+              const apt = form.propertyType === "apartment";
+              const blocked = !form.address || (apt && !form.apartmentNumber.trim());
+              return (
+                <button className="btn" disabled={blocked} style={{ opacity: blocked ? 0.5 : 1 }} onClick={saveProperty}>
+                  {editId ? "Save changes" : "Save property"}
+                </button>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
+      {addresses.map((a) => (
+        <div key={a.id} className="propcard">
+          <div className="propcard__top">
+            <span className="propcard__ic">
+              {a.propertyType === "house"
+                ? <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 11 12 4l8 7" /><path d="M6 10v9h12v-9" /><path d="M10 19v-5h4v5" /></svg>
+                : <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="6" y="3" width="12" height="18" rx="1.5" /><path d="M9.5 7h1M13.5 7h1M9.5 11h1M13.5 11h1M9.5 15h1M13.5 15h1" /></svg>}
+            </span>
+            <div className="grow" style={{ minWidth: 0 }}>
+              <b style={{ fontSize: 14 }}>{a.nickname}</b>
+              {a.nickname !== a.address && (
+                <div className="tiny muted" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.address}</div>
+              )}
+            </div>
+            <button className="iconbtn" title="Edit property" onClick={() => openEditProperty(a)}>
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20h4L18.5 9.5a2 2 0 0 0-3-3L5 17v3Z" /><path d="M13.5 6.5l3 3" /></svg>
+            </button>
+            <button className="iconbtn" title="Remove property" onClick={() => setRemoveProp(a)}>
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13M10 11v6M14 11v6" /></svg>
+            </button>
+          </div>
+        </div>
+      ))}
+
+      {removeProp && (() => {
+        const affected = bookings.filter(
+          (b) => b.addressNickname === removeProp.nickname && b.status !== "completed" && b.status !== "cancelled" && b.status !== "declined"
+        ).length;
+        return (
+          <div className="modal__backdrop" onClick={() => setRemoveProp(null)}>
+            <div className="modal" onClick={(e) => e.stopPropagation()}>
+              <div style={{ textAlign: "center", marginBottom: 6 }}><b style={{ fontSize: 17 }}>Remove property?</b></div>
+              <p className="sub" style={{ textAlign: "center" }}>Remove <b>{removeProp.nickname}</b> from your saved properties? This can't be undone.</p>
+              {affected > 0 && (
+                <div className="note amber" style={{ marginTop: 4 }}>
+                  This property has <b>{affected} active booking{affected === 1 ? "" : "s"}</b> (including any recurring schedule). Removing it will <b>cancel them all</b> and clear them from your calendar.
+                </div>
+              )}
+              <div style={{ height: 12 }} />
+              <button className="btn danger" onClick={() => { deleteAddress(removeProp.id); setRemoveProp(null); }}>
+                {affected > 0 ? `Remove & cancel ${affected} booking${affected === 1 ? "" : "s"}` : "Remove property"}
+              </button>
+              <div style={{ height: 8 }} />
+              <button className="btn secondary" onClick={() => setRemoveProp(null)}>Keep</button>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* PAYMENT */}
+      <div className="between" style={{ marginTop: 18 }}>
+        <div className="label" style={{ margin: 0 }}>Payment methods</div>
+        <button className="btn sm secondary" onClick={() => setShowAddCard(true)}>+ Add</button>
+      </div>
+
+      {showAddCard && (
+        <div className="modal__backdrop" onClick={() => setShowAddCard(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="between" style={{ marginBottom: 12 }}>
+              <b style={{ fontSize: 16 }}>Add a card</b>
+              <button className="iconbtn" onClick={() => setShowAddCard(false)}>✕</button>
+            </div>
+            <div className="label">Card nickname</div>
+            <input className="input" value={cardForm.nickname} placeholder="e.g. Personal" onChange={(e) => setCardForm({ ...cardForm, nickname: e.target.value })} />
+            <p className="tiny muted" style={{ marginTop: 10, lineHeight: 1.4 }}>You'll enter your card on JCC's secure page. Charged only after a completed cleaning.</p>
+            <div style={{ height: 14 }} />
+            <button className="btn" onClick={addCardViaJCC}>Continue to secure checkout →</button>
+          </div>
+        </div>
+      )}
+
+      {cards.map((c) => (
+        <div key={c.id} className="card row between">
+          <div className="row">
+            <BrandIcon brand={c.brand} />
+            <div>
+              <b style={{ fontSize: 14 }}>{c.nickname}</b>
+              <div className="tiny muted">•••• {c.last4}</div>
+            </div>
+          </div>
+          <button className="iconbtn" title="Remove" onClick={() => deleteCard(c.id)}>✕</button>
+        </div>
+      ))}
+
+      {/* EXPENSE STATEMENTS */}
+      <div className="card row between" style={{ marginTop: 12, cursor: "pointer" }} onClick={() => setShowExp(true)}>
+        <b style={{ fontSize: 14 }}>Expense statements</b>
+        <span className="dayrow__chev">›</span>
+      </div>
+
+      {showExp && (
+        <div className="modal__backdrop" onClick={() => setShowExp(false)}>
+          <div className="modal tall" onClick={(e) => e.stopPropagation()}>
+            <div className="between" style={{ marginBottom: 4 }}>
+              <b style={{ fontSize: 16 }}>Expense statements</b>
+              <button className="iconbtn" onClick={() => setShowExp(false)}>✕</button>
+            </div>
+            <div className="card row between" style={{ marginBottom: 14 }}>
+              <div>
+                <div className="earnmonth__name">This month</div>
+                <div className="earnmonth__total" style={{ marginTop: 2 }}>€{spentThisMonth.toFixed(0)}</div>
+                <div className="tiny muted">{spentCount} cleanings</div>
+              </div>
+              <button className="dl" onClick={() => downloadExpenses("this month")}>PDF</button>
+            </div>
+            <div className="label" style={{ marginTop: 0 }}>Monthly statement</div>
+            <div className="card">
+              <div className="row" style={{ gap: 8 }}>
+                <Dropdown value={expMonth} options={MONTHS} onChange={setExpMonth} />
+                <div style={{ width: 110 }}><Dropdown value={expYear} options={YEARS} onChange={setExpYear} /></div>
+              </div>
+              <button className="btn" style={{ marginTop: 12 }} onClick={() => downloadExpenses(`${expMonth} ${expYear}`)}>Download</button>
+            </div>
+            <div className="label">Yearly statement</div>
+            <div className="card">
+              <p className="sub" style={{ marginTop: 0 }}>Full-year expense summary.</p>
+              <Dropdown value={expYearAnnual} options={YEARS} onChange={setExpYearAnnual} />
+              <button className="btn" style={{ marginTop: 12 }} onClick={() => downloadExpenses(`full year ${expYearAnnual}`)}>Download</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===================== CLEANER (only when activated) ===================== */}
+      {agentActivated && (
+        <>
+          <div className="acct-sec acct-sec--agent">Cleaner</div>
+
+          {/* RATES & AVAILABILITY */}
+          <div className="card row between" style={{ marginTop: 12, cursor: "pointer" }} onClick={() => setShowRates(true)}>
+            <b style={{ fontSize: 14 }}>Rates & availability</b>
+            {(() => {
+              const rateSet = agentProfile.rateWeekday > 0 && agentProfile.rateWeekend > 0;
+              const schedSet = Object.values(sched).some((s) => s && s.length);
+              const citySet = serviceCities.length > 0;
+              return rateSet && schedSet && citySet
+                ? <span className="statuspill statuspill--ok">Set</span>
+                : <span className="statuspill statuspill--warn">Set up</span>;
+            })()}
+          </div>
+
+          {/* GET PAID */}
+          <div className="card row between" style={{ marginTop: 12, cursor: "pointer" }} onClick={() => setShowPayout(true)}>
+            <b style={{ fontSize: 14 }}>Get paid</b>
+            {(() => {
+              if (!agentProfile.payoutType) return <span className="statuspill statuspill--warn">Add card</span>;
+              const last4 = (agentProfile.payoutNumber || "").slice(-4);
+              if (agentProfile.payoutType === "card") {
+                const st = cardExpiryStatus(agentProfile.payoutExpiry);
+                if (st === "expired") return <span className="statuspill statuspill--warn">Card expired</span>;
+                if (st === "soon") return <span className="statuspill statuspill--warn">Expires {agentProfile.payoutExpiry}</span>;
+                return <span className="statuspill statuspill--ok">Card •{last4}</span>;
+              }
+              return <span className="statuspill statuspill--ok">Bank •{last4}</span>;
+            })()}
+          </div>
+
+          {/* DISPUTES */}
+          <div className="card row between" style={{ marginTop: 12, cursor: "pointer" }} onClick={() => setShowDisputes(true)}>
+            <b style={{ fontSize: 14 }}>Disputes</b>
+            {disputesActionNeeded > 0
+              ? <span className="statuspill statuspill--warn">{disputesActionNeeded} to review</span>
+              : <span className="statuspill statuspill--ok">All clear</span>}
+          </div>
+
+          {/* VERIFICATION */}
+          <div className="card row between" style={{ marginTop: 12, cursor: "pointer" }} onClick={() => setShowVerify(true)}>
+            <b style={{ fontSize: 14 }}>Identity verification</b>
+            {verified
+              ? <span className="verbadge"><svg viewBox="0 0 24 24" width="20" height="20" aria-label="Verified"><path d="M12 2 14.9 4.1 18.5 4 19.6 7.4 22.5 9.5 21 12.8 22.5 16.1 19.6 18.2 18.5 21.6 14.9 21.5 12 23.6 9.1 21.5 5.5 21.6 4.4 18.2 1.5 16.1 3 12.8 1.5 9.5 4.4 7.4 5.5 4 9.1 4.1Z" fill="#1d9bf0" /><path d="M9.6 12.4 11.3 14.1 14.8 10.2" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
+              : verifyStatus === "submitted"
+                ? <span className="statuspill statuspill--warn">Under review</span>
+                : <span className="verpill">Verify</span>}
+          </div>
+        </>
+      )}
+
+      {/* BECOME A CLEANER — single toggle. Requires a phone first (customers
+          must be able to reach the cleaner). */}
+      <div className="card row between" style={{ marginTop: 18, cursor: "pointer" }}
+        onClick={() => {
+          if (agentActivated) { setShowOff(true); return; }
+          if (!userPhone.trim()) { setEditProfile(true); return; }
+          setShowActivate(true);
+        }}>
+        <b style={{ fontSize: 14 }}>Become a cleaner</b>
+        <div className={"switch" + (agentActivated ? " on" : "")}><div className="switch__dot" /></div>
+      </div>
+
+      {/* ===================== SETTINGS (shared) ===================== */}
+      <div className="acct-sec">Settings</div>
+
+      {agentActivated && (
+        <div className="card row between">
+          <b style={{ fontSize: 14 }}>Open on launch</b>
+          <div className="segmini">
+            {([{ v: "customer", t: "Customer" }, { v: "agent", t: "Cleaner" }] as const).map((o) => (
+              <button key={o.v} className={launchSide === o.v ? "active" : ""} onClick={() => setLaunchSide(o.v)}>{o.t}</button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="card row between" style={{ marginTop: 12, cursor: "pointer" }} onClick={toggleBio}>
+        <b style={{ fontSize: 14 }}>{biometricLabel()}</b>
+        <div className={"switch" + (bioOn ? " on" : "")}><div className="switch__dot" /></div>
+      </div>
+
+      <div className="card row between" style={{ marginTop: 12, cursor: pushEnabled ? "default" : "pointer" }}
+        onClick={() => { if (!pushEnabled) requestPushPermission(); }}>
+        <div>
+          <b style={{ fontSize: 14 }}>Push notifications</b>
+          {!pushEnabled && <div className="tiny muted" style={{ marginTop: 2 }}>Get alerts for bookings, jobs and updates.</div>}
+        </div>
+        {pushEnabled
+          ? <span className="statuspill statuspill--ok">On</span>
+          : <button className="btn sm" onClick={(e) => { e.stopPropagation(); requestPushPermission(); }}>Enable</button>}
+      </div>
+
+      <div className="card row between" style={{ marginTop: 12 }}>
+        <b style={{ fontSize: 14 }}>Appearance</b>
+        <div className="segmini">
+          {THEME_OPTS.map((o) => (
+            <button key={o.v} className={themePref === o.v ? "active" : ""} onClick={() => setThemePref(o.v)}>{o.t}</button>
+          ))}
+        </div>
+      </div>
+
+      <div className="card row between" style={{ marginTop: 12, cursor: "pointer" }} onClick={() => setShowLegal(true)}>
+        <b style={{ fontSize: 14 }}>Legal & policies</b>
+        <span className="dayrow__chev">›</span>
+      </div>
+
+      <div style={{ height: 18 }} />
+      <button className="btn danger" onClick={logout}>Sign out</button>
+
+      <div style={{ height: 14 }} />
+      <p className="tiny muted" style={{ textAlign: "center" }}>{APP_NAME} demo · {APP_VERSION}</p>
+
+      {/* ===================== MODALS ===================== */}
+
+      {/* cleaner activation */}
+      {showActivate && (
+        <div className="modal__backdrop" onClick={() => setShowActivate(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div style={{ textAlign: "center", marginBottom: 8 }}><b style={{ fontSize: 18 }}>Become a cleaner</b></div>
+            <p className="sub" style={{ textAlign: "center" }}>Turn {APP_NAME} into income. Pick up cleaning jobs near you, on your own schedule.</p>
+            <div className="actfeat"><div><b>Work when you want</b><div className="tiny muted">Set your days, hours and breaks.</div></div></div>
+            <div className="actfeat"><div><b>Set your own rate</b><div className="tiny muted">Weekday and weekend prices, your call.</div></div></div>
+            <div className="actfeat"><div><b>Get paid weekly</b><div className="tiny muted">Earnings transfer straight to your bank.</div></div></div>
+            <div className="actfeat"><div><b>Earn more by referring</b><div className="tiny muted">Invite cleaners you trust — when they have a good month, you both get a bonus, every month.</div></div></div>
+            <div className="actfeat"><div><b>Quick verification</b><div className="tiny muted">EU citizens verified instantly. Others upload a work permit.</div></div></div>
+            <div className="note" style={{ marginTop: 14 }}>You'll join as an <b>independent, self-employed</b> service provider. You're responsible for your own income tax and social insurance.</div>
+            <div style={{ height: 14 }} />
+            <button className="btn" onClick={() => {
+              setShowActivate(false);
+              // Skip the legal gate if the cleaner agreement was already accepted
+              // at its current version — re-activating shouldn't re-prompt.
+              if (hasAcceptedCurrent(CLEANER_DOC_IDS)) { activateAgent(); setShowReferHint(true); }
+              else { setShowCleanerConsent(true); }
+            }}>Continue</button>
+            <div style={{ height: 8 }} />
+            <button className="btn secondary" onClick={() => setShowActivate(false)}>Maybe later</button>
+          </div>
+        </div>
+      )}
+
+      {showReferHint && (
+        <div className="modal__backdrop" onClick={() => setShowReferHint(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div style={{ textAlign: "center", marginBottom: 8 }}><b style={{ fontSize: 18 }}>You're a cleaner now 🎉</b></div>
+            <p className="sub" style={{ textAlign: "center" }}>One more way to earn: invite other cleaners you trust.</p>
+            <div className="referhero" style={{ marginTop: 6 }}>
+              <div className="referhero__title">Refer &amp; earn more</div>
+              <p className="referhero__sub">
+                When a cleaner you invited has a good month, you <b>both</b> get a bonus on top of
+                your pay — and it repeats every month they keep it up.
+              </p>
+            </div>
+            <div style={{ height: 14 }} />
+            <button className="btn agent" onClick={() => { setShowReferHint(false); setRole("agent"); }}>
+              Go to Refer &amp; earn
+            </button>
+            <div style={{ height: 8 }} />
+            <button className="btn secondary" onClick={() => setShowReferHint(false)}>Later</button>
+          </div>
+        </div>
+      )}
+
+      {showCleanerConsent && (
+        <ConsentGate
+          title="Cleaner (Service Provider) Agreement"
+          intro="You're joining as an independent, self-employed provider. Please read and accept before activating."
+          docIds={CLEANER_DOC_IDS}
+          confirmLabel="I agree — activate cleaner mode"
+          onCancel={() => setShowCleanerConsent(false)}
+          onConfirm={() => {
+            recordConsent(CLEANER_DOC_IDS);
+            activateAgent();
+            setShowCleanerConsent(false);
+            setShowReferHint(true);
+            // stay on the account page — the Cleaner section simply appears
+          }}
+        />
+      )}
+
+      {showOff && (
+        <div className="modal__backdrop" onClick={() => setShowOff(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div style={{ textAlign: "center", marginBottom: 6 }}><b style={{ fontSize: 17 }}>Deactivate cleaner mode?</b></div>
+            <p className="sub" style={{ textAlign: "center" }}>You'll stop receiving jobs and return to the customer app. <b>Any pending offers and accepted jobs will be cancelled.</b> Your rate, schedule and reviews are kept — reactivate anytime.</p>
+            <div style={{ height: 8 }} />
+            <button className="btn danger" onClick={() => { deactivateAgent(); setShowOff(false); }}>Deactivate</button>
+            <div style={{ height: 8 }} />
+            <button className="btn secondary" onClick={() => setShowOff(false)}>Keep active</button>
+          </div>
+        </div>
+      )}
+
+      {/* earnings statements */}
+      {/* rates & availability */}
+      {showRates && (
+        <div className="modal__backdrop" onClick={() => setShowRates(false)}>
+          <div className="modal tall" onClick={(e) => e.stopPropagation()}>
+            <div className="between" style={{ marginBottom: 14 }}>
+              <b style={{ fontSize: 16 }}>Rates & availability</b>
+              <button className="iconbtn" onClick={() => setShowRates(false)}>✕</button>
+            </div>
+
+            <div className="label" style={{ marginTop: 0 }}>Your rate</div>
+            <RateCard title="Weekday" rate={agentProfile.rateWeekday} stats={wkdayStats} pos={posWkday}
+              onChange={(r) => setAgentProfile({ ...agentProfile, rateWeekday: r })} />
+            <RateCard title="Weekend" rate={agentProfile.rateWeekend} stats={wkendStats} pos={posWkend}
+              onChange={(r) => setAgentProfile({ ...agentProfile, rateWeekend: r })} />
+
+            <div className="label" style={{ marginTop: 16 }}>Cities you work in</div>
+            <p className="sub" style={{ marginTop: 0 }}>You only appear to customers booking in the cities you select.</p>
+            <div className="daypick" style={{ flexWrap: "wrap" }}>
+              {CY_CITIES.map((city) => (
+                <button key={city} className={"daypick__chip" + (serviceCities.includes(city) ? " active" : "")} onClick={() => toggleCity(city)}>
+                  {city}
+                </button>
+              ))}
+            </div>
+            {serviceCities.length === 0 && (
+              <div className="note amber" style={{ marginTop: 8 }}>Pick at least one city, or customers won't find you.</div>
+            )}
+
+            <div className="label" style={{ marginTop: 16 }}>Work schedule</div>
+            <div className="card" style={{ padding: "2px 0" }}>
+              {WEEKDAYS.map((d, idx) => {
+                const on = !!(sched[d] && sched[d].length);
+                const summary = on ? sched[d].map((s) => `${s.start}–${s.end}`).join(", ") : "Day off";
+                return (
+                  <div key={d} className="dayrow" style={{ borderTop: idx ? "1px solid var(--border)" : "none" }}>
+                    <div className={"switch sm" + (on ? " on" : "")} onClick={() => toggleDay(d)}><div className="switch__dot" /></div>
+                    <span className="dayrow__name">{d}</span>
+                    <button className="dayrow__sum" disabled={!on} onClick={() => on && setEditDay(d)}>
+                      <span className={on ? "" : "muted"}>{summary}</span>
+                      {on && <span className="dayrow__chev">›</span>}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div style={{ height: 14 }} />
+            <button className="btn" onClick={() => setShowRates(false)}>Done</button>
+          </div>
+        </div>
+      )}
+
+      {editDay && (
+        <div className="modal__backdrop" onClick={() => setEditDay(null)}>
+          <div className="modal tall" onClick={(e) => e.stopPropagation()}>
+            <div className="between" style={{ marginBottom: 12 }}>
+              <b style={{ fontSize: 16 }}>{DAY_FULL[editDay]} hours</b>
+              <button className="iconbtn" onClick={() => setEditDay(null)}>✕</button>
+            </div>
+            {(sched[editDay] ?? []).map((s, i) => {
+              const prevEnd = i > 0 ? (sched[editDay] ?? [])[i - 1].end : undefined;
+              return (
+                <div key={i} className="slotrow">
+                  <div className="grow"><TimeSelect value={s.start} min={prevEnd} onChange={(v) => setDaySlot(editDay, i, "start", v)} /></div>
+                  <span className="slotdash">–</span>
+                  <div className="grow"><TimeSelect value={s.end} min={s.start} onChange={(v) => setDaySlot(editDay, i, "end", v)} /></div>
+                  {(sched[editDay] ?? []).length > 1 && (
+                    <button className="iconbtn" title="Remove" onClick={() => removeDaySlot(editDay, i)}>✕</button>
+                  )}
+                </div>
+              );
+            })}
+            <button className="addslot" onClick={() => addDaySlot(editDay)}>+ Add another time range</button>
+            <div style={{ height: 14 }} />
+            <button className="btn" onClick={() => setEditDay(null)}>Done</button>
+          </div>
+        </div>
+      )}
+
+      {/* payout */}
+      {showPayout && (
+        <div className="modal__backdrop" onClick={() => setShowPayout(false)}>
+          <div className="modal tall" onClick={(e) => e.stopPropagation()}>
+            <div className="between" style={{ marginBottom: 12 }}>
+              <b style={{ fontSize: 16 }}>Payout method</b>
+              <button className="iconbtn" onClick={() => setShowPayout(false)}>✕</button>
+            </div>
+            <div className="seg" style={{ marginBottom: 12 }}>
+              <button className={payType === "bank" ? "active" : ""} onClick={() => setPayType("bank")}>Bank</button>
+              <button className={payType === "card" ? "active" : ""} onClick={() => setPayType("card")}>Card</button>
+            </div>
+            <div className="label">{payType === "card" ? "Cardholder name" : "Account holder name"}</div>
+            <input className="input" value={payName} onChange={(e) => setPayName(e.target.value)} placeholder="Full name" />
+            <div className="label">{payType === "card" ? "Card number" : "IBAN"}</div>
+            <input className="input" value={payNum} onChange={(e) => setPayNum(e.target.value)} inputMode="numeric"
+              placeholder={payType === "card" ? "•••• •••• •••• ••••" : "CY00 0000 0000 0000 0000 0000 0000"} />
+            {payType === "card" && (
+              <div className="row" style={{ gap: 10 }}>
+                <div className="grow">
+                  <div className="label">Expiry (MM/YY)</div>
+                  <input className="input" value={payExp} inputMode="numeric" placeholder="MM/YY"
+                    onChange={(e) => { let v = e.target.value.replace(/[^\d]/g, "").slice(0, 4); if (v.length >= 3) v = v.slice(0, 2) + "/" + v.slice(2); setPayExp(v); }} />
+                </div>
+                <div className="grow">
+                  <div className="label">CVC</div>
+                  <input className="input" value={payCvc} inputMode="numeric" placeholder="•••" onChange={(e) => setPayCvc(e.target.value.replace(/[^\d]/g, "").slice(0, 4))} />
+                </div>
+              </div>
+            )}
+            <div className="note" style={{ marginTop: 12 }}>Used only to send you your earnings. Payouts transfer a few days after each job.</div>
+            <div style={{ height: 14 }} />
+            {(() => {
+              const cardValid = payName && payNum && /^\d{2}\/\d{2}$/.test(payExp) && payCvc.length >= 3;
+              const bankValid = payName && payNum;
+              const valid = payType === "card" ? cardValid : bankValid;
+              return (
+                <button className="btn" disabled={!valid} style={{ opacity: valid ? 1 : 0.5 }}
+                  onClick={() => {
+                    const masked = payType === "card"
+                      ? "•••• " + payNum.replace(/\s/g, "").slice(-4)
+                      : payNum.replace(/\s/g, "").replace(/.(?=.{4})/g, "•").replace(/(.{4})/g, "$1 ").trim();
+                    setAgentProfile({ ...agentProfile, payoutType: payType, payoutName: payName, payoutNumber: masked, payoutExpiry: payType === "card" ? payExp : "" });
+                    setShowPayout(false);
+                  }}>
+                  {payType === "card" ? "Save card" : "Save bank account"}
+                </button>
+              );
+            })()}
+            {agentProfile.payoutType && (
+              <>
+                <div style={{ height: 8 }} />
+                <button className="btn danger" onClick={() => { setAgentProfile({ ...agentProfile, payoutType: "", payoutName: "", payoutNumber: "", payoutExpiry: "" }); setShowPayout(false); }}>Remove</button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* disputes list */}
+      {showDisputes && (
+        <div className="modal__backdrop" onClick={() => setShowDisputes(false)}>
+          <div className="modal tall" onClick={(e) => e.stopPropagation()}>
+            <div className="between" style={{ marginBottom: 14 }}>
+              <b style={{ fontSize: 16 }}>Disputes</b>
+              <button className="iconbtn" onClick={() => setShowDisputes(false)}>✕</button>
+            </div>
+            {disputes.length === 0 ? (
+              <p className="sub" style={{ margin: "8px 0" }}>No refund requests right now.</p>
+            ) : (
+              disputes.map((b) => {
+                const r = b.refund!;
+                return (
+                  <div key={b.id} className="card" style={{ cursor: "pointer", borderColor: r.status === "pending" && !r.agentResponse ? "var(--amber)" : "var(--border)" }}
+                    onClick={() => { setShowDisputes(false); setDisputeFor(b); }}>
+                    <div className="between">
+                      <b style={{ fontSize: 14 }}>{b.addressNickname}</b>
+                      <span className={"badge " + (r.status === "approved" ? "green" : r.status === "declined" ? "" : "amber")}>
+                        {r.agentResponse ? (r.agentResponse.stance === "dispute" ? "You disputed" : "You accepted") : "Action needed"}
+                      </span>
+                    </div>
+                    <div className="tiny muted" style={{ marginTop: 4 }}>{r.reason} · €{b.total} · {r.date}</div>
+                    <div className="tiny" style={{ marginTop: 4 }}>“{r.note}”</div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+
+      {disputeFor && disputeFor.refund && (
+        <DisputeModal
+          booking={disputeFor}
+          onClose={() => setDisputeFor(null)}
+          onRespond={(stance, note, hasProof) => {
+            updateBooking(disputeFor.id, {
+              refund: { ...disputeFor.refund!, agentResponse: { stance, note, hasProof, date: new Date().toISOString().slice(0, 10) } },
+            });
+            notify({
+              audience: "customer", kind: "refund_resolved", bookingId: disputeFor.id,
+              title: stance === "accept" ? "Cleaner accepted your refund" : "Cleaner disputed your refund",
+              body: stance === "accept"
+                ? `${disputeFor.cleanerName} accepted your refund for ${disputeFor.addressNickname}. Our team will finalise it.`
+                : `${disputeFor.cleanerName} disputed your refund for ${disputeFor.addressNickname}. Our team will review both sides.`,
+            });
+            setDisputeFor(null);
+          }}
+        />
+      )}
+
+      {/* verification */}
+      {showVerify && (
+        <div className="modal__backdrop" onClick={() => setShowVerify(false)}>
+          <div className="modal tall" onClick={(e) => e.stopPropagation()}>
+            <div className="between" style={{ marginBottom: 14 }}>
+              <b style={{ fontSize: 16 }}>Identity verification</b>
+              <button className="iconbtn" onClick={() => setShowVerify(false)}>✕</button>
+            </div>
+            {verified ? (
+              <div style={{ textAlign: "center", padding: "16px 0 6px" }}>
+                <span className="verbadge verbadge--lg">
+                  <svg viewBox="0 0 24 24" width="52" height="52"><path d="M12 2 14.9 4.1 18.5 4 19.6 7.4 22.5 9.5 21 12.8 22.5 16.1 19.6 18.2 18.5 21.6 14.9 21.5 12 23.6 9.1 21.5 5.5 21.6 4.4 18.2 1.5 16.1 3 12.8 1.5 9.5 4.4 7.4 5.5 4 9.1 4.1Z" fill="#1d9bf0" /><path d="M9.6 12.4 11.3 14.1 14.8 10.2" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                </span>
+                <b style={{ display: "block", marginTop: 12, fontSize: 16 }}>Verified</b>
+                <p className="sub" style={{ marginTop: 4 }}>Your identity is confirmed.</p>
+                <div style={{ height: 14 }} />
+                <button className="btn secondary" onClick={() => setShowVerify(false)}>Close</button>
+              </div>
+            ) : verifyStatus === "submitted" ? (
+              <div style={{ textAlign: "center", padding: "16px 0 6px" }}>
+                <div className="reviewspin" />
+                <b style={{ display: "block", marginTop: 14, fontSize: 16 }}>Submitted for review</b>
+                <p className="sub" style={{ marginTop: 4, maxWidth: 280, margin: "4px auto 0" }}>We're checking your document. This usually takes up to 24 hours — you'll be notified once approved.</p>
+                <div style={{ height: 16 }} />
+                <button className="btn secondary" onClick={() => setShowVerify(false)}>Close</button>
+                <button className="linklike" style={{ marginTop: 10 }} onClick={() => setVerifyStatus("verified")}>Simulate approval (demo)</button>
+              </div>
+            ) : (
+              <>
+                <div className="label" style={{ marginTop: 0 }}>Document type</div>
+                <div className="seg" style={{ marginBottom: 12 }}>
+                  <button className={docType === "id" ? "active" : ""} onClick={() => { if (docType !== "id") { setDocType("id"); setIdUp(false); setIdName(""); } }}>ID card</button>
+                  <button className={docType === "passport" ? "active" : ""} onClick={() => { if (docType !== "passport") { setDocType("passport"); setIdUp(false); setIdName(""); } }}>Passport</button>
+                </div>
+                <input ref={idInput} type="file" accept="image/*,application/pdf" hidden
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) { setIdName(f.name); setIdUp(true); } }} />
+                <div className="vdoc">
+                  <div className="between">
+                    <b style={{ fontSize: 13.5 }}>{docType === "passport" ? "Passport photo page" : "ID card (front & back)"}</b>
+                    {idUp && <span className="statuspill statuspill--ok">Added</span>}
+                  </div>
+                  <div className="row" style={{ gap: 8, marginTop: 12 }}>
+                    <button className="btn sm secondary grow" onClick={() => setIdCam(true)}>{idUp ? "Retake" : "Take photo"}</button>
+                    <button className="btn sm secondary grow" onClick={() => idInput.current?.click()}>{idUp ? "Re-upload" : "Upload"}</button>
+                  </div>
+                </div>
+                <div className="label" style={{ marginTop: 14 }}>{docType === "passport" ? "Passport number" : "ID number"}</div>
+                <input className="input" value={idNumber} onChange={(e) => setIdNumber(e.target.value.toUpperCase())} />
+                <div className="label">Expiry date</div>
+                <input className="input expiryinput" value={idExpiry} inputMode="numeric" placeholder="MM / YY" maxLength={5}
+                  onChange={(e) => { let v = e.target.value.replace(/[^\d]/g, "").slice(0, 4); if (v.length >= 3) v = v.slice(0, 2) + "/" + v.slice(2); setIdExpiry(v); }} />
+                <div style={{ height: 16 }} />
+                {(() => {
+                  const ok = idUp && idNumber.trim() && /^\d{2}\/\d{2}$/.test(idExpiry);
+                  return (
+                    <button className="btn" disabled={!ok} style={{ opacity: ok ? 1 : .5 }} onClick={() => setVerifyStatus("submitted")}>Submit for review</button>
+                  );
+                })()}
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {idCam && (
+        <CameraCapture
+          title={docType === "passport" ? "Photograph your passport" : "Photograph your ID"}
+          steps={docType === "passport" ? ["Photo page"] : ["Front", "Back"]}
+          onClose={() => setIdCam(false)}
+          onDone={() => { setIdUp(true); setIdName(""); setIdCam(false); }}
+        />
+      )}
+
+      {/* legal document list */}
+      {showLegal && (
+        <div className="modal__backdrop" onClick={() => setShowLegal(false)}>
+          <div className="modal tall" onClick={(e) => e.stopPropagation()}>
+            <div className="between" style={{ marginBottom: 12 }}>
+              <b style={{ fontSize: 16 }}>Legal & policies</b>
+              <button className="iconbtn" onClick={() => setShowLegal(false)}>✕</button>
+            </div>
+            <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+              {LEGAL_DOCS.map((d, i) => {
+                const rec = consents.find((r) => r.docId === d.id);
+                const accepted = !!rec && rec.version >= d.version;
+                return (
+                  <button key={d.id} className="legalrow" onClick={() => setViewDoc(d.id)}
+                    style={{ borderTop: i === 0 ? "none" : "1px solid var(--border)" }}>
+                    <span className="legalrow__txt">
+                      <b>{d.title}</b>
+                      <span className="tiny muted">
+                        {accepted
+                          ? `Accepted · ${new Date(rec!.acceptedAt).toLocaleDateString("en-GB")}`
+                          : "Not yet accepted"}
+                      </span>
+                    </span>
+                    <span className="tiny muted">View ›</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {viewDoc && <LegalDocModal docId={viewDoc} onClose={() => setViewDoc(null)} />}
+    </div>
+  );
+}
+
+function DisputeModal({ booking, onClose, onRespond }: {
+  booking: Booking;
+  onClose: () => void;
+  onRespond: (stance: "accept" | "dispute", note: string, hasProof: boolean) => void;
+}) {
+  const r = booking.refund!;
+  const [note, setNote] = useState(r.agentResponse?.note ?? "");
+  const [proof, setProof] = useState<CapturedPhoto[]>([]);
+  const [cam, setCam] = useState(false);
+
+  return (
+    <div className="modal__backdrop" onClick={onClose}>
+      <div className="modal tall" onClick={(e) => e.stopPropagation()}>
+        <div className="between" style={{ marginBottom: 12 }}>
+          <b style={{ fontSize: 16 }}>Refund request</b>
+          <button className="iconbtn" onClick={onClose}>✕</button>
+        </div>
+        <div className="card" style={{ marginBottom: 12 }}>
+          <div className="between"><b style={{ fontSize: 14 }}>{booking.addressNickname}</b><span className="tiny muted">{r.date}</span></div>
+          <div className="tiny muted" style={{ marginTop: 4 }}>Reason: <b>{r.reason}</b> · €{booking.total}</div>
+          <div className="tiny" style={{ marginTop: 6 }}>“{r.note}”</div>
+          <div className="tiny muted" style={{ marginTop: 6 }}>{r.hasPhoto ? "Customer attached time-stamped photos" : "No customer photos"}</div>
+        </div>
+        {r.agentResponse ? (
+          <div className={"note" + (r.agentResponse.stance === "dispute" ? " amber" : "")}>
+            You {r.agentResponse.stance === "dispute" ? "disputed" : "accepted"} this on {r.agentResponse.date}.
+            {r.agentResponse.note && <> “{r.agentResponse.note}”</>}
+          </div>
+        ) : (
+          <>
+            <div className="label">Your response</div>
+            <textarea className="input" rows={3} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Explain your side…" />
+            <button className={"proofbtn" + (proof.length ? " done" : "")} style={{ width: "100%", marginTop: 10 }} onClick={() => setCam(true)}>
+              {proof.length ? `✓ ${proof.length} proof photo(s)` : "Add your before/after proof"}
+            </button>
+            <div className="note" style={{ marginTop: 12 }}>Our team weighs both sides + the time-stamped photos, then decides.</div>
+            <div className="row" style={{ gap: 8, marginTop: 14 }}>
+              <button className="btn secondary grow" onClick={() => onRespond("accept", note, proof.length > 0)}>Accept refund</button>
+              <button className="btn agent grow" disabled={!note.trim()} style={{ opacity: !note.trim() ? 0.5 : 1 }} onClick={() => onRespond("dispute", note, proof.length > 0)}>Dispute it</button>
+            </div>
+          </>
+        )}
+      </div>
+      {cam && <CameraCapture title="Your proof photos" onClose={() => setCam(false)} onDone={(p) => { setProof(p); setCam(false); }} />}
+    </div>
+  );
+}
+
+function RateCard({ title, rate, stats, pos, onChange }: {
+  title: string;
+  rate: number;
+  stats: { min: number; max: number; avg: number };
+  pos: { label: string; cls: string };
+  onChange: (r: number) => void;
+}) {
+  const span = Math.max(1, stats.max - stats.min);
+  const clamp = Math.min(stats.max, Math.max(stats.min, rate));
+  const pct = ((clamp - stats.min) / span) * 100;
+  const avgPct = ((stats.avg - stats.min) / span) * 100;
+  const dec = (v: number) => onChange(Math.max(1, +(v - 0.5).toFixed(2)));
+  const inc = (v: number) => onChange(Math.min(50, +(v + 0.5).toFixed(2)));
+  const unset = rate <= 0;
+  return (
+    <div className="ratecard ratecard--mini">
+      <div className="ratecard__head">
+        <span className="ratecard__title">{title}</span>
+        <div className="ratestep">
+          <button className="stepbtn sm" onClick={() => dec(rate)}>−</button>
+          {unset
+            ? <span className="ratecard__amt sm" style={{ color: "var(--muted)" }}>Set</span>
+            : <span className="ratecard__amt sm">€{rate % 1 === 0 ? rate.toFixed(0) : rate.toFixed(1)}</span>}
+          <button className="stepbtn sm" onClick={() => inc(rate)}>+</button>
+        </div>
+        {unset
+          ? <span className="badge amber">Not set</span>
+          : <span className={"badge " + pos.cls}>{pos.label}</span>}
+      </div>
+      <div className="rangebar" style={{ marginTop: 8 }}>
+        <div className="rangebar__track">
+          <div className="rangebar__avg" style={{ left: `${avgPct}%` }} />
+          {!unset && <div className="rangebar__you" style={{ left: `${pct}%` }} />}
+        </div>
+        <div className="rangebar__labels">
+          <span>€{stats.min}</span>
+          <span className="rangebar__avglbl">avg €{stats.avg}</span>
+          <span>€{stats.max}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
