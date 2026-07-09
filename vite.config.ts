@@ -7,6 +7,13 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
+      // Take over immediately + reload so a new deploy shows without the user
+      // having to fully kill/reopen the installed PWA.
+      workbox: {
+        clientsClaim: true,
+        skipWaiting: true,
+        cleanupOutdatedCaches: true,
+      },
       includeAssets: ["favicon.png", "apple-touch-icon.png"],
       manifest: {
         name: "Cinderella",
