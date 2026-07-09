@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import PhoneFrame from "./components/PhoneFrame";
 import AppBar from "./components/AppBar";
@@ -33,6 +33,23 @@ function Shell() {
     setAcctClosing(true);
     closeAccount();
     setTimeout(() => setAcctClosing(false), 300);
+  }
+
+  // swipe-down-to-dismiss on the account sheet: drag the sheet with the finger,
+  // let go past a threshold to close, otherwise snap back.
+  const [dragY, setDragY] = useState(0);
+  const dragStart = useRef<number | null>(null);
+  function onDragStart(e: React.TouchEvent) { dragStart.current = e.touches[0].clientY; }
+  function onDragMove(e: React.TouchEvent) {
+    if (dragStart.current == null) return;
+    const dy = e.touches[0].clientY - dragStart.current;
+    if (dy > 0) setDragY(dy);           // only allow dragging DOWN
+  }
+  function onDragEnd() {
+    if (dragStart.current == null) return;
+    dragStart.current = null;
+    if (dragY > 110) { setDragY(0); dismissAccount(); }  // dragged far enough -> close
+    else setDragY(0);                                     // snap back
   }
 
   // On (re)entering the app after login, land on the side the launch preference
@@ -90,7 +107,13 @@ function Shell() {
           route — the page you were on stays mounted behind it. */}
       {(accountOpen || acctClosing) && (
         <div className={"acctsheet__backdrop" + (acctClosing ? " closing" : "")} onClick={dismissAccount}>
-          <div className={"acctsheet" + (acctClosing ? " closing" : "")} onClick={(e) => e.stopPropagation()}>
+          <div className={"acctsheet" + (acctClosing ? " closing" : "")} onClick={(e) => e.stopPropagation()}
+            style={dragY ? { transform: `translateY(${dragY}px)`, transition: "none" } : undefined}>
+            {/* grab handle — drag it down to dismiss */}
+            <div className="acctsheet__grabzone"
+              onTouchStart={onDragStart} onTouchMove={onDragMove} onTouchEnd={onDragEnd}>
+              <div className="acctsheet__grab" />
+            </div>
             <button className="acctsheet__close" onClick={dismissAccount} aria-label="Close account">
               <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
             </button>

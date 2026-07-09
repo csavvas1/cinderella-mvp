@@ -265,7 +265,15 @@ export default function Account() {
           {userPhone
             ? <div className="profcard__val" style={{ marginTop: 2 }}>{userPhone}</div>
             : <div className="tiny" style={{ color: "var(--amber)", fontWeight: 700, marginTop: 3 }}>Phone required — tap to add</div>}
-          {accountNo && <div className="tiny muted" style={{ marginTop: 3 }}>Account #{accountNo}</div>}
+          {accountNo && (
+            <div className="acctno" style={{ marginTop: 8 }}>
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 10h18" />
+              </svg>
+              <span className="acctno__lbl">Member</span>
+              <span className="acctno__num">#{accountNo}</span>
+            </div>
+          )}
         </div>
         <span className="profcard__chev">›</span>
       </div>
