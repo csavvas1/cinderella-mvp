@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { CLEANERS, autoAcceptDecision, isWeekend, occurrenceDates, cleanerBadges } from "../../data/cleaners";
 import { priceJob, cleanerCancelRate } from "../../data/platform";
 import { useStore } from "../../context/AppStore";
+import { notifyUser } from "../../lib/notify";
 import BackButton from "../../components/BackButton";
 import PaymentPicker from "../../components/PaymentPicker";
 import Avatar from "../../components/Avatar";
@@ -132,11 +133,22 @@ export default function CleanerDetail() {
     const first = newJobs[0];
     const anyAuto = newJobs.some((j) => j.autoAccepted);
     const n = newBookings.length;
-    notify({
-      audience: "agent", kind: "booking_new", jobId: first.id,
+    // Alert the agent. For a REAL agent, deliver the notification into THEIR row
+    // via the notify-user Edge Function (RLS blocks the customer from writing it
+    // directly). For a mock cleaner there's no real account, so keep the local
+    // notify (harmless, lands in this session only).
+    const agentNotif = {
+      id: crypto.randomUUID(),
+      audience: "agent" as const, kind: "booking_new" as const, jobId: first.id,
       title: anyAuto ? "New booking" : "New booking request",
       body: `${userName || "A customer"} booked ${n > 1 ? `${n} cleanings` : `a cleaning`} · ${draft.addressNickname || draft.address || "their place"} · ${occDates[0]} ${first.time}.`,
-    });
+      read: false, createdAt: Date.now(),
+    };
+    if (isRealAgent && cleaner!.id) {
+      void notifyUser(cleaner!.id, agentNotif);
+    } else {
+      notify({ audience: agentNotif.audience, kind: agentNotif.kind, jobId: agentNotif.jobId, title: agentNotif.title, body: agentNotif.body });
+    }
 
     // customer-facing confirmation (in-app + push) so they know it's placed
     const where = draft.addressNickname || draft.address || "your place";

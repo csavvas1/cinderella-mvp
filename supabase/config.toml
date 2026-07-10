@@ -11,3 +11,9 @@ verify_jwt = false
 # Called from the browser to sync a calendar feed; no user JWT needed and the
 # CORS preflight must pass, so keep the platform JWT gate off.
 verify_jwt = false
+
+[functions.notify-user]
+# Delivers a cross-user notification (customer -> agent). The function verifies
+# the caller's JWT itself + checks they own the job, so keep the platform gate
+# off for the CORS preflight.
+verify_jwt = false
