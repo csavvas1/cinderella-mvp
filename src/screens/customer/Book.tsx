@@ -115,9 +115,11 @@ export default function Book() {
   const orderedDays = WEEKDAYS.filter((d) => days.includes(d));
 
   function findCleaners() {
-    // phone is mandatory before booking — a cleaner must be able to reach the
-    // customer. Open the account so they can add it first.
-    if (!userPhone.trim()) { openAccount(); return; }
+    // phone is mandatory before an actual BOOKING (a cleaner must be able to
+    // reach the customer). But a no-property user is only browsing cleaners +
+    // rates, so don't gate the browse path on phone — otherwise "Browse
+    // cleaners & rates" just bounces them to Account and never opens the list.
+    if (hasProperty && !userPhone.trim()) { openAccount(); return; }
     const draft = {
       addrId,
       addressNickname: addr?.nickname ?? "",
