@@ -85,6 +85,8 @@ export interface PropertyAddress {
   lat?: number;   // exact map pin (customer-placed) so the agent finds the door
   lng?: number;
   exportToken?: string; // guards the public combined-iCal export feed for this property
+  shareCode?: string;   // invite code to share this property with a partner
+  isShared?: boolean;   // true when this property was shared TO me (I'm a partner, not owner)
 }
 
 export type Recurrence = "none" | "weekly" | "biweekly";

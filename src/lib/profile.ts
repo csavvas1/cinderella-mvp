@@ -415,6 +415,7 @@ export interface AddressRow {
   lat: number | null;
   lng: number | null;
   export_token: string | null;
+  share_code: string | null;
 }
 
 export function rowToAddress(r: AddressRow): PropertyAddress {
@@ -433,6 +434,7 @@ export function rowToAddress(r: AddressRow): PropertyAddress {
     lat: r.lat ?? undefined,
     lng: r.lng ?? undefined,
     exportToken: r.export_token ?? undefined,
+    shareCode: r.share_code ?? undefined,
   };
 }
 

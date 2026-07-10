@@ -22,3 +22,8 @@ verify_jwt = false
 # Public combined-iCal feed fetched anonymously by Airbnb/Booking; guarded by a
 # per-property token in the query string, so the platform JWT gate must be off.
 verify_jwt = false
+
+[functions.join-property]
+# A partner joins a shared property by code. Verifies the caller's JWT itself;
+# platform gate off so the CORS preflight passes.
+verify_jwt = false

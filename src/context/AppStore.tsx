@@ -244,6 +244,7 @@ interface AppState {
   removeListing: (id: string) => void;
   addManualStay: (s: ExternalBooking) => void;         // add a booked stay by hand
   removeExternalBooking: (id: string) => void;         // remove a single stay
+  joinProperty: (code: string) => Promise<{ error?: string }>; // join a shared property by code
 
   cards: Card[];
   addCard: (c: Card) => void;
@@ -642,11 +643,17 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         ({ docId: r.doc_id, version: r.version, acceptedAt: new Date(r.accepted_at).getTime() }));
     } catch { /* ignore */ }
 
-    // load saved properties (addresses) from Postgres
+    // load saved properties (addresses). RLS returns the user's own properties
+    // AND any shared with them (partner). Tag the shared ones so the UI can show
+    // a badge + hide owner-only controls. (No user_id filter, so shared rows come
+    // through; own rows are user_id === uid.)
     let addresses: PropertyAddress[] | null = null;
     try {
-      const { data } = await supabase.from("addresses").select("*").eq("user_id", uid);
-      if (data) addresses = (data as AddressRow[]).map(rowToAddress);
+      const { data } = await supabase.from("addresses").select("*");
+      if (data) addresses = (data as (AddressRow & { user_id: string })[]).map((r) => ({
+        ...rowToAddress(r),
+        isShared: r.user_id !== uid,
+      }));
     } catch { /* ignore */ }
 
     // load saved payment cards from Postgres
@@ -657,9 +664,10 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     } catch { /* ignore */ }
 
     // load this customer's bookings from Postgres
+    // RLS returns own + shared-property bookings (member path).
     let bookings: Booking[] | null = null;
     try {
-      const { data } = await supabase.from("bookings").select("*").eq("user_id", uid);
+      const { data } = await supabase.from("bookings").select("*");
       if (data) bookings = (data as BookingRow[]).map(rowToBooking);
     } catch { /* ignore */ }
 
@@ -682,14 +690,15 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     } catch { /* ignore */ }
 
     // load channel-manager listings + synced guest stays
+    // RLS returns own + shared-property listings/stays (member path).
     let listings: ConnectedListing[] | null = null;
     try {
-      const { data } = await supabase.from("connected_listings").select("*").eq("user_id", uid);
+      const { data } = await supabase.from("connected_listings").select("*");
       if (data) listings = (data as ListingRow[]).map(rowToListing);
     } catch { /* ignore */ }
     let extBookings: ExternalBooking[] | null = null;
     try {
-      const { data } = await supabase.from("external_bookings").select("*").eq("user_id", uid);
+      const { data } = await supabase.from("external_bookings").select("*");
       if (data) extBookings = (data as ExternalBookingRow[]).map(rowToExternalBooking);
     } catch { /* ignore */ }
 
@@ -1012,6 +1021,28 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       patchAcct({ externalBookings: (acct.externalBookings ?? []).filter((b) => b.id !== id) });
       if (isRealUser && currentKey) {
         supabase.from("external_bookings").delete().eq("id", id).eq("user_id", currentKey).then(logErr("ext booking delete"));
+      }
+    },
+    // Join a property shared by a partner (via its share code). Calls the
+    // join-property Edge Function, then re-hydrates so the shared property + its
+    // calendar appear.
+    joinProperty: async (code) => {
+      if (!isRealUser || !currentKey) return { error: "Sign in first." };
+      try {
+        const { data: sess } = await supabase.auth.getSession();
+        const token = sess.session?.access_token;
+        if (!token) return { error: "Sign in first." };
+        const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/join-property`, {
+          method: "POST",
+          headers: { "content-type": "application/json", apikey: import.meta.env.VITE_SUPABASE_ANON_KEY, authorization: `Bearer ${token}` },
+          body: JSON.stringify({ code: code.trim() }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return { error: data.error || "Could not join." };
+        await hydrateProfile(currentKey, currentEmail || "");
+        return {};
+      } catch (e) {
+        return { error: (e as Error).message };
       }
     },
 
