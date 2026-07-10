@@ -101,6 +101,7 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [showPw, setShowPw] = useState(false); // show/hide password toggle
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const [resetMode, setResetMode] = useState(false);   // "Forgot password?" panel
@@ -263,14 +264,17 @@ export default function Login() {
             <input className="input" placeholder="Email" type="email" autoComplete="email"
               value={email} onChange={(e) => setEmail(e.target.value)} />
             <div style={{ height: 10 }} />
-            <input className="input" placeholder="Password" type="password"
-              autoComplete={mode === "in" ? "current-password" : "new-password"}
-              value={password} onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && mode === "in") submit(); }} />
+            <div className="pwfield">
+              <input className="input" placeholder="Password" type={showPw ? "text" : "password"}
+                autoComplete={mode === "in" ? "current-password" : "new-password"}
+                value={password} onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && mode === "in") submit(); }} />
+              <button type="button" className="pwfield__eye" onClick={() => setShowPw((s) => !s)}>{showPw ? "Hide" : "Show"}</button>
+            </div>
             {mode === "up" && (
               <>
                 <div style={{ height: 10 }} />
-                <input className="input" placeholder="Confirm password" type="password" autoComplete="new-password"
+                <input className="input" placeholder="Confirm password" type={showPw ? "text" : "password"} autoComplete="new-password"
                   value={confirm} onChange={(e) => setConfirm(e.target.value)} />
                 {refCode && (
                   <div className="refapplied">
