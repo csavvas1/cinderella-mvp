@@ -180,11 +180,22 @@ function Shell() {
 }
 
 function LockScreen({ onUnlock }: { onUnlock: () => void }) {
-  // auto-trigger the mock scan on mount — no button to press
-  useEffect(() => {
-    const t = setTimeout(onUnlock, 1100);
-    return () => clearTimeout(t);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const { loginWithBiometric, biometricEmail } = useStore();
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function scan() {
+    setErr(""); setBusy(true);
+    // Demo account has no real credential — resolve instantly like before.
+    if (biometricEmail === "savvas@cinderella.cy") { onUnlock(); return; }
+    const res = await loginWithBiometric(); // real Face ID / Touch ID prompt
+    setBusy(false);
+    if (res.error) setErr(res.error);
+    else onUnlock();
+  }
+  // auto-trigger the real prompt on mount
+  useEffect(() => { scan(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <div className="lockscreen">
       <div className="bioscan">
@@ -194,8 +205,9 @@ function LockScreen({ onUnlock }: { onUnlock: () => void }) {
           <path d="M9 9.5v1" /><path d="M15 9.5v1" /><path d="M9.3 15.2a4 4 0 0 0 5.4 0" />
         </svg>
       </div>
-      <b style={{ fontSize: 16 }}>Unlocking…</b>
-      <p className="sub" style={{ marginTop: 4 }}>Verifying it's you</p>
+      <b style={{ fontSize: 16 }}>{busy ? "Unlocking…" : "Locked"}</b>
+      <p className="sub" style={{ marginTop: 4 }}>{err || "Verifying it's you"}</p>
+      {err && <button className="btn" style={{ marginTop: 16 }} onClick={scan}>Try Face ID again</button>}
     </div>
   );
 }

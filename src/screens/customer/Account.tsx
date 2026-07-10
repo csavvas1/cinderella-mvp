@@ -9,6 +9,7 @@ import { APP_NAME, APP_VERSION } from "../../data/brand";
 import { syncListing } from "../../data/ical";
 import { marketStats } from "../../data/cleaners";
 import { cardExpiryStatus } from "../../data/platform";
+import { isBiometricAvailable } from "../../lib/webauthn";
 import { CY_CITIES } from "../../data/addressPresets";
 import LegalDocModal from "../../components/LegalDocModal";
 import ConsentGate from "../../components/ConsentGate";
@@ -63,9 +64,18 @@ export default function Account() {
   } = useStore();
 
   const bioOn = biometricEnabled && biometricEmail === lastAccount?.email;
-  function toggleBio() {
-    if (bioOn) disableBiometric();
-    else if (lastAccount) enableBiometric(lastAccount.email);
+  const [bioBusy, setBioBusy] = useState(false);
+  const [bioErr, setBioErr] = useState("");
+  const [bioAvail, setBioAvail] = useState(true);
+  useEffect(() => { isBiometricAvailable().then(setBioAvail); }, []);
+  async function toggleBio() {
+    setBioErr("");
+    if (bioOn) { disableBiometric(); return; }
+    if (!lastAccount) return;
+    setBioBusy(true);
+    const res = await enableBiometric(lastAccount.email); // real Face ID prompt
+    setBioBusy(false);
+    if (res.error) setBioErr(res.error);
   }
 
   // shared profile
@@ -618,10 +628,16 @@ export default function Account() {
         </div>
       )}
 
-      <div className="card row between" style={{ marginTop: 12, cursor: "pointer" }} onClick={toggleBio}>
-        <b style={{ fontSize: 14 }}>{biometricLabel()}</b>
-        <div className={"switch" + (bioOn ? " on" : "")}><div className="switch__dot" /></div>
-      </div>
+      {bioAvail && (
+        <>
+          <div className="card row between" style={{ marginTop: 12, cursor: bioBusy ? "default" : "pointer", opacity: bioBusy ? 0.6 : 1 }}
+            onClick={() => { if (!bioBusy) toggleBio(); }}>
+            <b style={{ fontSize: 14 }}>{bioBusy ? "Waiting for Face ID…" : biometricLabel()}</b>
+            <div className={"switch" + (bioOn ? " on" : "")}><div className="switch__dot" /></div>
+          </div>
+          {bioErr && <div className="loginerr" style={{ marginTop: 8 }}>{bioErr}</div>}
+        </>
+      )}
 
       <div className="card row between" style={{ marginTop: 12, cursor: pushEnabled ? "default" : "pointer" }}
         onClick={() => { if (!pushEnabled) requestPushPermission(); }}>

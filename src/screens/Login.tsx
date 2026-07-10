@@ -188,10 +188,14 @@ export default function Login() {
     // on success App.tsx swaps to the app (consent screen first if needed)
   }
 
-  // mock Face ID scan → unlock saved account
-  function bioLogin() {
+  // real Face ID / Touch ID → verify + unlock the saved account
+  async function bioLogin() {
+    setErr("");
     setScanning(true);
-    setTimeout(() => { setScanning(false); loginWithBiometric(); }, 900);
+    const res = await loginWithBiometric(); // triggers the real biometric prompt
+    setScanning(false);
+    if (res.error) setErr(res.error);
+    // on success App.tsx swaps to the app
   }
 
 

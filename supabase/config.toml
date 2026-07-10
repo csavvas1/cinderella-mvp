@@ -1,0 +1,8 @@
+# Supabase project config. project_id must match your Supabase project ref.
+project_id = "cpudfwfepexswgmqdbnm"
+
+[functions.webauthn]
+# The function verifies the Supabase JWT itself only where needed (registration).
+# auth-options / auth-verify run BEFORE a session exists, so the platform-level
+# JWT gate must be off — otherwise unauthenticated Face ID login can't call it.
+verify_jwt = false

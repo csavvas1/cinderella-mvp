@@ -7,6 +7,7 @@ import type { Cleaner } from "../types";
 import { makeReferralCode } from "../data/referral";
 import { priceJob } from "../data/platform";
 import { supabase } from "../lib/supabase";
+import { registerBiometric, verifyBiometric } from "../lib/webauthn";
 import { rowToProfile, profileToRow, rowToAddress, addressToRow, rowToCard, cardToRow, rowToBooking, bookingToRow, rowToJob, jobToRow, rowToNotif, notifToRow, rowToListing, listingToRow, rowToExternalBooking, externalBookingToRow, rowToReview, reviewToRow, type ProfileFields, type UsersRow, type AddressRow, type CardRow, type BookingRow, type JobRow, type NotifRow, type ListingRow, type ExternalBookingRow, type ReviewRow } from "../lib/profile";
 
 export interface AgentProfile {
@@ -330,12 +331,12 @@ interface AppState {
   openAccount: () => void;
   closeAccount: () => void;
 
-  // mock biometric login (Face ID / fingerprint)
+  // real biometric (Face ID / Touch ID) via WebAuthn — see src/lib/webauthn.ts
   biometricEnabled: boolean;
   biometricEmail: string | null;     // account tied to biometric unlock
-  enableBiometric: (email: string) => void;
+  enableBiometric: (email: string) => Promise<{ error?: string }>;   // registers this device (real prompt)
   disableBiometric: () => void;
-  loginWithBiometric: () => void;    // unlock the saved account
+  loginWithBiometric: () => Promise<{ error?: string }>; // unlock with the real Face ID prompt
   refresh: () => Promise<void>;      // pull-to-refresh: re-fetch the signed-in account's data
 }
 
@@ -1435,12 +1436,33 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
 
     biometricEnabled,
     biometricEmail,
-    enableBiometric: (email) => { setBiometricEnabled(true); setBiometricEmail(email.trim().toLowerCase()); },
+    enableBiometric: async (email) => {
+      const e = email.trim().toLowerCase();
+      // Demo account keeps the old local shortcut (no real credential to store).
+      if (e === DEMO_EMAIL) { setBiometricEnabled(true); setBiometricEmail(e); return {}; }
+      try {
+        const ok = await registerBiometric(); // real Face ID / Touch ID prompt
+        if (!ok) return { error: "Could not enable Face ID." };
+        setBiometricEnabled(true); setBiometricEmail(e);
+        return {};
+      } catch (err) {
+        return { error: (err as Error).message };
+      }
+    },
     disableBiometric: () => { setBiometricEnabled(false); setBiometricEmail(null); },
-    // Biometric quick-unlock currently only covers the local demo account (real
-    // Supabase sessions persist on their own, and real biometric would need a
-    // stored refresh token — deferred). Unlock = re-enter the demo.
-    loginWithBiometric: () => { if (biometricEmail === DEMO_EMAIL) loginDemo(); },
+    // Real biometric unlock: the demo account uses the local shortcut; a real
+    // account verifies via WebAuthn (its Supabase session is already persisted,
+    // so a successful Face ID check just clears the lock / restores the session).
+    loginWithBiometric: async () => {
+      if (biometricEmail === DEMO_EMAIL) { loginDemo(); return {}; }
+      if (!biometricEmail) return { error: "No Face ID account on this device." };
+      try {
+        const ok = await verifyBiometric(biometricEmail);
+        return ok ? {} : { error: "Face ID verification failed." };
+      } catch (err) {
+        return { error: (err as Error).message };
+      }
+    },
     // pull-to-refresh: re-pull this account's data from Supabase (no app restart,
     // no white flash). Only meaningful for a real signed-in user; the demo
     // account has nothing to re-fetch, so resolve immediately.
