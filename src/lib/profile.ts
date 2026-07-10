@@ -1,5 +1,24 @@
 import type { AgentProfile } from "../context/AppStore";
-import type { AppNotification, Booking, Card, ConnectedListing, CustomerReputation, ExternalBooking, Job, ListingPlatform, NotifAudience, NotifKind, PropertyAddress, Recurrence } from "../types";
+import type { AppNotification, Booking, Card, ConnectedListing, CustomerReputation, ExternalBooking, Job, ListingPlatform, NotifAudience, NotifKind, PropertyAddress, Recurrence, Review } from "../types";
+
+// ---- reviews: Review <-> public.reviews row ---------------------------------
+export interface ReviewRow {
+  id: string;
+  author_id: string | null;
+  cleaner_id: string;
+  author: string;
+  rating: number;
+  text: string;
+  date: string;
+}
+export function rowToReview(r: ReviewRow): Review {
+  return { id: r.id, author: r.author, rating: r.rating, text: r.text, date: r.date };
+}
+// Review -> row. author_id + cleaner_id are added by the caller (it knows the
+// signed-in user id and which cleaner the review is about).
+export function reviewToRow(r: Review): Record<string, unknown> {
+  return { id: r.id, author: r.author, rating: r.rating, text: r.text, date: r.date };
+}
 
 // ---- connected listings: ConnectedListing <-> public.connected_listings ------
 export interface ListingRow {

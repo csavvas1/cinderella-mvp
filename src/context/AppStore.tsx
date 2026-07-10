@@ -7,7 +7,7 @@ import type { Cleaner } from "../types";
 import { makeReferralCode } from "../data/referral";
 import { priceJob } from "../data/platform";
 import { supabase } from "../lib/supabase";
-import { rowToProfile, profileToRow, rowToAddress, addressToRow, rowToCard, cardToRow, rowToBooking, bookingToRow, rowToJob, jobToRow, rowToNotif, notifToRow, rowToListing, listingToRow, rowToExternalBooking, externalBookingToRow, type ProfileFields, type UsersRow, type AddressRow, type CardRow, type BookingRow, type JobRow, type NotifRow, type ListingRow, type ExternalBookingRow } from "../lib/profile";
+import { rowToProfile, profileToRow, rowToAddress, addressToRow, rowToCard, cardToRow, rowToBooking, bookingToRow, rowToJob, jobToRow, rowToNotif, notifToRow, rowToListing, listingToRow, rowToExternalBooking, externalBookingToRow, rowToReview, reviewToRow, type ProfileFields, type UsersRow, type AddressRow, type CardRow, type BookingRow, type JobRow, type NotifRow, type ListingRow, type ExternalBookingRow, type ReviewRow } from "../lib/profile";
 
 export interface AgentProfile {
   rateWeekday: number;
@@ -472,6 +472,9 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   const [recovering, setRecovering] = useState<boolean>(false);
   // real agent accounts adapted into Cleaner objects, merged with the mock list.
   const [realCleaners, setRealCleaners] = useState<Cleaner[]>([]);
+  // reviews loaded from the shared public.reviews table, grouped by cleaner id.
+  // Reviews are globally readable, so this is app-wide (not per-account).
+  const [dbReviews, setDbReviews] = useState<UserReviews>({});
   const [role, setRole] = useState<Role>(init.current.role);
   const [jobs, setJobs] = useState<Job[]>(init.current.jobs);
   const [themePref, setThemePref] = useState<ThemePref>(init.current.themePref);
@@ -785,6 +788,19 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         // never list the current user as a bookable cleaner to themselves
         .filter((c) => c.id !== currentKey);
       setRealCleaners(list);
+    });
+    // Load the shared reviews table (globally readable) and group by cleaner id
+    // so every browsing customer sees the same, persisted reviews.
+    supabase.from("reviews").select("*").then(({ data, error }) => {
+      if (!active) return;
+      if (error) { /* eslint-disable-next-line no-console */ console.error("reviews fetch failed:", error.message); return; }
+      const grouped: UserReviews = {};
+      for (const row of (data as ReviewRow[])) {
+        (grouped[row.cleaner_id] ??= []).push(rowToReview(row));
+      }
+      // newest first within each cleaner
+      for (const k of Object.keys(grouped)) grouped[k].sort((a, b) => (a.date < b.date ? 1 : -1));
+      setDbReviews(grouped);
     });
     return () => { active = false; };
   }, [loggedIn, currentKey]);
@@ -1166,11 +1182,29 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     },
 
     reviews: acct.reviews,
-    addReview: (cleanerId, r) =>
-      patchAcct({ reviews: { ...acct.reviews, [cleanerId]: [r, ...(acct.reviews[cleanerId] ?? [])] } }),
+    addReview: (cleanerId, r) => {
+      // optimistic: show it immediately in this session
+      patchAcct({ reviews: { ...acct.reviews, [cleanerId]: [r, ...(acct.reviews[cleanerId] ?? [])] } });
+      // and reflect it in the shared app-wide list so it survives a reopen
+      setDbReviews((p) => ({ ...p, [cleanerId]: [r, ...(p[cleanerId] ?? [])] }));
+      // persist to the shared reviews table (real users only; RLS: author_id = auth.uid())
+      if (isRealUser && currentKey) {
+        supabase.from("reviews")
+          .insert({ ...reviewToRow(r), cleaner_id: cleanerId, author_id: currentKey })
+          .then(logErr("review insert"));
+      }
+    },
     reviewsFor: (cleanerId) => {
       const base = CLEANERS.find((c) => c.id === cleanerId)?.reviews ?? [];
-      return [...(acct.reviews[cleanerId] ?? []), ...base];
+      // merge session-optimistic + shared-DB + mock base, de-duped by id.
+      const seen = new Set<string>();
+      const out: Review[] = [];
+      for (const r of [...(acct.reviews[cleanerId] ?? []), ...(dbReviews[cleanerId] ?? []), ...base]) {
+        if (seen.has(r.id)) continue;
+        seen.add(r.id);
+        out.push(r);
+      }
+      return out;
     },
 
     favourites: acct.favourites ?? [],
