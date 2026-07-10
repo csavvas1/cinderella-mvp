@@ -42,11 +42,12 @@ export default function MapPicker({
     if (!elRef.current || mapRef.current) return;
     const start: [number, number] = value ? [value.lat, value.lng] : (center ? [center.lat, center.lng] : DEFAULT);
     const map = L.map(elRef.current, { zoomControl: true, attributionControl: true }).setView(start, value || center ? 16 : 12);
-    // CARTO Voyager tiles — clean, Google-Maps-like styling, free, no API key.
-    // Satellite (Esri World Imagery, also free) is offered as a layer toggle.
+    // Standard OpenStreetMap tiles — best building/house coverage (free, no key).
+    // Satellite (Esri World Imagery, also free) offered as a layer toggle for the
+    // Google-Maps-like aerial view.
     const streets = L.tileLayer(
-      "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-      { maxZoom: 20, subdomains: "abcd", attribution: "© OpenStreetMap © CARTO" },
+      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      { maxZoom: 19, attribution: "© OpenStreetMap" },
     ).addTo(map);
     const satellite = L.tileLayer(
       "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
