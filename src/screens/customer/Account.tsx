@@ -151,14 +151,25 @@ export default function Account() {
       try {
         const r = await fetch(
           // countrycodes=cy restricts results to Cyprus only (the platform's
-          // service area) so the typeahead never surfaces foreign addresses.
-          `https://nominatim.openstreetmap.org/search?format=json&addressdetails=0&limit=6&countrycodes=cy&q=${encodeURIComponent(q)}`,
+          // service area). addressdetails=1 gives structured parts so we can
+          // build a SHORT, readable label instead of the long full chain.
+          `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=6&countrycodes=cy&q=${encodeURIComponent(q)}`,
           { headers: { "Accept-Language": "en" } }
         );
         const data = await r.json();
         if (seq !== acSeq.current) return;
-        setSuggestions((data as { display_name: string; lat: string; lon: string }[])
-          .map((d) => ({ label: d.display_name, lat: parseFloat(d.lat), lng: parseFloat(d.lon) })));
+        type NomAddr = { road?: string; house_number?: string; neighbourhood?: string; suburb?: string; village?: string; town?: string; city?: string; municipality?: string };
+        const shortLabel = (a: NomAddr, full: string) => {
+          const street = [a.road, a.house_number].filter(Boolean).join(" ");
+          const area = a.neighbourhood || a.suburb || a.village;
+          const town = a.town || a.city || a.municipality;
+          const parts = [street, area, town].filter(Boolean);
+          // fall back to the first 2 comma-segments of the full name if structured
+          // parts are missing, so a label is always shown.
+          return (parts.length ? parts.join(", ") : full.split(",").slice(0, 2).join(",").trim());
+        };
+        setSuggestions((data as { display_name: string; lat: string; lon: string; address: NomAddr }[])
+          .map((d) => ({ label: shortLabel(d.address, d.display_name), lat: parseFloat(d.lat), lng: parseFloat(d.lon) })));
       } catch {
         if (seq === acSeq.current) setSuggestions([]);
       } finally {

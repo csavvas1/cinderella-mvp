@@ -42,9 +42,17 @@ export default function MapPicker({
     if (!elRef.current || mapRef.current) return;
     const start: [number, number] = value ? [value.lat, value.lng] : (center ? [center.lat, center.lng] : DEFAULT);
     const map = L.map(elRef.current, { zoomControl: true, attributionControl: true }).setView(start, value || center ? 16 : 12);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19, attribution: "© OpenStreetMap",
-    }).addTo(map);
+    // CARTO Voyager tiles — clean, Google-Maps-like styling, free, no API key.
+    // Satellite (Esri World Imagery, also free) is offered as a layer toggle.
+    const streets = L.tileLayer(
+      "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+      { maxZoom: 20, subdomains: "abcd", attribution: "© OpenStreetMap © CARTO" },
+    ).addTo(map);
+    const satellite = L.tileLayer(
+      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      { maxZoom: 20, attribution: "© Esri" },
+    );
+    L.control.layers({ Map: streets, Satellite: satellite }, undefined, { position: "topright", collapsed: true }).addTo(map);
     const marker = L.marker(start, { draggable: !readOnly, icon }).addTo(map);
     if (!readOnly) {
       marker.on("dragend", () => {
