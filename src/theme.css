@@ -1927,3 +1927,20 @@ input[type="range"]::-webkit-slider-thumb {
   background: rgba(217, 119, 6, .12); border-left: 3px solid var(--amber);
   padding: 6px 10px; border-radius: 8px; margin: 8px 0 6px;
 }
+
+/* service-area city picker — soft rounded pills, indigo fill when selected */
+.citychips {
+  display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;
+}
+.citychip {
+  border: 1px solid var(--border); background: var(--surface);
+  color: var(--text); cursor: pointer;
+  padding: 8px 16px; border-radius: 999px;
+  font-size: 13px; font-weight: 600; letter-spacing: -0.1px;
+  transition: background .15s, color .15s, border-color .15s, transform .1s;
+}
+.citychip:active { transform: scale(.94); }
+.citychip.active {
+  background: var(--indigo); color: #fff; border-color: var(--indigo);
+  box-shadow: 0 4px 12px rgba(79,70,229,0.28);
+}

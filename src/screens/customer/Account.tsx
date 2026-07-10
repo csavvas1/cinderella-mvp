@@ -767,10 +767,11 @@ export default function Account() {
               onChange={(r) => setAgentProfile({ ...agentProfile, rateWeekend: r })} />
 
             <div className="label" style={{ marginTop: 16 }}>Cities you work in</div>
-            <p className="sub" style={{ marginTop: 0 }}>You only appear to customers booking in the cities you select.</p>
-            <div className="daypick" style={{ flexWrap: "wrap" }}>
+            <div className="citychips">
               {CY_CITIES.map((city) => (
-                <button key={city} className={"daypick__chip" + (serviceCities.includes(city) ? " active" : "")} onClick={() => toggleCity(city)}>
+                <button key={city} type="button"
+                  className={"citychip" + (serviceCities.includes(city) ? " active" : "")}
+                  onClick={() => toggleCity(city)}>
                   {city}
                 </button>
               ))}

@@ -1228,7 +1228,10 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       writeProfile({ favourites: next }); // persist to users.favourites
     },
 
-    cleaners: [...realCleaners, ...CLEANERS],
+    // Real agents only — mock CLEANERS are hidden from the browsable list for
+    // live testing. (The CLEANERS array still backs isRealAgent detection +
+    // helper fallbacks; it's just not shown as bookable cleaners.)
+    cleaners: [...realCleaners],
 
     jobs,
     addJob: (j) => { setJobs((p) => [j, ...p]); dbInsertJobs([j]); },
