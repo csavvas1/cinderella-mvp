@@ -1,15 +1,3 @@
-// ============================================================================
-// iCal sync Edge Function — fetch + parse an Airbnb / Booking.com .ics calendar
-// feed server-side (browsers can't fetch it directly: CORS) and return the
-// booked/blocked date ranges as guest "stays".
-//
-// POST { url: string }  ->  { stays: [{ checkIn, checkOut, guest, uid }] }
-//
-// The .ics feed only exposes availability (DTSTART/DTEND + a generic SUMMARY
-// like "Reserved" / "CLOSED - Not available"). No address, no guest identity —
-// those aren't in the feed. We surface the SUMMARY as the "guest" label.
-// ============================================================================
-
 const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, content-type, apikey, x-client-info",
@@ -19,7 +7,6 @@ function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...cors, "content-type": "application/json" } });
 }
 
-// Unfold RFC-5545 folded lines (a leading space/tab continues the previous line).
 function unfold(text: string): string[] {
   const raw = text.split(/\r?\n/);
   const out: string[] = [];
@@ -33,13 +20,11 @@ function unfold(text: string): string[] {
   return out;
 }
 
-// "20260714" or "20260714T110000Z" -> "2026-07-14"
 function toISODate(v: string): string | null {
   const m = v.match(/^(\d{4})(\d{2})(\d{2})/);
   return m ? `${m[1]}-${m[2]}-${m[3]}` : null;
 }
 
-// pull the value part of a line like "DTSTART;VALUE=DATE:20260714"
 function value(line: string): string {
   const i = line.indexOf(":");
   return i === -1 ? "" : line.slice(i + 1).trim();
@@ -89,9 +74,6 @@ Deno.serve(async (req) => {
     else if (line.startsWith("UID")) { cur.uid = value(line); }
   }
 
-  // Keep only real guest reservations (need a clean). Airbnb also exports
-  // owner-blocked / gap days as "Not available" / "CLOSED" / "Blocked" — those
-  // are not bookings, so drop them.
   const isReservation = (g: string) => {
     const s = g.toLowerCase();
     if (s.includes("not available") || s.includes("blocked") || s.includes("closed") || s.includes("unavailable")) return false;
