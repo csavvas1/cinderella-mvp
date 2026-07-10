@@ -33,9 +33,13 @@ export async function syncListing(
 
   let stays: RawStay[] = [];
   try {
+    // Use the signed-in user's JWT for authorization (the functions gateway
+    // accepts it); the publishable anon key alone can 401 on the gateway.
+    const { data: sess } = await supabase.auth.getSession();
+    const bearer = sess.session?.access_token || ANON;
     const res = await fetch(FN_URL, {
       method: "POST",
-      headers: { "content-type": "application/json", apikey: ANON, authorization: `Bearer ${ANON}` },
+      headers: { "content-type": "application/json", apikey: ANON, authorization: `Bearer ${bearer}` },
       body: JSON.stringify({ url: icalUrl }),
     });
     const data = await res.json().catch(() => ({}));
