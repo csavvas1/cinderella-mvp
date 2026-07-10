@@ -6,3 +6,8 @@ project_id = "cpudfwfepexswgmqdbnm"
 # auth-options / auth-verify run BEFORE a session exists, so the platform-level
 # JWT gate must be off — otherwise unauthenticated Face ID login can't call it.
 verify_jwt = false
+
+[functions.ical-sync]
+# Called from the browser to sync a calendar feed; no user JWT needed and the
+# CORS preflight must pass, so keep the platform JWT gate off.
+verify_jwt = false

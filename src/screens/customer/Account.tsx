@@ -198,11 +198,11 @@ export default function Account() {
     resetForm();
   }
 
-  function syncPlatform(platform: ListingPlatform, url: string, addressId: string) {
+  async function syncPlatform(platform: ListingPlatform, url: string, addressId: string) {
     const already = connectedListings.find((l) => l.addressId === addressId && l.platform === platform);
     if (url && url !== already?.icalUrl) {
       if (already) removeListing(already.id);
-      const { listing, bookings: bs } = syncListing(platform, url, addressId);
+      const { listing, bookings: bs } = await syncListing(platform, url, addressId);
       addListing(listing, bs);
     } else if (!url && already) {
       removeListing(already.id);
