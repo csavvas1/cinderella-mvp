@@ -87,13 +87,13 @@ function Shell() {
     const dy = dragCur.current;
     dragCur.current = 0;
     if (dy > 120) {
-      // close: animate the sheet out ONCE (no .closing class collision), then unmount
-      el.style.transition = "transform .26s cubic-bezier(.32,.72,.35,1)";
+      // close: slower, softer glide out (ease-out) so it feels natural, then unmount
+      el.style.transition = "transform .42s cubic-bezier(.22,.61,.36,1)";
       el.style.transform = "translateY(100%)";
-      setTimeout(() => { closeAccount(); }, 240);
+      setTimeout(() => { closeAccount(); }, 400);
     } else {
-      // cancel / snap back to fully open
-      el.style.transition = "transform .22s cubic-bezier(.32,.72,.35,1)";
+      // cancel / snap back to fully open — gentle settle
+      el.style.transition = "transform .34s cubic-bezier(.22,.61,.36,1)";
       el.style.transform = "translateY(0)";
     }
   }
