@@ -104,10 +104,7 @@ export default function CleanerList() {
   return (
     <div className="pad">
       <BackButton to="/book" />
-      <h1 className="h1" style={{ marginBottom: draft.city ? 4 : 14 }}>Available cleaners</h1>
-      {draft.city && (
-        <p className="tiny muted" style={{ margin: "0 2px 14px" }}>Showing cleaners who work in {draft.city}</p>
-      )}
+      <h1 className="h1" style={{ marginBottom: 14 }}>Available cleaners</h1>
 
       {/* market snapshot */}
       <div className="mkt">
