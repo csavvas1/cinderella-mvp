@@ -20,6 +20,8 @@ export default function PullToRefresh({
 }) {
   const contentRef = useRef<HTMLDivElement | null>(null);
   const startY = useRef<number | null>(null);
+  const startX = useRef(0);
+  const axis = useRef<"h" | "v" | null>(null); // locked on first real move
   const pulling = useRef(false);
   const pullDist = useRef(0);
   const [spin, setSpin] = useState(false);        // refresh in flight (spinner active)
@@ -38,6 +40,8 @@ export default function PullToRefresh({
     const atTop = (scrollRef.current?.scrollTop ?? 0) <= 0;
     if (!atTop) { startY.current = null; return; }
     startY.current = e.touches[0].clientY;
+    startX.current = e.touches[0].clientX;
+    axis.current = null;
     pulling.current = false;
     pullDist.current = 0;
   }
@@ -45,6 +49,17 @@ export default function PullToRefresh({
   function onMove(e: React.TouchEvent) {
     if (startY.current == null || spin) return;
     const dy = e.touches[0].clientY - startY.current;
+    const dx = e.touches[0].clientX - startX.current;
+    // Lock the gesture axis on the first clear movement. A pull only happens on a
+    // clearly VERTICAL drag; a horizontal drag is a page swipe (SwipePager owns
+    // it) and must never also trigger a reload — one gesture, one action, like
+    // Instagram.
+    if (axis.current == null) {
+      const ax = Math.abs(dx), ay = Math.abs(dy);
+      if (ax < 10 && ay < 10) return;
+      axis.current = ay > ax * 1.5 ? "v" : "h";
+    }
+    if (axis.current !== "v") return; // horizontal gesture -> leave it to the pager
     if (dy <= 0) {
       // dragging up — not a pull; release any partial pull
       if (pulling.current) { pulling.current = false; setTransform(0, true); setIndicator(0); }

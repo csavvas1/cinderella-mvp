@@ -118,8 +118,10 @@ export default function Account() {
 
   const [form, setForm] = useState<{ nickname: string; address: string; propertyType: "apartment" | "house"; apartmentNumber: string; floor: string; bedrooms: number; bathrooms: number; kitchens: number; commonRooms: number }>({ nickname: "", address: "", propertyType: "apartment", apartmentNumber: "", floor: "", bedrooms: 1, bathrooms: 1, kitchens: 1, commonRooms: 1 });
   const [addrFocus, setAddrFocus] = useState(false);
-  const [icalPlatform, setIcalPlatform] = useState<ListingPlatform>("airbnb");
-  const [icalUrl, setIcalUrl] = useState("");
+  // A property can be listed on BOTH platforms at once, so each gets its own
+  // iCal link (not a single platform toggle).
+  const [airbnbUrl, setAirbnbUrl] = useState("");
+  const [bookingUrl, setBookingUrl] = useState("");
 
   // live address autocomplete via OpenStreetMap Nominatim (free, no key)
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -152,7 +154,7 @@ export default function Account() {
 
   function resetForm() {
     setForm({ nickname: "", address: "", propertyType: "apartment", apartmentNumber: "", floor: "", bedrooms: 1, bathrooms: 1, kitchens: 1, commonRooms: 1 });
-    setIcalPlatform("airbnb"); setIcalUrl("");
+    setAirbnbUrl(""); setBookingUrl("");
   }
 
   function openEditProperty(a: PropertyAddress) {
@@ -161,9 +163,9 @@ export default function Account() {
       address: a.address, propertyType: a.propertyType, apartmentNumber: a.apartmentNumber ?? "", floor: a.floor ?? "",
       bedrooms: a.bedrooms, bathrooms: a.bathrooms, kitchens: a.kitchens, commonRooms: a.commonRooms,
     });
-    const existing = connectedListings.find((l) => l.addressId === a.id);
-    setIcalPlatform(existing?.platform ?? "airbnb");
-    setIcalUrl(existing?.icalUrl ?? "");
+    const forProp = connectedListings.filter((l) => l.addressId === a.id);
+    setAirbnbUrl(forProp.find((l) => l.platform === "airbnb")?.icalUrl ?? "");
+    setBookingUrl(forProp.find((l) => l.platform === "booking")?.icalUrl ?? "");
     setEditId(a.id);
     setShowAdd(true);
   }
@@ -178,17 +180,23 @@ export default function Account() {
       floor: form.propertyType === "apartment" ? (form.floor.trim() || undefined) : undefined,
     };
     if (editId) updateAddress(a); else addAddress(a);
-    const url = icalUrl.trim();
-    const already = connectedListings.find((l) => l.addressId === a.id);
+    // Sync each platform independently so a property can be linked to Airbnb AND
+    // Booking at the same time (add / update / remove per platform).
+    syncPlatform("airbnb", airbnbUrl.trim(), a.id);
+    syncPlatform("booking", bookingUrl.trim(), a.id);
+    setShowAdd(false); setEditId(null);
+    resetForm();
+  }
+
+  function syncPlatform(platform: ListingPlatform, url: string, addressId: string) {
+    const already = connectedListings.find((l) => l.addressId === addressId && l.platform === platform);
     if (url && url !== already?.icalUrl) {
       if (already) removeListing(already.id);
-      const { listing, bookings: bs } = syncListing(icalPlatform, url, a.id);
+      const { listing, bookings: bs } = syncListing(platform, url, addressId);
       addListing(listing, bs);
     } else if (!url && already) {
       removeListing(already.id);
     }
-    setShowAdd(false); setEditId(null);
-    resetForm();
   }
 
   function addCardViaJCC() {
@@ -366,19 +374,30 @@ export default function Account() {
               ))}
             </div>
 
-            <div className="label" style={{ marginTop: 14 }}>Sync a calendar (optional)</div>
-            <div className="segmini" style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)" }}>
-              <button type="button" className={icalPlatform === "airbnb" ? "active" : ""} onClick={() => setIcalPlatform("airbnb")}>Airbnb</button>
-              <button type="button" className={icalPlatform === "booking" ? "active" : ""} onClick={() => setIcalPlatform("booking")}>Booking</button>
-            </div>
-            <input className="input" style={{ marginTop: 8 }} value={icalUrl} placeholder="Calendar link (iCal) — optional" onChange={(e) => setIcalUrl(e.target.value)} />
-            <div className="note" style={{ marginTop: 10 }}>
-              <b style={{ fontSize: 12.5 }}>How to find it on {icalPlatform === "airbnb" ? "Airbnb" : "Booking.com"}</b>
+            <div className="label" style={{ marginTop: 14 }}>Sync calendars (optional)</div>
+            <p className="sub" style={{ margin: "0 0 8px", fontSize: 12 }}>
+              Link this property on both platforms — connect Airbnb, Booking.com, or both.
+            </p>
+
+            {/* Airbnb */}
+            <div className="label" style={{ margin: "6px 0 4px" }}>Airbnb</div>
+            <input className="input" value={airbnbUrl} placeholder="Airbnb calendar link (iCal) — optional" onChange={(e) => setAirbnbUrl(e.target.value)} />
+            <div className="note" style={{ marginTop: 8 }}>
+              <b style={{ fontSize: 12.5 }}>How to find it on Airbnb</b>
               <ol style={{ margin: "6px 0 0", paddingLeft: 18, lineHeight: 1.5 }}>
-                {(icalPlatform === "airbnb"
-                  ? ["Open Airbnb on the website (airbnb.com).", "Menu → Listings → pick the property.", "Availability → Connect calendars → Export calendar.", "Copy the .ics link and paste it above."]
-                  : ["Sign in to the Booking.com host site (admin.booking.com).", "Open the property → Calendar → Sync calendars.", "Under Export, copy the .ics link.", "Paste it above."]
-                ).map((s, i) => <li key={i} style={{ fontSize: 12 }}>{s}</li>)}
+                {["Open Airbnb on the website (airbnb.com).", "Menu → Listings → pick the property.", "Availability → Connect calendars → Export calendar.", "Copy the .ics link and paste it above."]
+                  .map((s, i) => <li key={i} style={{ fontSize: 12 }}>{s}</li>)}
+              </ol>
+            </div>
+
+            {/* Booking.com */}
+            <div className="label" style={{ margin: "12px 0 4px" }}>Booking.com</div>
+            <input className="input" value={bookingUrl} placeholder="Booking.com calendar link (iCal) — optional" onChange={(e) => setBookingUrl(e.target.value)} />
+            <div className="note" style={{ marginTop: 8 }}>
+              <b style={{ fontSize: 12.5 }}>How to find it on Booking.com</b>
+              <ol style={{ margin: "6px 0 0", paddingLeft: 18, lineHeight: 1.5 }}>
+                {["Sign in to the Booking.com host site (admin.booking.com).", "Open the property → Calendar → Sync calendars.", "Under Export, copy the .ics link.", "Paste it above."]
+                  .map((s, i) => <li key={i} style={{ fontSize: 12 }}>{s}</li>)}
               </ol>
             </div>
 
