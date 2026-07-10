@@ -42,7 +42,7 @@ export default function CleanerDetail() {
 
   const decision = autoAcceptDecision(
     cleaner.id, draft.date || "", draft.time || "11:00", hours, bookings,
-    Date.now(), customerRep.rating, customerRep.reviewsCount
+    Date.now(), customerRep.rating, customerRep.reviewsCount, cleaner
   );
 
   function confirm() {
@@ -59,7 +59,7 @@ export default function CleanerDetail() {
       const jid = crypto.randomUUID();
       const wknd = isWeekend(d);
       const r = urgent ? +((wknd ? cleaner!.rateWeekend : cleaner!.rateWeekday) * 1.2).toFixed(2) : (wknd ? cleaner!.rateWeekend : cleaner!.rateWeekday);
-      const dec = autoAcceptDecision(cleaner!.id, d, time, hours, bookings, Date.now(), customerRep.rating, customerRep.reviewsCount);
+      const dec = autoAcceptDecision(cleaner!.id, d, time, hours, bookings, Date.now(), customerRep.rating, customerRep.reviewsCount, cleaner!);
       const auto = dec.decision === "auto";
       const basePay = +(r * hours).toFixed(2);
       const { commission, cleanerPay, customerTotal } = priceJob(basePay);

@@ -66,7 +66,7 @@ export default function CleanerList() {
       // Skip when the draft has no city (browse-only) or the cleaner hasn't set
       // a service area yet, so neither case silently hides everyone.
       if (draft.city && c.serviceCities?.length && !c.serviceCities.includes(draft.city)) return false;
-      if (hasSlot && !isCleanerFree(c.id, dates, time, duration, bookings)) return false;
+      if (hasSlot && !isCleanerFree(c.id, dates, time, duration, bookings, undefined, c)) return false;
       if (c.rating < minRating) return false;
       if (useWkday && c.rateWeekday > maxWkday) return false;
       if (useWkend && c.rateWeekend > maxWkend) return false;
@@ -95,7 +95,7 @@ export default function CleanerList() {
   const favGroups = useMemo(() => {
     if (!favMode) return { available: [], busy: [] };
     const favs = cleaners.filter((c) => favourites.includes(c.id));
-    const withStatus = favs.map((c) => ({ c, status: availabilityStatus(c.id, dates, time, duration, bookings) }));
+    const withStatus = favs.map((c) => ({ c, status: availabilityStatus(c.id, dates, time, duration, bookings, c) }));
     const available = withStatus.filter((x) => x.status.free).sort((a, b) => b.c.rating - a.c.rating);
     const busy = withStatus.filter((x) => !x.status.free).sort((a, b) => b.c.rating - a.c.rating);
     return { available, busy };

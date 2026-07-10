@@ -348,14 +348,19 @@ export function isCleanerFree(
   time: string,
   durationHours: number,
   bookings: SlotBooking[],
-  excludeId?: string
+  excludeId?: string,
+  // Pass the resolved cleaner (real agent OR mock) so working-hours checks apply
+  // to real agents too; falls back to the mock list when omitted.
+  cleanerObj?: Cleaner
 ): boolean {
   const reqStart = toMin(time);
   const reqEnd = reqStart + Math.round(durationHours * 60);
-  const cleaner = CLEANERS.find((c) => c.id === cleanerId);
+  const cleaner = cleanerObj ?? CLEANERS.find((c) => c.id === cleanerId);
+  const isReal = !!cleanerObj; // real agents use their real schedule, not the mock rng
   for (const date of dates) {
-    // base mock rule (Sundays / busy weekday)
-    if (!isCleanerAvailable(cleanerId, date)) return false;
+    // Mock cleaners get the pseudo-random busy-day rule; real agents rely purely
+    // on their declared working days + actual bookings.
+    if (!isReal && !isCleanerAvailable(cleanerId, date)) return false;
     // must be within the cleaner's working days AND hours — a slot outside these
     // would otherwise show as bookable but only ever go to "pending", so exclude
     // it up front to avoid guaranteed rejections.
@@ -387,16 +392,18 @@ export function availabilityStatus(
   dates: string[],
   time: string,
   durationHours: number,
-  bookings: SlotBooking[]
+  bookings: SlotBooking[],
+  cleanerObj?: Cleaner
 ): { free: boolean; reason: string } {
   const reqStart = toMin(time);
   const reqEnd = reqStart + Math.round(durationHours * 60);
-  const cleaner = CLEANERS.find((c) => c.id === cleanerId);
+  const cleaner = cleanerObj ?? CLEANERS.find((c) => c.id === cleanerId);
+  const isReal = !!cleanerObj;
   for (const date of dates) {
     const d = new Date(date + "T00:00:00");
     const dow = d.getDay();
     if (dow === 0) return { free: false, reason: "Off on Sundays" };
-    if (!isCleanerAvailable(cleanerId, date)) {
+    if (!isReal && !isCleanerAvailable(cleanerId, date)) {
       return { free: false, reason: `Day off on ${WDAY[dow]}` };
     }
     if (cleaner) {
@@ -437,9 +444,10 @@ export function autoAcceptDecision(
   bookings: SlotBooking[],
   nowMs: number = Date.now(),
   customerRating?: number,        // undefined = unrated (new customer)
-  customerReviewsCount: number = 0
+  customerReviewsCount: number = 0,
+  cleanerObj?: Cleaner            // resolved cleaner (real agent or mock)
 ): { decision: "auto" | "pending"; reason: string } {
-  const cleaner = CLEANERS.find((c) => c.id === cleanerId);
+  const cleaner = cleanerObj ?? CLEANERS.find((c) => c.id === cleanerId);
   if (!cleaner) return { decision: "pending", reason: "Unknown cleaner" };
 
   const cfg = getConfig().booking;
@@ -450,7 +458,7 @@ export function autoAcceptDecision(
   }
 
   // clash / day-off
-  if (!isCleanerFree(cleanerId, [date], time, durationHours, bookings)) {
+  if (!isCleanerFree(cleanerId, [date], time, durationHours, bookings, undefined, cleaner)) {
     return { decision: "pending", reason: "Time clashes with another job" };
   }
 

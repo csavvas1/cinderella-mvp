@@ -547,7 +547,7 @@ function RefundModal({ booking, onClose, onSubmit }: {
 function EditModal({ booking, onClose, onSave }: {
   booking: Booking; onClose: () => void; onSave: (patch: Partial<Booking>) => void;
 }) {
-  const { cards, addresses, cancelBooking, bookings } = useStore();
+  const { cards, addresses, cancelBooking, bookings, cleaners } = useStore();
   const [date, setDate] = useState(booking.date);
   const [time, setTime] = useState(booking.time);
   const [duration, setDuration] = useState(booking.durationHours);
@@ -570,9 +570,11 @@ function EditModal({ booking, onClose, onSave }: {
 
   const [confirmCancel, setConfirmCancel] = useState(false);
 
-  const currentAvailable = isCleanerFree(cleanerId, [date], time, duration, bookings, booking.id);
+  const chosen = cleaners.find((c) => c.id === cleanerId);
+  const isRealChosen = !CLEANERS.some((c) => c.id === cleanerId);
+  const currentAvailable = isCleanerFree(cleanerId, [date], time, duration, bookings, booking.id, isRealChosen ? chosen : undefined);
+  // "switch to another cleaner" alternatives stay within the mock pool for now
   const alternatives = CLEANERS.filter((c) => isCleanerFree(c.id, [date], time, duration, bookings, booking.id));
-  const chosen = CLEANERS.find((c) => c.id === cleanerId);
 
   function save() {
     const c = CLEANERS.find((x) => x.id === cleanerId)!;
