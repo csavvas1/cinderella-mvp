@@ -62,14 +62,19 @@ export default function SwipePager({
     const dx = e.touches[0].clientX - startX.current;
     const dy = e.touches[0].clientY - startY.current;
     if (axis.current == null) {
-      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
-      axis.current = Math.abs(dx) > Math.abs(dy) ? "h" : "v";
+      if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return; // decide sooner (was 8)
+      // Bias slightly toward horizontal so near-diagonal flicks still register
+      // as swipes (fewer "failed" swipes) without hijacking clear vertical scroll.
+      axis.current = Math.abs(dx) > Math.abs(dy) * 0.8 ? "h" : "v";
       if (axis.current === "h") dragging.current = true;
     }
     if (axis.current !== "h") return;
-    // resist dragging past the ends (no page there) so it feels bounded
+    // Hard-lock the edges: on the last (right-most) page a further left-drag has
+    // no next page, and on the first (left-most) page a right-drag has no prev —
+    // in both cases pin the track so it doesn't rubber-band into empty space.
     let eff = dx;
-    if ((dx > 0 && !hasPrev) || (dx < 0 && !hasNext)) eff = dx * 0.35;
+    if (dx > 0 && !hasPrev) eff = 0;   // left-most: block right-drag (back)
+    if (dx < 0 && !hasNext) eff = 0;   // right-most: block left-drag (forward)
     const el = trackRef.current;
     if (el) {
       el.style.transition = "none";
@@ -94,7 +99,7 @@ export default function SwipePager({
     const dx = e.changedTouches[0].clientX - startX.current;
     startX.current = null;
     dragging.current = false;
-    const threshold = width.current * 0.3;
+    const threshold = width.current * 0.2; // easier to commit a swipe (was 0.3)
     if (dx <= -threshold && hasNext) {
       // dragged LEFT far enough -> next page (slide track further left)
       settle(slotOfCurrent + 1, index + 1);
