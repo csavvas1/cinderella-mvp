@@ -20,6 +20,24 @@ export function agentRowToCleaner(r: PublicAgentRow, fallbackName?: string): Cle
   const p = r.agent_profile;
   // skip agents who haven't set a usable profile (no rate = not bookable yet)
   if (!p || !(p.rateWeekday > 0)) return null;
+
+  // The Account UI stores the schedule in `daySchedule` (day -> [{start,end}]),
+  // NOT in the legacy workDays/workStart/workEnd fields. Derive the working days
+  // + overall hours window from daySchedule so availability filtering works;
+  // fall back to the legacy fields when daySchedule is empty.
+  const ds = p.daySchedule ?? {};
+  const scheduledDays = Object.keys(ds).filter((d) => (ds[d]?.length ?? 0) > 0);
+  const workDays = scheduledDays.length ? scheduledDays : (p.workDays ?? []);
+  let workStart = p.workStart || "";
+  let workEnd = p.workEnd || "";
+  if (scheduledDays.length) {
+    const starts: string[] = [];
+    const ends: string[] = [];
+    for (const d of scheduledDays) for (const slot of ds[d]) { starts.push(slot.start); ends.push(slot.end); }
+    workStart = starts.sort()[0];               // earliest start across the week
+    workEnd = ends.sort()[ends.length - 1];     // latest end across the week
+  }
+
   return {
     id: r.id,
     name: p.displayName || r.name || fallbackName || "Cleaner",
@@ -38,9 +56,9 @@ export function agentRowToCleaner(r: PublicAgentRow, fallbackName?: string): Cle
     verified: true,            // agents are verified before they can take jobs
     reviews: [],
     busySlots: [],
-    workDays: p.workDays ?? [],
-    workStart: p.workStart || "08:00",
-    workEnd: p.workEnd || "18:00",
+    workDays,
+    workStart: workStart || "08:00",
+    workEnd: workEnd || "18:00",
     extras: [],
   };
 }
