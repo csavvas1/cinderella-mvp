@@ -299,9 +299,15 @@ body {
   position: absolute; top: 12px; right: 14px; z-index: 5;
   width: 34px; height: 34px; border-radius: 999px;
   border: none; background: var(--surface); cursor: pointer;
-  display: grid; place-items: center; color: var(--muted);
+  /* flex centering (not grid place-items) — older mobile WebViews don't fully
+     support the place-items shorthand, which left the chevron off-centre on an
+     older phone. flex align/justify is universally supported. */
+  display: flex; align-items: center; justify-content: center;
+  padding: 0; line-height: 0; color: var(--muted);
   transition: color .15s, background .15s;
 }
+/* block-level SVG removes inline baseline gap that can nudge it down on old browsers */
+.acctsheet__close svg { display: block; }
 .acctsheet__close:hover { color: var(--text); }
 .acctsheet__scroll {
   flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
