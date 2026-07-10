@@ -425,6 +425,9 @@ interface Persisted {
   themePref: ThemePref;
   biometricEnabled: boolean;
   biometricEmail: string | null;
+  // last signed-in account, remembered across sign-out so the login screen can
+  // offer a quick Face ID unlock instead of forgetting who you are.
+  lastAccount: { email: string; name: string } | null;
 }
 
 function loadPersisted(): Persisted {
@@ -438,6 +441,7 @@ function loadPersisted(): Persisted {
     themePref: "system",
     biometricEnabled: false,
     biometricEmail: null,
+    lastAccount: null,
   };
   try {
     const raw = localStorage.getItem(KEY);
@@ -482,6 +486,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   const [dark, setDark] = useState<boolean>(resolveTheme(init.current.themePref));
   const [biometricEnabled, setBiometricEnabled] = useState<boolean>(init.current.biometricEnabled);
   const [biometricEmail, setBiometricEmail] = useState<string | null>(init.current.biometricEmail);
+  const [lastAccount, setLastAccount] = useState<{ email: string; name: string } | null>(init.current.lastAccount);
   const [accountOpen, setAccountOpen] = useState(false);
   const [pushEnabled, setPushEnabled] = useState<boolean>(
     typeof Notification !== "undefined" && Notification.permission === "granted"
@@ -581,9 +586,9 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    const snapshot: Persisted = { accounts, currentKey, currentEmail, loggedIn, role, jobs, themePref, biometricEnabled, biometricEmail };
+    const snapshot: Persisted = { accounts, currentKey, currentEmail, loggedIn, role, jobs, themePref, biometricEnabled, biometricEmail, lastAccount };
     localStorage.setItem(KEY, JSON.stringify(snapshot));
-  }, [accounts, currentKey, currentEmail, loggedIn, role, jobs, themePref, biometricEnabled, biometricEmail]);
+  }, [accounts, currentKey, currentEmail, loggedIn, role, jobs, themePref, biometricEnabled, biometricEmail, lastAccount]);
 
   // resolve theme whenever the preference changes, and — when following the
   // system — keep it live as the OS scheme flips.
@@ -719,6 +724,9 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     setCurrentKey(uid);
     setCurrentEmail(sessionEmail);
     setLoggedIn(true);
+    // remember this account across sign-out so the login screen can offer a
+    // quick Face ID unlock instead of forgetting who signed in.
+    setLastAccount({ email: sessionEmail, name: profile?.name || "" });
     // honour launch preference
     const pref = profile?.launchSide ?? "customer";
     if (pref === "agent" && profile?.agentActivated) setRole("agent");
@@ -882,9 +890,12 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     accountNo: acct.accountNo,
     setUserName: (name) => { patchAcct({ name }); writeProfile({ name }); },
     setUserPhone: (phone) => { patchAcct({ phone }); writeProfile({ phone }); },
-    lastAccount: currentEmail && currentKey && accounts[currentKey]
+    // Prefer the live account when signed in; otherwise fall back to the
+    // persisted last account so the login screen still offers Face ID unlock
+    // after a manual sign-out.
+    lastAccount: (currentEmail && currentKey && accounts[currentKey]
       ? { email: currentEmail, name: accounts[currentKey].name }
-      : null,
+      : lastAccount),
 
     addresses: acct.addresses,
     addAddress: (a) => {

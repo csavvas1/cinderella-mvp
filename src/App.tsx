@@ -98,6 +98,27 @@ function Shell() {
     }
   }
 
+  // Same swipe-down-to-dismiss, but driven from the scrollable body: it only
+  // arms when the content is already scrolled to the very top, so a normal
+  // scroll still scrolls and only an over-pull at the top closes the sheet.
+  const scrollElRef = useRef<HTMLDivElement | null>(null);
+  const scrollArmed = useRef(false);
+  function onScrollTouchStart(e: React.TouchEvent) {
+    scrollArmed.current = (scrollElRef.current?.scrollTop ?? 0) <= 0;
+    if (scrollArmed.current) onDragStart(e);
+  }
+  function onScrollTouchMove(e: React.TouchEvent) {
+    if (!scrollArmed.current) return;
+    // if they've scrolled down in the meantime, hand control back to scrolling
+    if ((scrollElRef.current?.scrollTop ?? 0) > 0) { scrollArmed.current = false; return; }
+    onDragMove(e);
+  }
+  function onScrollTouchEnd() {
+    if (!scrollArmed.current) return;
+    scrollArmed.current = false;
+    onDragEnd();
+  }
+
   // On (re)entering the app after login, land on the side the launch preference
   // selected (role is set from the account's launchSide at login).
   useEffect(() => {
@@ -169,7 +190,8 @@ function Shell() {
             <button className="acctsheet__close" onClick={dismissAccount} aria-label="Close account">
               <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
             </button>
-            <div className="acctsheet__scroll">
+            <div className="acctsheet__scroll" ref={scrollElRef}
+              onTouchStart={onScrollTouchStart} onTouchMove={onScrollTouchMove} onTouchEnd={onScrollTouchEnd}>
               <Account />
             </div>
           </div>
