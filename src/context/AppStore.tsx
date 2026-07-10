@@ -336,6 +336,7 @@ interface AppState {
   enableBiometric: (email: string) => void;
   disableBiometric: () => void;
   loginWithBiometric: () => void;    // unlock the saved account
+  refresh: () => Promise<void>;      // pull-to-refresh: re-fetch the signed-in account's data
 }
 
 const KEY = "cinderella-state-v11";
@@ -1403,6 +1404,16 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     // Supabase sessions persist on their own, and real biometric would need a
     // stored refresh token — deferred). Unlock = re-enter the demo.
     loginWithBiometric: () => { if (biometricEmail === DEMO_EMAIL) loginDemo(); },
+    // pull-to-refresh: re-pull this account's data from Supabase (no app restart,
+    // no white flash). Only meaningful for a real signed-in user; the demo
+    // account has nothing to re-fetch, so resolve immediately.
+    refresh: async () => {
+      if (isRealUser && currentKey && currentEmail) {
+        await hydrateProfile(currentKey, currentEmail);
+      } else {
+        await new Promise((r) => setTimeout(r, 500)); // demo: brief spinner, then done
+      }
+    },
   };
 
   return <AppCtx.Provider value={value}>{children}</AppCtx.Provider>;

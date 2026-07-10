@@ -93,6 +93,24 @@ body {
 }
 .screen::-webkit-scrollbar { width: 0; }
 
+/* ---------- pull-to-refresh (Instagram-style) ---------- */
+.ptr { position: relative; }
+.ptr__content { will-change: transform; }
+/* spinner lives above the content, revealed as it's pulled down */
+.ptr__spinner {
+  position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+  z-index: 5; width: 30px; height: 30px;
+  display: grid; place-items: center;
+  pointer-events: none; transition: opacity .15s ease;
+}
+.ptr__ring {
+  width: 22px; height: 22px; border-radius: 999px;
+  border: 2.4px solid var(--border);
+  border-top-color: var(--indigo);
+}
+.ptr__ring--spin { animation: ptrspin .7s linear infinite; border-top-color: var(--indigo); }
+@keyframes ptrspin { to { transform: rotate(360deg); } }
+
 /* collapse the frame on real phones */
 @media (max-width: 460px) {
   .stage { padding: 0; height: 100dvh; }
@@ -109,6 +127,15 @@ body {
   background: var(--bg);
   padding: 30px 26px 12px;
   border-bottom: 1px solid var(--border);
+}
+/* Real phone: pull the whole app up under the OS status bar. The status-bar
+   height is added back via safe-area-inset-top so the clock/notch never
+   overlaps the profile row, with only a tiny gap below it. */
+@media (max-width: 460px) {
+  .appbar {
+    padding-top: calc(env(safe-area-inset-top) + 8px);
+    padding-bottom: 10px;
+  }
 }
 .appbar__row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .brand { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 19px; letter-spacing: -0.3px; }
@@ -1107,6 +1134,14 @@ input[type="range"]::-webkit-slider-thumb {
 
 .fadein { animation: fade .25s ease; }
 @keyframes fade { from { opacity: 0; transform: translateY(6px);} to {opacity:1; transform:none;} }
+
+/* swipe-nav page transitions: the incoming page slides in from the edge that
+   matches the swipe direction. swipe RIGHT (advance) -> new page enters from
+   the right; swipe LEFT (back) -> new page enters from the left. */
+.fadein.slide-next { animation: slidenext .28s cubic-bezier(.32,.72,.35,1); }
+.fadein.slide-prev { animation: slideprev .28s cubic-bezier(.32,.72,.35,1); }
+@keyframes slidenext { from { opacity: 0; transform: translateX(40px);} to { opacity: 1; transform: none;} }
+@keyframes slideprev { from { opacity: 0; transform: translateX(-40px);} to { opacity: 1; transform: none;} }
 
 .backlink { background: none; border: none; color: var(--indigo); font-weight: 700; font-size: 14px; cursor: pointer; padding: 0; margin-bottom: 6px; }
 
