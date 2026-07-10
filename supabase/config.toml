@@ -17,3 +17,8 @@ verify_jwt = false
 # the caller's JWT itself + checks they own the job, so keep the platform gate
 # off for the CORS preflight.
 verify_jwt = false
+
+[functions.ical-export]
+# Public combined-iCal feed fetched anonymously by Airbnb/Booking; guarded by a
+# per-property token in the query string, so the platform JWT gate must be off.
+verify_jwt = false

@@ -414,6 +414,7 @@ export interface AddressRow {
   linked_card_id: string | null;
   lat: number | null;
   lng: number | null;
+  export_token: string | null;
 }
 
 export function rowToAddress(r: AddressRow): PropertyAddress {
@@ -431,6 +432,7 @@ export function rowToAddress(r: AddressRow): PropertyAddress {
     linkedCardId: r.linked_card_id ?? undefined,
     lat: r.lat ?? undefined,
     lng: r.lng ?? undefined,
+    exportToken: r.export_token ?? undefined,
   };
 }
 

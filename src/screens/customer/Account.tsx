@@ -451,6 +451,29 @@ export default function Account() {
               </ol>
             </div>
 
+            {/* Combined export feed: paste THIS url into Booking.com & Airbnb's
+                "Import calendar" so a booking on one platform (or a manual/own
+                booking) blocks the date on the other. Only available once the
+                property is saved (it needs its id + token). */}
+            {(() => {
+              const saved = editId ? addresses.find((a) => a.id === editId) : null;
+              if (!saved?.exportToken) return null;
+              const exportUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ical-export?property=${saved.id}&token=${saved.exportToken}`;
+              return (
+                <div className="note" style={{ marginTop: 14 }}>
+                  <b style={{ fontSize: 12.5 }}>Block dates across platforms</b>
+                  <p style={{ fontSize: 12, margin: "6px 0 8px" }}>
+                    Paste this calendar link into Airbnb's and Booking.com's <b>Import calendar</b>. A booking on one (or a manual booking here) then blocks the date on the other.
+                  </p>
+                  <input className="input" readOnly value={exportUrl} onFocus={(e) => e.currentTarget.select()} style={{ fontSize: 11 }} />
+                  <button className="btn sm secondary" style={{ marginTop: 8 }}
+                    onClick={() => { navigator.clipboard?.writeText(exportUrl); }}>
+                    Copy link
+                  </button>
+                </div>
+              );
+            })()}
+
             <div style={{ height: 14 }} />
             {(() => {
               const apt = form.propertyType === "apartment";

@@ -84,6 +84,7 @@ export interface PropertyAddress {
   linkedCardId?: string;
   lat?: number;   // exact map pin (customer-placed) so the agent finds the door
   lng?: number;
+  exportToken?: string; // guards the public combined-iCal export feed for this property
 }
 
 export type Recurrence = "none" | "weekly" | "biweekly";
