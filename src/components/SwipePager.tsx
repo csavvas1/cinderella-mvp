@@ -86,7 +86,9 @@ export default function SwipePager({
   function settle(toSlot: number, commitIndex: number | null) {
     const el = trackRef.current;
     if (!el) return;
-    el.style.transition = "transform .3s cubic-bezier(.22,.61,.36,1)";
+    // Instagram-style settle: a touch slower with a soft ease-out so the page
+    // glides into place rather than snapping.
+    el.style.transition = "transform .4s cubic-bezier(.25,.46,.2,1)";
     el.style.transform = `translateX(${-toSlot * width.current}px)`;
     if (commitIndex != null) {
       const done = () => { el.removeEventListener("transitionend", done); onIndexChange(commitIndex); };
