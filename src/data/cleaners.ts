@@ -6,6 +6,7 @@ import { CY_CITIES } from "./addressPresets";
 // A row from the public_agents view (safe, browseable agent fields).
 export interface PublicAgentRow {
   id: string;
+  name: string | null;          // the agent's real name (from users.name via the view)
   agent_profile: AgentProfile | null;
   customer_rating: number | null;
   customer_reviews_count: number | null;
@@ -21,7 +22,7 @@ export function agentRowToCleaner(r: PublicAgentRow, fallbackName?: string): Cle
   if (!p || !(p.rateWeekday > 0)) return null;
   return {
     id: r.id,
-    name: p.displayName || fallbackName || "Cleaner",
+    name: p.displayName || r.name || fallbackName || "Cleaner",
     photo: "",
     photoUrl: p.photoUrl,
     rateWeekday: p.rateWeekday,
