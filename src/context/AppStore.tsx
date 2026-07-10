@@ -242,6 +242,8 @@ interface AppState {
   externalBookings: ExternalBooking[];
   addListing: (l: ConnectedListing, bookings: ExternalBooking[]) => void;
   removeListing: (id: string) => void;
+  addManualStay: (s: ExternalBooking) => void;         // add a booked stay by hand
+  removeExternalBooking: (id: string) => void;         // remove a single stay
 
   cards: Card[];
   addCard: (c: Card) => void;
@@ -995,6 +997,21 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         supabase.from("external_bookings").delete().eq("listing_id", id).eq("user_id", currentKey).then(logErr("ext booking delete"));
         supabase.from("connected_listings").delete().eq("id", id).eq("user_id", currentKey).then(logErr("listing delete"));
         orphanNotifs.forEach((n) => dbInsertNotif(n));
+      }
+    },
+    // Manually add a booked stay (not from Airbnb/Booking) — e.g. a direct guest.
+    // Stored as an external booking with platform "other"; it shows on the
+    // calendar and flows into the combined export feed, blocking the platforms.
+    addManualStay: (s) => {
+      patchAcct({ externalBookings: [...(acct.externalBookings ?? []), s] });
+      if (isRealUser && currentKey) {
+        supabase.from("external_bookings").insert({ ...externalBookingToRow(s), user_id: currentKey }).then(logErr("manual stay insert"));
+      }
+    },
+    removeExternalBooking: (id) => {
+      patchAcct({ externalBookings: (acct.externalBookings ?? []).filter((b) => b.id !== id) });
+      if (isRealUser && currentKey) {
+        supabase.from("external_bookings").delete().eq("id", id).eq("user_id", currentKey).then(logErr("ext booking delete"));
       }
     },
 

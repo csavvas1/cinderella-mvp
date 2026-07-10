@@ -9,7 +9,7 @@ import DatePicker from "../../components/DatePicker";
 import Dropdown from "../../components/Dropdown";
 import CameraCapture, { type CapturedPhoto } from "../../components/CameraCapture";
 import { priceJob } from "../../data/platform";
-import type { Booking, Review, ListingPlatform } from "../../types";
+import type { Booking, Review, ListingPlatform, ExternalBooking, PropertyAddress } from "../../types";
 
 const PLATFORMS: { v: ListingPlatform; t: string }[] = [
   { v: "airbnb", t: "Airbnb" },
@@ -45,7 +45,8 @@ function statusBadge(s: string) {
 
 export default function Bookings() {
   const { bookings, addresses, cancelBooking, addReview, updateBooking, updateSeries, cancelSeries,
-    externalBookings, connectedListings, notify, sendEmail, openAccount, dismissBooking } = useStore();
+    externalBookings, connectedListings, notify, sendEmail, openAccount, dismissBooking, addManualStay } = useStore();
+  const [manualOpen, setManualOpen] = useState(false);
   const nav = useNavigate();
   const [reviewFor, setReviewFor] = useState<Booking | null>(null);
   const [editFor, setEditFor] = useState<Booking | null>(null);
@@ -175,6 +176,18 @@ export default function Bookings() {
 
   return (
     <div className="pad">
+      {addresses.length > 0 && (
+        <button className="btn sm secondary" style={{ marginBottom: 12 }} onClick={() => setManualOpen(true)}>
+          + Add a booking manually
+        </button>
+      )}
+      {manualOpen && (
+        <ManualStayModal
+          addresses={addresses}
+          onClose={() => setManualOpen(false)}
+          onSave={(s) => { addManualStay(s); setManualOpen(false); }}
+        />
+      )}
       {seriesList.length > 0 && (
         <>
           <div className="label" style={{ marginTop: 4 }}>Recurring schedules</div>
@@ -1112,6 +1125,63 @@ function CalendarView({
 
         </>
       )}
+    </div>
+  );
+}
+
+// Add a booked stay by hand (e.g. a direct guest, not via Airbnb/Booking).
+// Saves as an external booking with platform "other" so it shows on the calendar
+// and blocks the other platforms via the combined export feed.
+function ManualStayModal({
+  addresses, onClose, onSave,
+}: {
+  addresses: PropertyAddress[];
+  onClose: () => void;
+  onSave: (s: ExternalBooking) => void;
+}) {
+  const [addrId, setAddrId] = useState(addresses[0]?.id ?? "");
+  const [checkIn, setCheckIn] = useState("");
+  const [checkOut, setCheckOut] = useState("");
+  const [guest, setGuest] = useState("");
+  const valid = addrId && checkIn && checkOut && checkOut > checkIn;
+  function save() {
+    if (!valid) return;
+    onSave({
+      id: crypto.randomUUID(),
+      listingId: "",
+      platform: "other",
+      guest: guest.trim() || "Direct booking",
+      checkIn, checkOut,
+      addressId: addrId,
+    });
+  }
+  return (
+    <div className="modal__backdrop" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="between" style={{ marginBottom: 8 }}>
+          <b style={{ fontSize: 17 }}>Add a booking</b>
+          <button className="iconbtn" onClick={onClose}>✕</button>
+        </div>
+        <p className="sub" style={{ marginTop: 0 }}>Mark a property as booked for these dates. It blocks the day for cleaning and, once you've shared the export calendar, on Airbnb & Booking too.</p>
+
+        <div className="label">Property</div>
+        <PropertyPicker addresses={addresses} value={addrId} onChange={setAddrId} />
+
+        <div className="label" style={{ marginTop: 12 }}>Check-in</div>
+        <DatePicker value={checkIn} onChange={setCheckIn} />
+
+        <div className="label" style={{ marginTop: 12 }}>Check-out</div>
+        <DatePicker value={checkOut} onChange={setCheckOut} />
+        {checkIn && checkOut && checkOut <= checkIn && (
+          <div className="loginerr" style={{ marginTop: 6 }}>Check-out must be after check-in.</div>
+        )}
+
+        <div className="label" style={{ marginTop: 12 }}>Guest name (optional)</div>
+        <input className="input" value={guest} placeholder="e.g. John S." onChange={(e) => setGuest(e.target.value)} />
+
+        <div style={{ height: 14 }} />
+        <button className="btn" disabled={!valid} style={{ opacity: valid ? 1 : 0.5 }} onClick={save}>Add booking</button>
+      </div>
     </div>
   );
 }
