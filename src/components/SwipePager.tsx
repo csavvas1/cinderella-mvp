@@ -62,12 +62,20 @@ export default function SwipePager({
     const dx = e.touches[0].clientX - startX.current;
     const dy = e.touches[0].clientY - startY.current;
     if (axis.current == null) {
-      if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return; // decide sooner (was 8)
-      // Bias slightly toward horizontal so near-diagonal flicks still register
-      // as swipes (fewer "failed" swipes) without hijacking clear vertical scroll.
-      axis.current = Math.abs(dx) > Math.abs(dy) * 0.8 ? "h" : "v";
+      const ax = Math.abs(dx), ay = Math.abs(dy);
+      // Wait until the finger has clearly moved before committing to an axis, so
+      // a tap or tiny jitter never arms a swipe.
+      if (ax < 10 && ay < 10) return;
+      // Instagram behaviour: a swipe only starts on a CLEARLY horizontal move.
+      // Require the horizontal component to dominate the vertical one; anything
+      // diagonal or vertical is handed to the scroll view (axis = "v") and the
+      // pager never touches the transform. This kills the "buggy" feeling where
+      // a right-down drag both scrolled and slid the pages.
+      axis.current = ax > ay * 1.5 ? "h" : "v";
       if (axis.current === "h") dragging.current = true;
     }
+    // Once the gesture is vertical (or undecided), do nothing — let the page
+    // scroll / pull-to-refresh handle it. The pager is horizontal-only.
     if (axis.current !== "h") return;
     // Hard-lock the edges: on the last (right-most) page a further left-drag has
     // no next page, and on the first (left-most) page a right-drag has no prev —
