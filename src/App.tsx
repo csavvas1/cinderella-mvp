@@ -104,7 +104,11 @@ function Shell() {
   const scrollElRef = useRef<HTMLDivElement | null>(null);
   const scrollArmed = useRef(false);
   function onScrollTouchStart(e: React.TouchEvent) {
-    scrollArmed.current = (scrollElRef.current?.scrollTop ?? 0) <= 0;
+    // Only allow swipe-to-close on the main account view. If a sub-panel is open
+    // (Rates & availability, Add property, etc. — rendered as .modal__backdrop
+    // over the sheet), don't arm the close gesture.
+    const subViewOpen = !!document.querySelector(".acctsheet .modal__backdrop");
+    scrollArmed.current = !subViewOpen && (scrollElRef.current?.scrollTop ?? 0) <= 0;
     if (scrollArmed.current) onDragStart(e);
   }
   function onScrollTouchMove(e: React.TouchEvent) {
