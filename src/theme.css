@@ -1529,6 +1529,19 @@ input[type="range"]::-webkit-slider-thumb {
 .modal::-webkit-scrollbar { width: 0; height: 0; display: none; }
 @keyframes slideup { from { transform: translateY(100%);} to { transform: none; } }
 
+/* Sub-views opened from within the account sheet must FULLY cover it — no gap at
+   the top, no account content bleeding through, and no seeing the account scroll
+   behind. Make the backdrop opaque + the card fill the whole sheet height. */
+.acctsheet .modal__backdrop:not(.center) {
+  background: var(--bg);
+  align-items: stretch;
+}
+.acctsheet .modal__backdrop:not(.center) .modal {
+  max-height: 100%; height: 100%; min-height: 100%;
+  border-radius: 0;
+  box-shadow: none;
+}
+
 /* taller bottom sheet — leaves room above for dropdowns */
 .modal.tall { min-height: 82%; max-height: 92%; }
 

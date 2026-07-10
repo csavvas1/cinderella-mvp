@@ -32,8 +32,9 @@ export default function CleanerList() {
   const hasWeekday = dates.some((d) => !isWeekend(d));
   const mixed = hasWeekend && hasWeekday;
   const weekend = hasWeekend && !hasWeekday; // pure weekend
-  const stats = marketStats(weekend ? "weekend" : "weekday");
-  const wkendStats = marketStats("weekend");
+  // Pricing snapshot from the REAL cleaner pool (the live agents), not mock data.
+  const stats = marketStats(weekend ? "weekend" : "weekday", cleaners);
+  const wkendStats = marketStats("weekend", cleaners);
   // sort/filter use weekday rate as the base when mixed (consistent reference)
   const rateOf = (c: Cleaner) => (weekend ? c.rateWeekend : c.rateWeekday);
 
@@ -68,8 +69,11 @@ export default function CleanerList() {
       if (draft.city && c.serviceCities?.length && !c.serviceCities.includes(draft.city)) return false;
       if (hasSlot && !isCleanerFree(c.id, dates, time, duration, bookings, undefined, c)) return false;
       if (c.rating < minRating) return false;
-      if (useWkday && c.rateWeekday > maxWkday) return false;
-      if (useWkend && c.rateWeekend > maxWkend) return false;
+      // 20 = slider max = "Any" (no cap). Only exclude by price when the user
+      // actually dragged the cap below 20, otherwise a >€20/hr agent would be
+      // silently hidden even though no filter is shown as active.
+      if (useWkday && maxWkday < 20 && c.rateWeekday > maxWkday) return false;
+      if (useWkend && maxWkend < 20 && c.rateWeekend > maxWkend) return false;
       if (verifiedOnly && !c.verified) return false;
       return true;
     });
@@ -207,9 +211,17 @@ export default function CleanerList() {
 
       {ranked.length === 0 ? (
         <div className="empty" style={{ padding: "40px 16px" }}>
-          No cleaners match. Try widening your filters or another time.
-          <div style={{ height: 14 }} />
-          <button className="btn sm secondary" onClick={() => { setMinRating(0); setMaxWkday(20); setMaxWkend(20); setVerifiedOnly(false); }}>Clear filters</button>
+          {activeFilters > 0 ? (
+            <>
+              No cleaners match your filters. Try widening them or picking another time.
+              <div style={{ height: 14 }} />
+              <button className="btn sm secondary" onClick={() => { setMinRating(0); setMaxWkday(20); setMaxWkend(20); setVerifiedOnly(false); setShown(PAGE); }}>Clear filters</button>
+            </>
+          ) : (
+            hasSlot
+              ? "No cleaners available for this city, day and time yet."
+              : "No cleaners available yet."
+          )}
         </div>
       ) : (
         <>

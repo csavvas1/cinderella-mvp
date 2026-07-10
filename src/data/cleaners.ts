@@ -523,19 +523,24 @@ export function cleanerBadges(c: Cleaner): { label: string; cls: string }[] {
   return out;
 }
 
-export function marketStats(period: "weekday" | "weekend" = "weekday") {
-  const pick = (c: (typeof CLEANERS)[number]) => (period === "weekend" ? c.rateWeekend : c.rateWeekday);
-  const rates = CLEANERS.map(pick).sort((a, b) => a - b);
+// Market pricing snapshot over a pool of cleaners. Pass the live cleaner list
+// (real agents) so the figures reflect actual availability; falls back to the
+// mock CLEANERS when the pool is empty or omitted, so the numbers are never
+// blank/NaN.
+export function marketStats(period: "weekday" | "weekend" = "weekday", pool?: Cleaner[]) {
+  const src = pool && pool.length ? pool : CLEANERS;
+  const pick = (c: Cleaner) => (period === "weekend" ? c.rateWeekend : c.rateWeekday);
+  const rates = src.map(pick).filter((r) => r > 0).sort((a, b) => a - b);
+  if (rates.length === 0) {
+    return { min: 0, max: 0, avg: 0, median: 0, mode: null, typical: 0, typicalLabel: "Typical", count: 0, avgRating: 0, period };
+  }
   const n = rates.length;
   const median = n % 2 ? rates[(n - 1) / 2] : (rates[n / 2 - 1] + rates[n / 2]) / 2;
-  // mode = most frequently charged rate; if every rate is unique, there is no
-  // meaningful mode, so fall back to median for the "typical" figure.
   const counts: Record<number, number> = {};
   rates.forEach((r) => (counts[r] = (counts[r] ?? 0) + 1));
   const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
   const hasRealMode = Number(top[1]) > 1;
-  const avgRating =
-    Math.round((CLEANERS.reduce((a, c) => a + c.rating, 0) / CLEANERS.length) * 10) / 10;
+  const avgRating = Math.round((src.reduce((a, c) => a + c.rating, 0) / src.length) * 10) / 10;
   return {
     min: Math.min(...rates),
     max: Math.max(...rates),
@@ -544,7 +549,7 @@ export function marketStats(period: "weekday" | "weekend" = "weekday") {
     mode: hasRealMode ? Number(top[0]) : null,
     typical: hasRealMode ? Number(top[0]) : median,
     typicalLabel: hasRealMode ? "Most common" : "Typical (median)",
-    count: CLEANERS.length,
+    count: src.length,
     avgRating,
     period,
   };
