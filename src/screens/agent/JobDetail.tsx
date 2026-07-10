@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useStore } from "../../context/AppStore";
 import BackButton from "../../components/BackButton";
 import CameraCapture, { type CapturedPhoto } from "../../components/CameraCapture";
+import MapPicker from "../../components/MapPicker";
 
 export default function JobDetail() {
   const { id } = useParams();
@@ -44,7 +45,12 @@ export default function JobDetail() {
     j.kitchens && `${j.kitchens} kitchen`,
     j.commonRooms && `${j.commonRooms} common`,
   ].filter(Boolean).join(" · ");
-  const mapsUrl = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(j.address);
+  // Prefer the exact customer-placed pin for directions; fall back to the address
+  // text when no pin was set.
+  const hasPin = j.lat != null && j.lng != null;
+  const mapsUrl = hasPin
+    ? `https://www.google.com/maps/search/?api=1&query=${j.lat},${j.lng}`
+    : "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(j.address);
 
   return (
     <div className="pad">
@@ -144,8 +150,15 @@ export default function JobDetail() {
         );
       })()}
 
+      {/* exact location pin the customer placed, so the agent finds the door */}
+      {hasPin && (
+        <div style={{ marginTop: 14 }}>
+          <MapPicker value={{ lat: j.lat!, lng: j.lng! }} height={200} readOnly />
+        </div>
+      )}
+
       {j.status !== "completed" && (
-        <a className="maploc__btn" style={{ marginTop: 14 }} href={mapsUrl} target="_blank" rel="noreferrer">
+        <a className="maploc__btn" style={{ marginTop: 12 }} href={mapsUrl} target="_blank" rel="noreferrer">
           <span>Open in Maps</span>
           <span className="maploc__arrow">→</span>
         </a>

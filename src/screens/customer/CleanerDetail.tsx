@@ -114,6 +114,7 @@ export default function CleanerDetail() {
         bedrooms: prop?.bedrooms ?? 0, bathrooms: prop?.bathrooms ?? 0,
         kitchens: prop?.kitchens ?? 0, commonRooms: prop?.commonRooms ?? 0,
         distanceFromHomeKm: 0, distanceFromPrevKm: null,
+        lat: prop?.lat, lng: prop?.lng,
         status: auto ? "approved" : "pending",
         cleanerId: cleaner!.id,
         // route the job to the real agent account when booking one (mock -> null)

@@ -82,6 +82,8 @@ export interface PropertyAddress {
   kitchens: number;
   commonRooms: number;
   linkedCardId?: string;
+  lat?: number;   // exact map pin (customer-placed) so the agent finds the door
+  lng?: number;
 }
 
 export type Recurrence = "none" | "weekly" | "biweekly";
@@ -155,6 +157,8 @@ export interface Job {
   commonRooms: number;
   distanceFromHomeKm: number;
   distanceFromPrevKm: number | null;
+  lat?: number;   // exact map pin from the booked property, for the agent
+  lng?: number;
   status: "pending" | "approved" | "declined" | "completed" | "cancelled" | "modified";
   cleanerId?: string;
   cleanerUid?: string;   // the real agent account this job is assigned to (null for mock cleaners)

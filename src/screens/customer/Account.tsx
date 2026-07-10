@@ -10,6 +10,7 @@ import { syncListing } from "../../data/ical";
 import { marketStats } from "../../data/cleaners";
 import { cardExpiryStatus } from "../../data/platform";
 import { isBiometricAvailable } from "../../lib/webauthn";
+import MapPicker from "../../components/MapPicker";
 import { CY_CITIES } from "../../data/addressPresets";
 import LegalDocModal from "../../components/LegalDocModal";
 import ConsentGate from "../../components/ConsentGate";
@@ -134,7 +135,11 @@ export default function Account() {
   const [bookingUrl, setBookingUrl] = useState("");
 
   // live address autocomplete via OpenStreetMap Nominatim (free, no key)
-  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [suggestions, setSuggestions] = useState<{ label: string; lat: number; lng: number }[]>([]);
+  // exact map pin for the property being added/edited, + the searched-address
+  // center used to recentre the map when a suggestion is picked.
+  const [pin, setPin] = useState<{ lat: number; lng: number } | undefined>(undefined);
+  const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | undefined>(undefined);
   const [acLoading, setAcLoading] = useState(false);
   const acSeq = useRef(0);
   useEffect(() => {
@@ -152,7 +157,8 @@ export default function Account() {
         );
         const data = await r.json();
         if (seq !== acSeq.current) return;
-        setSuggestions((data as { display_name: string }[]).map((d) => d.display_name));
+        setSuggestions((data as { display_name: string; lat: string; lon: string }[])
+          .map((d) => ({ label: d.display_name, lat: parseFloat(d.lat), lng: parseFloat(d.lon) })));
       } catch {
         if (seq === acSeq.current) setSuggestions([]);
       } finally {
@@ -165,6 +171,7 @@ export default function Account() {
   function resetForm() {
     setForm({ nickname: "", address: "", propertyType: "apartment", apartmentNumber: "", floor: "", bedrooms: 1, bathrooms: 1, kitchens: 1, commonRooms: 1 });
     setAirbnbUrl(""); setBookingUrl("");
+    setPin(undefined); setMapCenter(undefined);
   }
 
   function openEditProperty(a: PropertyAddress) {
@@ -176,6 +183,9 @@ export default function Account() {
     const forProp = connectedListings.filter((l) => l.addressId === a.id);
     setAirbnbUrl(forProp.find((l) => l.platform === "airbnb")?.icalUrl ?? "");
     setBookingUrl(forProp.find((l) => l.platform === "booking")?.icalUrl ?? "");
+    // restore the saved pin (if any) so editing shows the marker in place
+    if (a.lat != null && a.lng != null) { setPin({ lat: a.lat, lng: a.lng }); setMapCenter({ lat: a.lat, lng: a.lng }); }
+    else { setPin(undefined); setMapCenter(undefined); }
     setEditId(a.id);
     setShowAdd(true);
   }
@@ -188,6 +198,8 @@ export default function Account() {
       nickname: form.nickname.trim() || form.address.trim(),
       apartmentNumber: form.propertyType === "apartment" ? form.apartmentNumber.trim() : undefined,
       floor: form.propertyType === "apartment" ? (form.floor.trim() || undefined) : undefined,
+      lat: pin?.lat,
+      lng: pin?.lng,
     };
     if (editId) updateAddress(a); else addAddress(a);
     // Sync each platform independently so a property can be linked to Airbnb AND
@@ -336,14 +348,31 @@ export default function Account() {
                     <div className="ac__item" style={{ color: "var(--muted)" }}><span className="ac__addr">Searching…</span></div>
                   )}
                   {suggestions.map((s) => (
-                    <button key={s} className="ac__item" onMouseDown={() => { setForm({ ...form, address: s }); setSuggestions([]); setAddrFocus(false); }}>
-                      <span className="ac__addr">{s}</span>
+                    <button key={s.label} className="ac__item" onMouseDown={() => {
+                      setForm({ ...form, address: s.label });
+                      setSuggestions([]); setAddrFocus(false);
+                      // drop the pin on the picked address + recentre the map
+                      setPin({ lat: s.lat, lng: s.lng });
+                      setMapCenter({ lat: s.lat, lng: s.lng });
+                    }}>
+                      <span className="ac__addr">{s.label}</span>
                     </button>
                   ))}
                 </div>
               )}
             </div>
-            <div className="label">Property type</div>
+
+            {/* exact map pin — appears once an address is chosen. Drag it to the
+                precise door so the agent knows exactly where to go. */}
+            {(pin || mapCenter) && (
+              <>
+                <div className="label" style={{ marginTop: 12 }}>Pin the exact spot</div>
+                <p className="sub" style={{ margin: "0 0 8px", fontSize: 12 }}>Drag the marker to the precise entrance — this is what the cleaner sees.</p>
+                <MapPicker value={pin} center={mapCenter} onChange={setPin} />
+              </>
+            )}
+
+            <div className="label" style={{ marginTop: 12 }}>Property type</div>
             <div className="ptype">
               {([{ v: "apartment", t: "Apartment" }, { v: "house", t: "House" }] as const).map((o) => (
                 <button key={o.v} type="button" className={"ptype__opt" + (form.propertyType === o.v ? " sel" : "")}

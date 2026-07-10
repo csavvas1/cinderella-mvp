@@ -253,6 +253,8 @@ export interface JobRow {
   common_rooms: number;
   distance_from_home_km: number;
   distance_from_prev_km: number | null;
+  lat: number | null;
+  lng: number | null;
   status: Job["status"];
   auto_accepted: boolean | null;
   seen_by_agent: boolean | null;
@@ -297,6 +299,8 @@ export function rowToJob(r: JobRow): Job {
     commonRooms: r.common_rooms,
     distanceFromHomeKm: r.distance_from_home_km,
     distanceFromPrevKm: r.distance_from_prev_km,
+    lat: r.lat ?? undefined,
+    lng: r.lng ?? undefined,
     status: r.status,
     cleanerId: r.cleaner_id ?? undefined,
     cleanerUid: r.cleaner_uid ?? undefined,
@@ -349,6 +353,8 @@ export function jobToRow(j: Job): Record<string, unknown> {
     common_rooms: j.commonRooms,
     distance_from_home_km: j.distanceFromHomeKm,
     distance_from_prev_km: j.distanceFromPrevKm,
+    lat: j.lat ?? null,
+    lng: j.lng ?? null,
     status: j.status,
     auto_accepted: j.autoAccepted ?? null,
     seen_by_agent: j.seenByAgent ?? false,
@@ -406,6 +412,8 @@ export interface AddressRow {
   kitchens: number;
   common_rooms: number;
   linked_card_id: string | null;
+  lat: number | null;
+  lng: number | null;
 }
 
 export function rowToAddress(r: AddressRow): PropertyAddress {
@@ -421,6 +429,8 @@ export function rowToAddress(r: AddressRow): PropertyAddress {
     kitchens: r.kitchens,
     commonRooms: r.common_rooms,
     linkedCardId: r.linked_card_id ?? undefined,
+    lat: r.lat ?? undefined,
+    lng: r.lng ?? undefined,
   };
 }
 
@@ -438,6 +448,8 @@ export function addressToRow(a: PropertyAddress): Record<string, unknown> {
     kitchens: a.kitchens,
     common_rooms: a.commonRooms,
     linked_card_id: a.linkedCardId ?? null,
+    lat: a.lat ?? null,
+    lng: a.lng ?? null,
   };
 }
 
