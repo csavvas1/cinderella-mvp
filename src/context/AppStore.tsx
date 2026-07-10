@@ -702,6 +702,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           customerRep: profile?.customerRep ?? base.customerRep,
           supplyWarningAckVersion: profile?.supplyWarningAckVersion ?? base.supplyWarningAckVersion,
           accountNo: profile?.accountNo ?? base.accountNo,
+          favourites: profile?.favourites ?? base.favourites,
           consents: consents.length ? consents : (base.consents ?? []),
           addresses: addresses ?? base.addresses,
           cards: cards ?? base.cards,
@@ -1210,7 +1211,9 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     favourites: acct.favourites ?? [],
     toggleFavourite: (cleanerId) => {
       const cur = acct.favourites ?? [];
-      patchAcct({ favourites: cur.includes(cleanerId) ? cur.filter((x) => x !== cleanerId) : [...cur, cleanerId] });
+      const next = cur.includes(cleanerId) ? cur.filter((x) => x !== cleanerId) : [...cur, cleanerId];
+      patchAcct({ favourites: next });
+      writeProfile({ favourites: next }); // persist to users.favourites
     },
 
     cleaners: [...realCleaners, ...CLEANERS],

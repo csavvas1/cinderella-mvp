@@ -454,6 +454,7 @@ export interface ProfileFields {
   customerRep: CustomerReputation;
   supplyWarningAckVersion?: number;
   accountNo?: number;   // friendly display number (read-only; UUID stays the real id)
+  favourites?: string[]; // saved cleaner ids
 }
 
 // Shape of a row from public.users (snake_case columns).
@@ -472,6 +473,7 @@ export interface UsersRow {
   agent_profile: AgentProfile | null;
   supply_warning_ack_version: number | null;
   account_no: number | null;
+  favourites: string[] | null;
 }
 
 // Postgres row -> local profile fields.
@@ -491,6 +493,7 @@ export function rowToProfile(row: UsersRow): ProfileFields {
     },
     supplyWarningAckVersion: row.supply_warning_ack_version ?? undefined,
     accountNo: row.account_no ?? undefined,
+    favourites: row.favourites ?? undefined,
   };
 }
 
@@ -511,5 +514,6 @@ export function profileToRow(patch: Partial<ProfileFields>): Record<string, unkn
     out.customer_cancellations = patch.customerRep.cancellations ?? 0;
   }
   if (patch.supplyWarningAckVersion !== undefined) out.supply_warning_ack_version = patch.supplyWarningAckVersion;
+  if (patch.favourites !== undefined) out.favourites = patch.favourites;
   return out;
 }
