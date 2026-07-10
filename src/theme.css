@@ -113,10 +113,16 @@ body {
 
 /* collapse the frame on real phones */
 @media (max-width: 460px) {
-  .stage { padding: 0; height: 100dvh; }
+  /* Lock the page itself so ONLY .screen scrolls. Without this, iOS
+     PWA/standalone lets the whole document rubber-band, which drags the
+     "fixed" header down with it. Pinning html/body/stage/phone and giving
+     .screen the sole overflow makes the header truly static. */
+  html, body { position: fixed; inset: 0; overflow: hidden; overscroll-behavior: none; }
+  .stage { padding: 0; height: 100dvh; overflow: hidden; }
   .phone {
     width: 100vw; height: 100dvh; max-height: 100dvh;
     border-radius: 0; box-shadow: none;
+    overflow: hidden;
   }
   .phone__notch { display: none; }
 }
@@ -1138,10 +1144,12 @@ input[type="range"]::-webkit-slider-thumb {
 /* swipe-nav page transitions: the incoming page slides in from the edge that
    matches the swipe direction. swipe RIGHT (advance) -> new page enters from
    the right; swipe LEFT (back) -> new page enters from the left. */
-.fadein.slide-next { animation: slidenext .28s cubic-bezier(.32,.72,.35,1); }
-.fadein.slide-prev { animation: slideprev .28s cubic-bezier(.32,.72,.35,1); }
-@keyframes slidenext { from { opacity: 0; transform: translateX(40px);} to { opacity: 1; transform: none;} }
-@keyframes slideprev { from { opacity: 0; transform: translateX(-40px);} to { opacity: 1; transform: none;} }
+/* ---------- Instagram-style horizontal pager ---------- */
+.swipe { overflow: hidden; width: 100%; }
+.swipe__track { display: flex; width: 100%; will-change: transform; }
+/* each page takes the full viewport width so exactly one shows at rest, with the
+   neighbour parked just off-screen ready to slide in as you drag. */
+.swipe__page { flex: 0 0 100%; width: 100%; min-width: 100%; }
 
 .backlink { background: none; border: none; color: var(--indigo); font-weight: 700; font-size: 14px; cursor: pointer; padding: 0; margin-bottom: 6px; }
 

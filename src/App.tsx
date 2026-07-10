@@ -4,13 +4,22 @@ import PhoneFrame from "./components/PhoneFrame";
 import AppBar from "./components/AppBar";
 import TabBar from "./components/TabBar";
 import PullToRefresh from "./components/PullToRefresh";
+import SwipePager from "./components/SwipePager";
 import { LogoMark } from "./components/Logo";
 import { useStore } from "./context/AppStore";
-import { useSwipeNav } from "./hooks/useSwipeNav";
 
 // Tab order per side — swipe navigation cycles within the current side only.
 const CUSTOMER_TABS = ["/book", "/bookings"];
 const AGENT_TABS = ["/agent/jobs", "/agent/calendar", "/agent/referrals"];
+
+// The page component shown for each swipeable tab path.
+const TAB_PAGE: Record<string, () => JSX.Element> = {
+  "/book": () => <Book />,
+  "/bookings": () => <Bookings />,
+  "/agent/jobs": () => <Jobs />,
+  "/agent/calendar": () => <Calendar />,
+  "/agent/referrals": () => <Referrals />,
+};
 
 import Login from "./screens/Login";
 import ConsentScreen from "./screens/ConsentScreen";
@@ -35,14 +44,12 @@ function Shell() {
   // scroll container ref — pull-to-refresh only arms when this is at the top.
   const screenRef = useRef<HTMLDivElement | null>(null);
 
-  // swipe navigation between the current side's tabs. `slideDir` drives the
-  // enter animation direction so the new page slides in from the correct edge.
-  const [slideDir, setSlideDir] = useState<"next" | "prev" | null>(null);
+  // Instagram-style swipe pager between the current side's tabs. Only the tab
+  // pages (Book/Bookings, Jobs/Calendar/Refer) are swipeable; detail pages
+  // (cleaner, job, reviews, confirmed) fall through to the router below.
   const tabs = role === "agent" ? AGENT_TABS : CUSTOMER_TABS;
-  const swipe = useSwipeNav(tabs, pathname, (to, dir) => {
-    setSlideDir(dir);
-    nav(to);
-  });
+  const tabIndex = tabs.indexOf(pathname);
+  const onTab = tabIndex !== -1;
   // Play a slide-down exit while keeping the sheet mounted. We flip accountOpen
   // OFF immediately so the island starts rising in sync with the sheet dropping
   // (otherwise the island only animates after the sheet has fully gone).
@@ -121,30 +128,30 @@ function Shell() {
   return (
     <>
       <AppBar />
-      <div className="screen" ref={screenRef}
-        onTouchStart={swipe.onTouchStart} onTouchMove={swipe.onTouchMove} onTouchEnd={swipe.onTouchEnd}>
+      <div className="screen" ref={screenRef}>
         <PullToRefresh onRefresh={refresh} scrollRef={screenRef}>
-          <div
-            className={"fadein" + (slideDir ? " slide-" + slideDir : "")}
-            key={pathname}
-            onAnimationEnd={() => setSlideDir(null)}
-          >
-            <Routes>
-              {/* customer */}
-              <Route path="/book" element={<Book />} />
-              <Route path="/cleaners" element={<CleanerList />} />
-              <Route path="/cleaner/:id" element={<CleanerDetail />} />
-              <Route path="/reviews/:id" element={<AllReviews />} />
-              <Route path="/confirmed/:id" element={<Confirmed />} />
-              <Route path="/bookings" element={<Bookings />} />
-              {/* agent */}
-              <Route path="/agent/jobs" element={<Jobs />} />
-              <Route path="/agent/job/:id" element={<JobDetail />} />
-              <Route path="/agent/calendar" element={<Calendar />} />
-              <Route path="/agent/referrals" element={<Referrals />} />
-              <Route path="*" element={<Navigate to="/book" replace />} />
-            </Routes>
-          </div>
+          {onTab ? (
+            // Swipeable tab pages — drag left/right to move between this side's
+            // tabs, Instagram-style (finger-tracking, snap on release).
+            <SwipePager
+              index={tabIndex}
+              count={tabs.length}
+              onIndexChange={(next) => nav(tabs[next])}
+              renderPage={(i) => TAB_PAGE[tabs[i]]()}
+            />
+          ) : (
+            // Detail / flow pages keep the router + fade transition.
+            <div className="fadein" key={pathname}>
+              <Routes>
+                <Route path="/cleaners" element={<CleanerList />} />
+                <Route path="/cleaner/:id" element={<CleanerDetail />} />
+                <Route path="/reviews/:id" element={<AllReviews />} />
+                <Route path="/confirmed/:id" element={<Confirmed />} />
+                <Route path="/agent/job/:id" element={<JobDetail />} />
+                <Route path="*" element={<Navigate to="/book" replace />} />
+              </Routes>
+            </div>
+          )}
         </PullToRefresh>
       </div>
       <TabBar />
