@@ -5,7 +5,10 @@ import { supabase } from "./supabase";
 // Function for challenges + verification and drives the browser's WebAuthn
 // prompt via @simplewebauthn/browser. See supabase/functions/webauthn/index.ts.
 
-const FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/webauthn`;
+// strip any trailing slash on the base URL so we never build a double-slash
+// path (…supabase.co//functions/…), which the functions gateway rejects.
+const SB_URL = String(import.meta.env.VITE_SUPABASE_URL || "").replace(/\/+$/, "");
+const FN_URL = `${SB_URL}/functions/v1/webauthn`;
 const ANON = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
 async function callFn(action: string, payload: Record<string, unknown>, accessToken?: string) {

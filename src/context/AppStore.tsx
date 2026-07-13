@@ -572,7 +572,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       const { data: sess } = await supabase.auth.getSession();
       const token = sess.session?.access_token;
       if (!token) return;
-      await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/agent-job-update`, {
+      await fetch(`${String(import.meta.env.VITE_SUPABASE_URL || "").replace(/\/+$/, "")}/functions/v1/agent-job-update`, {
         method: "POST",
         headers: { "content-type": "application/json", apikey: import.meta.env.VITE_SUPABASE_ANON_KEY, authorization: `Bearer ${token}` },
         body: JSON.stringify({
@@ -1060,7 +1060,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         const { data: sess } = await supabase.auth.getSession();
         const token = sess.session?.access_token;
         if (!token) return { error: "Sign in first." };
-        const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/join-property`, {
+        const res = await fetch(`${String(import.meta.env.VITE_SUPABASE_URL || "").replace(/\/+$/, "")}/functions/v1/join-property`, {
           method: "POST",
           headers: { "content-type": "application/json", apikey: import.meta.env.VITE_SUPABASE_ANON_KEY, authorization: `Bearer ${token}` },
           body: JSON.stringify({ code: code.trim() }),

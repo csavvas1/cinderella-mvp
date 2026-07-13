@@ -492,7 +492,7 @@ export default function Account() {
             {(() => {
               const saved = editId ? addresses.find((a) => a.id === editId) : null;
               if (!saved?.exportToken) return null;
-              const exportUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ical-export?property=${saved.id}&token=${saved.exportToken}`;
+              const exportUrl = `${String(import.meta.env.VITE_SUPABASE_URL || "").replace(/\/+$/, "")}/functions/v1/ical-export?property=${saved.id}&token=${saved.exportToken}`;
               return (
                 <div className="note" style={{ marginTop: 14 }}>
                   <b style={{ fontSize: 12.5 }}>Block dates across platforms</b>

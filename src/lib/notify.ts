@@ -5,7 +5,7 @@ import { supabase } from "./supabase";
 // notify-user Edge Function (service role bypasses the own-row RLS). Used to
 // alert a real agent when a customer books them. Best-effort: failures are
 // swallowed so a booking never breaks over a missed alert.
-const FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-user`;
+const FN_URL = `${String(import.meta.env.VITE_SUPABASE_URL || "").replace(/\/+$/, "")}/functions/v1/notify-user`;
 const ANON = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
 export async function notifyUser(targetUid: string, n: AppNotification): Promise<void> {

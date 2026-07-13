@@ -14,7 +14,7 @@ const PLATFORM_NAME: Record<ListingPlatform, string> = {
   airbnb: "Airbnb", booking: "Booking.com", vrbo: "Vrbo", other: "Listing",
 };
 
-const FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ical-sync`;
+const FN_URL = `${String(import.meta.env.VITE_SUPABASE_URL || "").replace(/\/+$/, "")}/functions/v1/ical-sync`;
 const ANON = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
 interface RawStay { checkIn: string; checkOut: string; guest: string; uid: string }
