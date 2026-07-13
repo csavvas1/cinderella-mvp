@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useStore } from "../../context/AppStore";
 import { CLEANERS, isCleanerFree, estimateCleaningHours, isWeekend } from "../../data/cleaners";
@@ -1157,10 +1158,11 @@ function ManualStayModal({
       addressId: addrId,
     });
   }
-  return (
-    // position:fixed so the modal escapes the swipe-pager's clipped/transformed
-    // track (Bookings renders inside the pager; an absolute backdrop was being
-    // clipped and never appeared).
+  // Render into document.body via a portal so the modal escapes the swipe-pager's
+  // transformed track. A position:fixed element inside a transformed ancestor is
+  // positioned relative to that ancestor, not the viewport — that's why the popup
+  // was landing on the wrong (Search) page slot. The portal fixes it.
+  return createPortal(
     <div className="modal__backdrop" onClick={onClose} style={{ position: "fixed" }}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="between" style={{ marginBottom: 8 }}>
@@ -1187,6 +1189,7 @@ function ManualStayModal({
         <div style={{ height: 14 }} />
         <button className="btn" disabled={!valid} style={{ opacity: valid ? 1 : 0.5 }} onClick={save}>Add booking</button>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
