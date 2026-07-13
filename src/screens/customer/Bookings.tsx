@@ -176,11 +176,6 @@ export default function Bookings() {
 
   return (
     <div className="pad">
-      {addresses.length > 0 && (
-        <button className="btn sm secondary" style={{ marginBottom: 12 }} onClick={() => setManualOpen(true)}>
-          + Add a booking manually
-        </button>
-      )}
       {manualOpen && (
         <ManualStayModal
           addresses={addresses}
@@ -208,6 +203,12 @@ export default function Bookings() {
           ))}
           <div style={{ height: 8 }} />
         </>
+      )}
+
+      {addresses.length > 0 && (
+        <button className="btn sm secondary" style={{ marginBottom: 12 }} onClick={() => setManualOpen(true)}>
+          + Add a booking manually
+        </button>
       )}
 
       <CalendarView
