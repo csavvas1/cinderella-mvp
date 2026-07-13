@@ -5,7 +5,7 @@ import { supabase } from "./supabase";
 // Function for challenges + verification and drives the browser's WebAuthn
 // prompt via @simplewebauthn/browser. See supabase/functions/webauthn/index.ts.
 
-const FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/swift-endpoint`;
+const FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/webauthn`;
 const ANON = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
 async function callFn(action: string, payload: Record<string, unknown>, accessToken?: string) {
