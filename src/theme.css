@@ -411,35 +411,42 @@ body {
 /* agent side round active uses the agent accent */
 .wolt .wolt__pill--agent ~ .wolt__round.active { background: var(--agent); }
 
-/* ---------- Instagram-style sliding colour blob ----------
-   A single solid accent element sits behind the active pill and physically
-   slides + resizes to the target pill as you drag (TabBar measures pill rects
-   and sets --blob-x / --blob-w from the live drag fraction). No per-pill fade,
-   so it reads as the solid colour moving with the finger. */
+/* ---------- Instagram-style colour handoff on swipe ----------
+   Each pill draws its accent fill via an ::after overlay whose opacity is
+   `--fill` (0..1). TabBar sets data-rel per pill (0 = active, -1 = prev tab,
+   +1 = next tab) and the CSS below computes --fill from --swipe (live drag
+   fraction: + = dragging toward prev, - = toward next). At rest (--swipe 0) the
+   active pill is fully filled; as you drag, the accent flows to the neighbour
+   you're heading toward, 1:1 with the finger. */
 :root { --swipe: 0; }
-.wolt { position: absolute; }   /* (already positioned; blob anchors to it) */
-.wolt__blob {
-  position: absolute; top: 7px; left: 0; height: calc(100% - 14px);
-  transform: translateX(var(--blob-x, 0px));
-  width: var(--blob-w, 0px);
-  background: var(--indigo);
-  border-radius: 999px;
-  z-index: 0; pointer-events: none;
-  box-shadow: 0 6px 16px rgba(20,21,26,0.20);
-}
-.wolt[data-agentside="1"] .wolt__blob { background: var(--agent); }
-/* smooth settle when not actively dragging (dragging flag is on :root) */
-:root:not([data-dragging="1"]) .wolt__blob { transition: transform .32s cubic-bezier(.25,.46,.2,1), width .32s cubic-bezier(.25,.46,.2,1); }
-/* pills sit above the blob; the active one's content is white */
-.wolt__pill, .wolt__round { position: relative; }
+.wolt__pill, .wolt__round { position: relative; overflow: hidden; }
 .wolt__pill > *, .wolt__round > * { position: relative; z-index: 1; }
-/* the blob provides the fill now — drop each pill's own solid active background */
-:root .wolt__pill.active, :root .wolt__round.active,
-:root[data-theme="dark"] .wolt__pill.active, :root[data-theme="dark"] .wolt__round.active,
-:root .wolt__pill--agent.active,
-:root .wolt .wolt__pill--agent ~ .wolt__round.active {
-  background: transparent; border-color: transparent; box-shadow: none;
+.wolt__pill::after, .wolt__round::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit;
+  background: var(--indigo);
+  opacity: var(--fill, 0);
+  transition: opacity .09s ease;   /* fast colour arrival on settle */
+  pointer-events: none; z-index: 0;
 }
+.wolt__pill--agent::after,
+.wolt .wolt__pill--agent ~ .wolt__round::after { background: var(--agent); }
+/* per-pill fill from drag fraction. clamp via max/min in calc. */
+.wolt__pill[data-rel="0"], .wolt__round[data-rel="0"] {
+  --fill: calc(1 - max(var(--swipe), calc(-1 * var(--swipe))));   /* 1 - |swipe| */
+}
+.wolt__pill[data-rel="1"], .wolt__round[data-rel="1"] {     /* next tab (drag left, swipe<0) */
+  --fill: max(0, calc(-1 * var(--swipe)));
+}
+.wolt__pill[data-rel="-1"], .wolt__round[data-rel="-1"] {   /* prev tab (drag right, swipe>0) */
+  --fill: max(0, var(--swipe));
+}
+/* while dragging, don't also show the hard .active background (the overlay
+   handles the fill) so the two don't stack. Text stays white on the active. */
+:root[data-dragging="1"] .wolt__pill.active,
+:root[data-dragging="1"] .wolt__round.active { background: transparent; }
+/* keep the ::after transition off DURING the drag for 1:1 tracking */
+:root[data-dragging="1"] .wolt__pill::after,
+:root[data-dragging="1"] .wolt__round::after { transition: none; }
 .tabbar button {
   background: none; border: none; cursor: pointer;
   display: flex; flex-direction: column; align-items: center; gap: 3px;

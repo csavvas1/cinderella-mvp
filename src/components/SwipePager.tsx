@@ -105,7 +105,7 @@ export default function SwipePager({
     if (!el) return;
     // Instagram-style settle: a touch slower with a soft ease-out so the page
     // glides into place rather than snapping.
-    el.style.transition = "transform .4s cubic-bezier(.25,.46,.2,1)";
+    el.style.transition = "transform .25s cubic-bezier(.25,.46,.2,1)";
     el.style.transform = `translateX(${-toSlot * width.current}px)`;
     onProgress?.(0); // colour settles back with the page
     if (commitIndex != null) {
