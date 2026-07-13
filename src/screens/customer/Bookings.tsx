@@ -1171,13 +1171,14 @@ function ManualStayModal({
   // positioned relative to that ancestor, not the viewport — that's why the popup
   // was landing on the wrong (Search) page slot. The portal fixes it.
   return createPortal(
-    <div className="modal__backdrop" onClick={onClose} style={{ position: "fixed" }}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <div className="modal__backdrop" onClick={onClose}
+      style={{ position: "fixed", alignItems: "flex-start", paddingTop: "calc(env(safe-area-inset-top) + 40px)", overflowY: "auto" }}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}
+        style={{ borderRadius: 18, maxHeight: "none", width: "calc(100% - 32px)", maxWidth: 420 }}>
         <div className="between" style={{ marginBottom: 8 }}>
           <b style={{ fontSize: 17 }}>Add a booking</b>
           <button className="iconbtn" onClick={onClose}>✕</button>
         </div>
-        <p className="sub" style={{ marginTop: 0 }}>Mark a property as booked for these dates. It blocks the day for cleaning and, once you've shared the export calendar, on Airbnb & Booking too.</p>
 
         <div className="label">Property</div>
         <PropertyPicker addresses={addresses} value={addrId} onChange={setAddrId} />
