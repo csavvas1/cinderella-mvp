@@ -166,6 +166,7 @@ export interface Job {
   status: "pending" | "approved" | "declined" | "completed" | "cancelled" | "modified";
   cleanerId?: string;
   cleanerUid?: string;   // the real agent account this job is assigned to (null for mock cleaners)
+  customerUid?: string;  // the booker's account id (target for agent->customer alerts)
   bookingId?: string;
   autoAccepted?: boolean;
   // an auto-accepted job lands already "approved" (no accept needed) but is still

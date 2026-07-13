@@ -27,3 +27,8 @@ verify_jwt = false
 # A partner joins a shared property by code. Verifies the caller's JWT itself;
 # platform gate off so the CORS preflight passes.
 verify_jwt = false
+
+[functions.agent-job-update]
+# Agent accept/decline/complete on a job they don't own as customer. Verifies
+# the caller is the job's cleaner itself; platform gate off for the preflight.
+verify_jwt = false

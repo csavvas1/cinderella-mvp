@@ -307,6 +307,7 @@ export function rowToJob(r: JobRow): Job {
     status: r.status,
     cleanerId: r.cleaner_id ?? undefined,
     cleanerUid: r.cleaner_uid ?? undefined,
+    customerUid: r.customer_uid ?? undefined,
     bookingId: r.booking_id ?? undefined,
     autoAccepted: r.auto_accepted ?? undefined,
     seenByAgent: r.seen_by_agent ?? undefined,

@@ -556,6 +556,33 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     if (!isRealUser || !currentKey) return;
     supabase.from("notifications").insert({ ...notifToRow(n), user_id: currentKey }).then(logErr("notif insert"));
   }
+  // Agent acting on a job they don't own as customer: the plain dbPatch* calls
+  // filter by the actor's user_id and would match nothing (and can't write the
+  // customer's rows under RLS). Route job status + linked booking + the
+  // customer-facing notification through the service-role Edge Function instead.
+  async function agentJobUpdate(
+    jobId: string,
+    jobCols: Record<string, unknown>,
+    bookingId: string | undefined,
+    bookingCols: Record<string, unknown> | undefined,
+    notif: AppNotification | null,
+  ) {
+    if (!isRealUser) return;
+    try {
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+      if (!token) return;
+      await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/agent-job-update`, {
+        method: "POST",
+        headers: { "content-type": "application/json", apikey: import.meta.env.VITE_SUPABASE_ANON_KEY, authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          jobId, jobCols, bookingId,
+          bookingCols,
+          notification: notif ? { ...notifToRow(notif) } : undefined,
+        }),
+      });
+    } catch { /* best-effort */ }
+  }
   function dbMarkNotifsRead(audience?: NotifAudience) {
     if (!isRealUser || !currentKey) return;
     let q = supabase.from("notifications").update({ read: true }).eq("user_id", currentKey);
@@ -1338,13 +1365,21 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       setJobs((p) => p.map((j) => (j.id === id
         ? { ...j, status, ...(cleanerCancel ? { cleanerCancelledAt: now } : {}), ...timeline }
         : j)));
-      // write-through the job status change + timeline
-      dbPatchJob(id, {
+      // Is the actor the assigned cleaner (agent side)? Then the plain dbPatch*
+      // calls would match nothing (they filter by customer_uid) — route through
+      // the service-role Edge Function so the change persists + the customer is
+      // updated/notified. Customer-side status changes keep the direct path.
+      const isAgentActor = job?.cleanerUid === currentKey;
+      const jobCols: Record<string, unknown> = {
         status,
         ...(cleanerCancel ? { cleaner_cancelled_at: jobCancelIso } : {}),
         ...(isResponse ? { responded_at: new Date(now).toISOString(), response } : {}),
         ...(outcome ? { outcome, outcome_at: new Date(now).toISOString() } : {}),
-      });
+      };
+      if (!isAgentActor) {
+        // write-through the job status change + timeline (customer-owned path)
+        dbPatchJob(id, jobCols);
+      }
       // mirror agent decision back onto the linked customer booking + raise a
       // customer-facing notification. Both go in ONE patch — a second patchAcct
       // would read stale `acct` and clobber the first.
@@ -1368,15 +1403,23 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
               title: "Booking cancelled",
               body: `${bk?.cleanerName ?? "Your cleaner"} cancelled your cleaning${bk ? ` on ${bk.date} at ${bk.time}` : ""}. You can book another cleaner.` })
           : buildJobStatusNotif(status, bk, job.bookingId);
-        if (notif) patch.notifications = [notif, ...(acct.notifications ?? [])];
-        if (Object.keys(patch).length) patchAcct(patch);
-        if (notif) firePush(notif);
-        // write-through the linked booking's mirrored status
-        if (bs) dbPatchBooking(job.bookingId, {
+        const bookingCols: Record<string, unknown> | undefined = bs ? {
           status: bs,
           ...(nowConfirm ? { confirmed_at: new Date(nowConfirm).toISOString() } : {}),
           ...(cleanerCancel ? { cancelled_by: "cleaner", cancelled_at: jobCancelIso } : {}),
-        });
+        } : undefined;
+        if (isAgentActor) {
+          // Agent side: the customer's booking + notification live on the
+          // customer's account. Deliver job + booking + notif via the service
+          // role. Do NOT add the customer notif to the agent's own account.
+          void agentJobUpdate(id, jobCols, job.bookingId, bookingCols, notif ?? null);
+        } else {
+          // Customer side: local account holds the booking + notification.
+          if (notif) patch.notifications = [notif, ...(acct.notifications ?? [])];
+          if (Object.keys(patch).length) patchAcct(patch);
+          if (notif) firePush(notif);
+          if (bookingCols) dbPatchBooking(job.bookingId, bookingCols);
+        }
         // email the customer when the cleaner responds
         const who = bk?.cleanerName ?? "Your cleaner";
         const when = bk ? ` on ${bk.date} at ${bk.time}` : "";
