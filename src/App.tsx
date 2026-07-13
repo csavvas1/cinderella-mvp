@@ -165,8 +165,12 @@ function Shell() {
               onProgress={(f) => {
                 const r = document.documentElement;
                 r.style.setProperty("--swipe", String(f));
-                if (f === 0) r.removeAttribute("data-dragging");
-                else r.setAttribute("data-dragging", "1");
+                // "dragging" = mid-drag (0 < |f| < 1): suppress the colour
+                // transition for 1:1 tracking. At |f|==1 (committed on release)
+                // or 0 (rest/cancel) let the transition run so the colour glides
+                // to the target in sync with the page settle.
+                if (Math.abs(f) > 0 && Math.abs(f) < 1) r.setAttribute("data-dragging", "1");
+                else r.removeAttribute("data-dragging");
               }}
               renderPage={(i) => TAB_PAGE[tabs[i]]()}
             />

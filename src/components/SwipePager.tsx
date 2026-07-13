@@ -100,17 +100,26 @@ export default function SwipePager({
     if (e.cancelable) e.preventDefault(); // we own this horizontal gesture
   }
 
-  function settle(toSlot: number, commitIndex: number | null) {
+  // commitDir: -1 = committing to NEXT, +1 = committing to PREV, 0 = cancel.
+  function settle(toSlot: number, commitIndex: number | null, commitDir: number) {
     const el = trackRef.current;
     if (!el) return;
     // Instagram-style settle: a touch slower with a soft ease-out so the page
     // glides into place rather than snapping.
     el.style.transition = "transform .25s cubic-bezier(.25,.46,.2,1)";
     el.style.transform = `translateX(${-toSlot * width.current}px)`;
-    onProgress?.(0); // colour settles back with the page
     if (commitIndex != null) {
-      const done = () => { el.removeEventListener("transitionend", done); onIndexChange(commitIndex); };
+      // Drive the colour ALL the way to the target in sync with the page slide
+      // (not back to 0), so the tab colour completes together with the swipe.
+      onProgress?.(commitDir); // -1 or +1 => target pill reaches full fill
+      const done = () => {
+        el.removeEventListener("transitionend", done);
+        onIndexChange(commitIndex);   // route swaps; new pill is now .active
+        onProgress?.(0);              // clear drag var (new active already full)
+      };
       el.addEventListener("transitionend", done);
+    } else {
+      onProgress?.(0); // cancel: colour returns to the current pill with the page
     }
   }
 
@@ -121,14 +130,11 @@ export default function SwipePager({
     dragging.current = false;
     const threshold = width.current * 0.2; // easier to commit a swipe (was 0.3)
     if (dx <= -threshold && hasNext) {
-      // dragged LEFT far enough -> next page (slide track further left)
-      settle(slotOfCurrent + 1, index + 1);
+      settle(slotOfCurrent + 1, index + 1, -1);   // -> NEXT
     } else if (dx >= threshold && hasPrev) {
-      // dragged RIGHT far enough -> previous page
-      settle(slotOfCurrent - 1, index - 1);
+      settle(slotOfCurrent - 1, index - 1, 1);    // -> PREV
     } else {
-      // snap back to current
-      settle(slotOfCurrent, null);
+      settle(slotOfCurrent, null, 0);             // cancel
     }
   }
 
