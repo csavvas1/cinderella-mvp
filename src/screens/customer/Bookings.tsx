@@ -206,7 +206,7 @@ export default function Bookings() {
         </>
       )}
 
-      {addresses.length > 0 && (
+      {connectedListings.length > 0 && (
         <button className="btn sm secondary" style={{ marginBottom: 12 }} onClick={() => setManualOpen(true)}>
           + Add a booking manually
         </button>
