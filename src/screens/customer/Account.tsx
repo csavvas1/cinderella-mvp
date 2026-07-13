@@ -347,7 +347,7 @@ export default function Account() {
       {/* PROPERTIES */}
       <div className="between">
         <div className="label" style={{ margin: 0 }}>My properties</div>
-        <div className="row" style={{ gap: 8 }}>
+        <div className="row" style={{ gap: 10, alignItems: "center" }}>
           <button className="btn sm secondary" onClick={() => { setJoinErr(""); setJoinCode(""); setJoinOpen(true); }}>Join</button>
           <button className="btn sm secondary" onClick={() => { setEditId(null); resetForm(); setShowAdd(true); }}>+ Add</button>
         </div>
@@ -777,13 +777,8 @@ export default function Account() {
 
       <div className="card row between" style={{ marginTop: 12, cursor: pushEnabled ? "default" : "pointer" }}
         onClick={() => { if (!pushEnabled) requestPushPermission(); }}>
-        <div>
-          <b style={{ fontSize: 14 }}>Push notifications</b>
-          {!pushEnabled && <div className="tiny muted" style={{ marginTop: 2 }}>Get alerts for bookings, jobs and updates.</div>}
-        </div>
-        {pushEnabled
-          ? <span className="statuspill statuspill--ok">On</span>
-          : <button className="btn sm" onClick={(e) => { e.stopPropagation(); requestPushPermission(); }}>Enable</button>}
+        <b style={{ fontSize: 14 }}>Push notifications</b>
+        <div className={"switch" + (pushEnabled ? " on" : "")}><div className="switch__dot" /></div>
       </div>
 
       <div className="card row between" style={{ marginTop: 12 }}>

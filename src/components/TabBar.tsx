@@ -87,6 +87,57 @@ export default function TabBar() {
   }
   const popCls = (key: string) => (popped === key ? " wolt__pop" : "");
 
+  // ---- sliding colour blob ----
+  // Position a single accent block under the active pill and, while the user
+  // drags (--swipe on :root, set by SwipePager), slide + resize it toward the
+  // neighbour pill 1:1 with the finger. Uses a rAF loop reading the CSS var so
+  // there are no per-frame React re-renders.
+  const islandRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const island = islandRef.current;
+    if (!island) return;
+    const blob = island.querySelector<HTMLDivElement>(".wolt__blob");
+    if (!blob) return;
+    const pills = () => Array.from(island.querySelectorAll<HTMLElement>(".wolt__pill, .wolt__round"));
+
+    // rect of a pill relative to the island's content box
+    const rectOf = (el: HTMLElement) => {
+      const ir = island.getBoundingClientRect();
+      const r = el.getBoundingClientRect();
+      return { x: r.left - ir.left, w: r.width };
+    };
+    const activeEl = () => pills().find((p) => p.classList.contains("active")) ?? pills()[0];
+
+    const place = () => {
+      const list = pills();
+      const active = activeEl();
+      if (!active) return;
+      const a = rectOf(active);
+      const swipe = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--swipe")) || 0;
+      let x = a.x, w = a.w;
+      if (swipe !== 0) {
+        const ai = list.indexOf(active);
+        // swipe<0 => toward NEXT (higher index); swipe>0 => toward PREV (lower)
+        const targetIdx = swipe < 0 ? ai + 1 : ai - 1;
+        const target = list[targetIdx];
+        if (target) {
+          const t = rectOf(target);
+          const f = Math.min(1, Math.abs(swipe));
+          x = a.x + (t.x - a.x) * f;
+          w = a.w + (t.w - a.w) * f;
+        }
+      }
+      blob.style.setProperty("--blob-x", `${x}px`);
+      blob.style.setProperty("--blob-w", `${w}px`);
+    };
+
+    place();
+    let raf = 0;
+    const loop = () => { place(); raf = requestAnimationFrame(loop); };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, [pathname, agent, accountOpen]);
+
   function CustomerContent() {
     const calActive = isActive("/bookings");
     const bookActive = !calActive;
@@ -138,7 +189,8 @@ export default function TabBar() {
   const enterAnim = islandAnim ? " woltrise" : "";
 
   return (
-    <div className={"wolt" + enterAnim}>
+    <div className={"wolt" + enterAnim} ref={islandRef} data-agentside={agent ? "1" : "0"}>
+      <div className="wolt__blob" />
       {agent ? <AgentContent /> : <CustomerContent />}
     </div>
   );
