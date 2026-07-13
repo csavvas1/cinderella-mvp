@@ -90,14 +90,18 @@ export default function TabBar() {
   function CustomerContent() {
     const calActive = isActive("/bookings");
     const bookActive = !calActive;
+    // active tab index (Search=0, Calendar=1); data-rel = pill index minus active,
+    // clamped to -1/0/1, so the swipe colour handoff knows prev/active/next.
+    const activeIdx = calActive ? 1 : 0;
+    const rel = (i: number) => Math.max(-1, Math.min(1, i - activeIdx));
     return (
       <>
-        <button className={"wolt__pill" + (bookActive ? " active" : "") + popCls("c-book")}
+        <button data-rel={rel(0)} className={"wolt__pill" + (bookActive ? " active" : "") + popCls("c-book")}
           onClick={() => tap("c-book", () => (isActive("/book") ? scrollTop() : nav("/book")))}>
           <span className="ic"><Icon name="search-wolt" filled /></span>
           <span>Search</span>
         </button>
-        <button className={"wolt__round wolt__round--badged" + (calActive ? " active" : "") + popCls("c-cal")} onClick={() => tap("c-cal", () => nav("/bookings"))} aria-label="Calendar" title="Calendar">
+        <button data-rel={rel(1)} className={"wolt__round wolt__round--badged" + (calActive ? " active" : "") + popCls("c-cal")} onClick={() => tap("c-cal", () => nav("/bookings"))} aria-label="Calendar" title="Calendar">
           <span className="ic"><Icon name="calendar" filled={calActive} /></span>
           {customerBadge > 0 && <span className="notifbadge notifbadge--ondark">{customerBadge > 9 ? "9+" : customerBadge}</span>}
         </button>
@@ -109,18 +113,21 @@ export default function TabBar() {
     const jobsActive = isActive("/agent/jobs");
     const calActive = isActive("/agent/calendar");
     const referActive = isActive("/agent/referrals");
+    // active tab index (Jobs=0, Calendar=1, Refer=2); data-rel = clamp(i - active).
+    const activeIdx = referActive ? 2 : calActive ? 1 : 0;
+    const rel = (i: number) => Math.max(-1, Math.min(1, i - activeIdx));
     return (
       <>
-        <button className={"wolt__pill wolt__pill--agent wolt__pill--badged" + (jobsActive ? " active" : "") + popCls("a-jobs")}
+        <button data-rel={rel(0)} className={"wolt__pill wolt__pill--agent wolt__pill--badged" + (jobsActive ? " active" : "") + popCls("a-jobs")}
           onClick={() => tap("a-jobs", () => (jobsActive ? scrollTop() : nav("/agent/jobs")))}>
           <span className="ic"><Icon name="jobs" filled /></span>
           <span>Jobs</span>
           {agentBadge > 0 && <span className="notifbadge notifbadge--ondark">{agentBadge > 9 ? "9+" : agentBadge}</span>}
         </button>
-        <button className={"wolt__round" + (calActive ? " active" : "") + popCls("a-cal")} onClick={() => tap("a-cal", () => nav("/agent/calendar"))} aria-label="Calendar" title="Calendar">
+        <button data-rel={rel(1)} className={"wolt__round" + (calActive ? " active" : "") + popCls("a-cal")} onClick={() => tap("a-cal", () => nav("/agent/calendar"))} aria-label="Calendar" title="Calendar">
           <span className="ic"><Icon name="calendar" filled={calActive} /></span>
         </button>
-        <button className={"wolt__round" + (referActive ? " active" : "") + popCls("a-earn")} onClick={() => tap("a-earn", () => nav("/agent/referrals"))} aria-label="Earnings" title="Earnings">
+        <button data-rel={rel(2)} className={"wolt__round" + (referActive ? " active" : "") + popCls("a-earn")} onClick={() => tap("a-earn", () => nav("/agent/referrals"))} aria-label="Earnings" title="Earnings">
           <span className="ic"><Icon name="earn" filled={referActive} /></span>
         </button>
       </>

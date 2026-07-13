@@ -16,11 +16,15 @@ export default function SwipePager({
   count,
   onIndexChange,
   renderPage,
+  onProgress,
 }: {
   index: number;                              // current page index within the side
   count: number;                             // number of tabs on this side
   onIndexChange: (next: number) => void;      // fired once a swipe commits
   renderPage: (i: number) => ReactNode;       // render the page at tab index i
+  // live drag fraction: negative = dragging toward NEXT tab, positive = toward
+  // PREV, 0 = at rest. Used to flow the tab-bar colour with the finger.
+  onProgress?: (fraction: number) => void;
 }) {
   const trackRef = useRef<HTMLDivElement | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
@@ -88,6 +92,11 @@ export default function SwipePager({
       el.style.transition = "none";
       el.style.transform = `translateX(${baseX() + eff}px)`;
     }
+    // report live drag fraction so the tab bar can flow its colour with the finger
+    if (onProgress && width.current) {
+      const f = Math.max(-1, Math.min(1, eff / width.current)); // + = toward prev, - = toward next
+      onProgress(f);
+    }
     if (e.cancelable) e.preventDefault(); // we own this horizontal gesture
   }
 
@@ -98,6 +107,7 @@ export default function SwipePager({
     // glides into place rather than snapping.
     el.style.transition = "transform .4s cubic-bezier(.25,.46,.2,1)";
     el.style.transform = `translateX(${-toSlot * width.current}px)`;
+    onProgress?.(0); // colour settles back with the page
     if (commitIndex != null) {
       const done = () => { el.removeEventListener("transitionend", done); onIndexChange(commitIndex); };
       el.addEventListener("transitionend", done);

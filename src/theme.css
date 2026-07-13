@@ -410,6 +410,43 @@ body {
 }
 /* agent side round active uses the agent accent */
 .wolt .wolt__pill--agent ~ .wolt__round.active { background: var(--agent); }
+
+/* ---------- Instagram-style colour handoff on swipe ----------
+   Each pill draws its accent fill via an ::after overlay whose opacity is
+   `--fill` (0..1). TabBar sets data-rel per pill (0 = active, -1 = prev tab,
+   +1 = next tab) and the CSS below computes --fill from --swipe (live drag
+   fraction: + = dragging toward prev, - = toward next). At rest (--swipe 0) the
+   active pill is fully filled; as you drag, the accent flows to the neighbour
+   you're heading toward, 1:1 with the finger. */
+:root { --swipe: 0; }
+.wolt__pill, .wolt__round { position: relative; overflow: hidden; }
+.wolt__pill > *, .wolt__round > * { position: relative; z-index: 1; }
+.wolt__pill::after, .wolt__round::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit;
+  background: var(--indigo);
+  opacity: var(--fill, 0);
+  transition: opacity .18s ease;   /* smooth when --fill changes on settle */
+  pointer-events: none; z-index: 0;
+}
+.wolt__pill--agent::after,
+.wolt .wolt__pill--agent ~ .wolt__round::after { background: var(--agent); }
+/* per-pill fill from drag fraction. clamp via max/min in calc. */
+.wolt__pill[data-rel="0"], .wolt__round[data-rel="0"] {
+  --fill: calc(1 - max(var(--swipe), calc(-1 * var(--swipe))));   /* 1 - |swipe| */
+}
+.wolt__pill[data-rel="1"], .wolt__round[data-rel="1"] {     /* next tab (drag left, swipe<0) */
+  --fill: max(0, calc(-1 * var(--swipe)));
+}
+.wolt__pill[data-rel="-1"], .wolt__round[data-rel="-1"] {   /* prev tab (drag right, swipe>0) */
+  --fill: max(0, var(--swipe));
+}
+/* while dragging, don't also show the hard .active background (the overlay
+   handles the fill) so the two don't stack. Text stays white on the active. */
+:root[data-dragging="1"] .wolt__pill.active,
+:root[data-dragging="1"] .wolt__round.active { background: transparent; }
+/* keep the ::after transition off DURING the drag for 1:1 tracking */
+:root[data-dragging="1"] .wolt__pill::after,
+:root[data-dragging="1"] .wolt__round::after { transition: none; }
 .tabbar button {
   background: none; border: none; cursor: pointer;
   display: flex; flex-direction: column; align-items: center; gap: 3px;

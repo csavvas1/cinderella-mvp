@@ -162,6 +162,12 @@ function Shell() {
               index={tabIndex}
               count={tabs.length}
               onIndexChange={(next) => nav(tabs[next])}
+              onProgress={(f) => {
+                const r = document.documentElement;
+                r.style.setProperty("--swipe", String(f));
+                if (f === 0) r.removeAttribute("data-dragging");
+                else r.setAttribute("data-dragging", "1");
+              }}
               renderPage={(i) => TAB_PAGE[tabs[i]]()}
             />
           ) : (
