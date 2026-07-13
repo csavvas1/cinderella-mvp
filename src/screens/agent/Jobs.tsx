@@ -18,15 +18,19 @@ function dayLabel(dateISO: string) {
 }
 
 export default function Jobs() {
-  const { jobs, dismissJob, acknowledgeJob } = useStore();
+  const { jobs, dismissJob, acknowledgeJob, myUid } = useStore();
   const nav = useNavigate();
 
   // Cancelled jobs stay listed (crossed-out, dismissable) until the agent taps
   // the X; modified jobs stay flagged until acknowledged — neither can silently
   // disappear on the agent.
+  // Agent side shows ONLY jobs assigned to THIS user as the cleaner. Jobs the
+  // user booked as a customer (customer_uid = me, cleaner_uid = someone else)
+  // also live in the store, but must not appear in the agent's own Jobs list.
   const relevant = jobs.filter((j) =>
-    j.status === "pending" || j.status === "approved" || j.status === "modified" ||
-    (j.status === "cancelled" && !j.dismissedByAgent));
+    j.cleanerUid === myUid &&
+    (j.status === "pending" || j.status === "approved" || j.status === "modified" ||
+      (j.status === "cancelled" && !j.dismissedByAgent)));
   const nPending = relevant.filter((j) => j.status === "pending").length;
   const nAccepted = relevant.filter((j) => j.status === "approved").length;
   const nModified = relevant.filter((j) => j.status === "modified").length;

@@ -4,9 +4,11 @@ import { useStore } from "../../context/AppStore";
 import type { Job } from "../../types";
 
 export default function Calendar() {
-  const { jobs, agentProfile } = useStore();
-  // accepted + pending offers + completed jobs
-  const visible = jobs.filter((j) => j.status === "approved" || j.status === "pending" || j.status === "completed");
+  const { jobs, agentProfile, myUid } = useStore();
+  // accepted + pending offers + completed jobs — ONLY those assigned to this
+  // agent (cleaner_uid = me), not jobs the user booked as a customer.
+  const visible = jobs.filter((j) => j.cleanerUid === myUid &&
+    (j.status === "approved" || j.status === "pending" || j.status === "completed"));
   return (
     <div className="pad">
       <JobCalendar jobs={visible} daySchedule={agentProfile.daySchedule ?? {}} />

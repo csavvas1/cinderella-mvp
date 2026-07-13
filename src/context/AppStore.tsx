@@ -341,6 +341,7 @@ interface AppState {
   disableBiometric: () => void;
   loginWithBiometric: () => Promise<{ error?: string }>; // unlock with the real Face ID prompt
   refresh: () => Promise<void>;      // pull-to-refresh: re-fetch the signed-in account's data
+  myUid: string | null;              // the signed-in user's id (uid), for ownership filters
 }
 
 const KEY = "cinderella-state-v11";
@@ -1307,9 +1308,10 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     // modified clears when acknowledged; an auto-accepted job counts as NEW until
     // the agent opens it. Shown from either side so the agent stays aware.
     agentBadge: jobs.filter((j) =>
-      j.status === "pending" || j.status === "modified" ||
+      j.cleanerUid === currentKey &&
+      (j.status === "pending" || j.status === "modified" ||
       (j.status === "approved" && j.autoAccepted && !j.seenByAgent) ||
-      (j.status === "cancelled" && !j.dismissedByAgent)).length,
+      (j.status === "cancelled" && !j.dismissedByAgent))).length,
     markJobSeen: (id) => { setJobs((p) => p.map((j) => (j.id === id ? { ...j, seenByAgent: true } : j))); dbPatchJob(id, { seen_by_agent: true }); },
     setJobStatus: (id, status) => {
       const job = jobs.find((j) => j.id === id);
@@ -1525,6 +1527,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         return { error: (err as Error).message };
       }
     },
+    myUid: currentKey,
     // pull-to-refresh: re-pull this account's data from Supabase (no app restart,
     // no white flash). Only meaningful for a real signed-in user; the demo
     // account has nothing to re-fetch, so resolve immediately.
