@@ -818,7 +818,8 @@ function CalendarView({
     // Keeps the corner marker in sync with a visible bar-end (no phantom corners).
     const checkoutsByDate: Record<string, { addressId?: string; color: string }[]> = {};
     for (const s of stays) {
-      const color = colorForListing(s.listingId);
+      // manual stays have no listing; fall back to the property's colour
+      const color = colorForListing(s.listingId) || propForAddr(s.addressId).color;
       const shown = lane[s.id] < LANES;
       const start = new Date(s.checkIn + "T00:00:00");
       const end = new Date(s.checkOut + "T00:00:00");
