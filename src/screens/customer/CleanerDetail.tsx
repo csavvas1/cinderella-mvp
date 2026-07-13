@@ -72,6 +72,7 @@ export default function CleanerDetail() {
         cleanerPhoto: cleaner!.photo,
         addressNickname: draft.addressNickname || "My place",
         address: draft.address || "",
+        addressId: prop?.id,
         date: d,
         time,
         durationHours: hours,
@@ -165,7 +166,7 @@ export default function CleanerDetail() {
     // mock email confirmation to the customer
     const total = newBookings.reduce((s, b) => s + b.total, 0);
     sendEmail(
-      anyAuto ? "Your Cinderella booking is confirmed" : "We received your booking request",
+      anyAuto ? "Your Σιντερέλλα booking is confirmed" : "We received your booking request",
       `${anyAuto ? "Confirmed" : "Requested"}: ${n > 1 ? `${n} cleanings` : "cleaning"} with ${cleaner!.name}.\n` +
       `Where: ${where}\nWhen: ${whenTxt}\nTotal: €${total.toFixed(2)}`
     );

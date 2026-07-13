@@ -124,6 +124,7 @@ export interface Booking {
   reviewText?: string;
   tip?: number;
   urgent?: boolean;
+  addressId?: string;   // the property this booking is for (enables shared-property RLS)
   // who ended the booking — drives customer-facing wording + which alerts count.
   cancelledBy?: "customer" | "cleaner";
   cancelledAt?: number;

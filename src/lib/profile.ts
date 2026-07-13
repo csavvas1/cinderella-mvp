@@ -144,6 +144,7 @@ export interface BookingRow {
   confirmed_at: string | null;
   dismissed_by_customer: boolean | null;
   refund: Booking["refund"] | null;
+  address_id: string | null;
 }
 
 export function rowToBooking(r: BookingRow): Booking {
@@ -179,6 +180,7 @@ export function rowToBooking(r: BookingRow): Booking {
     confirmedAt: r.confirmed_at ? new Date(r.confirmed_at).getTime() : undefined,
     dismissedByCustomer: r.dismissed_by_customer ?? undefined,
     refund: r.refund ?? undefined,
+    addressId: r.address_id ?? undefined,
   };
 }
 
@@ -226,6 +228,7 @@ export function bookingToRow(b: Booking): Record<string, unknown> {
     confirmed_at: b.confirmedAt ? new Date(b.confirmedAt).toISOString() : null,
     dismissed_by_customer: b.dismissedByCustomer ?? false,
     refund: b.refund ?? null,
+    address_id: b.addressId ?? null,
   };
 }
 

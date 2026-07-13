@@ -58,7 +58,7 @@ export default function Account() {
     agentActivated, activateAgent, deactivateAgent, bookings, updateBooking, notify,
     launchSide, setLaunchSide, setRole, changePassword,
     biometricEnabled, biometricEmail, enableBiometric, disableBiometric, lastAccount,
-    connectedListings, addListing, removeListing,
+    connectedListings, addListing, removeListing, joinProperty,
     recordConsent, consents, hasAcceptedCurrent,
     agentProfile, setAgentProfile,
     pushEnabled, requestPushPermission,
@@ -140,6 +140,18 @@ export default function Account() {
   // center used to recentre the map when a suggestion is picked.
   const [pin, setPin] = useState<{ lat: number; lng: number } | undefined>(undefined);
   const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | undefined>(undefined);
+  // join a shared property (partner)
+  const [joinOpen, setJoinOpen] = useState(false);
+  const [joinCode, setJoinCode] = useState("");
+  const [joinErr, setJoinErr] = useState("");
+  const [joinBusy, setJoinBusy] = useState(false);
+  async function submitJoin() {
+    setJoinErr(""); setJoinBusy(true);
+    const res = await joinProperty(joinCode);
+    setJoinBusy(false);
+    if (res.error) { setJoinErr(res.error); return; }
+    setJoinOpen(false); setJoinCode("");
+  }
   const [acLoading, setAcLoading] = useState(false);
   const acSeq = useRef(0);
   useEffect(() => {
@@ -335,8 +347,30 @@ export default function Account() {
       {/* PROPERTIES */}
       <div className="between">
         <div className="label" style={{ margin: 0 }}>My properties</div>
-        <button className="btn sm secondary" onClick={() => { setEditId(null); resetForm(); setShowAdd(true); }}>+ Add</button>
+        <div className="row" style={{ gap: 8 }}>
+          <button className="btn sm secondary" onClick={() => { setJoinErr(""); setJoinCode(""); setJoinOpen(true); }}>Join</button>
+          <button className="btn sm secondary" onClick={() => { setEditId(null); resetForm(); setShowAdd(true); }}>+ Add</button>
+        </div>
       </div>
+
+      {joinOpen && (
+        <div className="modal__backdrop center" onClick={() => setJoinOpen(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="between" style={{ marginBottom: 8 }}>
+              <b style={{ fontSize: 17 }}>Join a shared property</b>
+              <button className="iconbtn" onClick={() => setJoinOpen(false)}>✕</button>
+            </div>
+            <p className="sub" style={{ marginTop: 0 }}>Enter the share code your partner gave you to co-manage their property.</p>
+            <input className="input" value={joinCode} placeholder="Share code"
+              onChange={(e) => setJoinCode(e.target.value)} style={{ letterSpacing: 1 }} />
+            {joinErr && <div className="loginerr" style={{ marginTop: 8 }}>{joinErr}</div>}
+            <div style={{ height: 12 }} />
+            <button className="btn" disabled={joinBusy || !joinCode.trim()} style={{ opacity: joinBusy || !joinCode.trim() ? 0.5 : 1 }} onClick={submitJoin}>
+              {joinBusy ? "Joining…" : "Join property"}
+            </button>
+          </div>
+        </div>
+      )}
 
       {showAdd && (
         <div className="modal__backdrop" onClick={() => { setShowAdd(false); setEditId(null); resetForm(); }}>
@@ -469,6 +503,26 @@ export default function Account() {
                   <button className="btn sm secondary" style={{ marginTop: 8 }}
                     onClick={() => { navigator.clipboard?.writeText(exportUrl); }}>
                     Copy link
+                  </button>
+                </div>
+              );
+            })()}
+
+            {/* Share this property with a partner (co-owner). They enter this
+                code in their app to see the calendar + book cleaners for it. */}
+            {(() => {
+              const saved = editId ? addresses.find((a) => a.id === editId) : null;
+              if (!saved?.shareCode || saved.isShared) return null; // only the owner shares
+              return (
+                <div className="note" style={{ marginTop: 14 }}>
+                  <b style={{ fontSize: 12.5 }}>Share with a partner</b>
+                  <p style={{ fontSize: 12, margin: "6px 0 8px" }}>
+                    Give this code to a partner. They enter it under <b>Join a shared property</b> to co-manage this home.
+                  </p>
+                  <input className="input" readOnly value={saved.shareCode} onFocus={(e) => e.currentTarget.select()} style={{ fontSize: 13, fontWeight: 700, letterSpacing: 1 }} />
+                  <button className="btn sm secondary" style={{ marginTop: 8 }}
+                    onClick={() => { navigator.clipboard?.writeText(saved.shareCode!); }}>
+                    Copy code
                   </button>
                 </div>
               );

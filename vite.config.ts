@@ -16,8 +16,8 @@ export default defineConfig({
       },
       includeAssets: ["favicon.png", "apple-touch-icon.png"],
       manifest: {
-        name: "Cinderella",
-        short_name: "Cinderella",
+        name: "Σιντερέλλα",
+        short_name: "Σιντερέλλα",
         description: "Find a trusted cleaner in a few taps. Or earn as one.",
         theme_color: "#4f46e5",
         background_color: "#ffffff",
