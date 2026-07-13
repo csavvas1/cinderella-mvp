@@ -1157,7 +1157,10 @@ function ManualStayModal({
     });
   }
   return (
-    <div className="modal__backdrop" onClick={onClose}>
+    // position:fixed so the modal escapes the swipe-pager's clipped/transformed
+    // track (Bookings renders inside the pager; an absolute backdrop was being
+    // clipped and never appeared).
+    <div className="modal__backdrop" onClick={onClose} style={{ position: "fixed" }}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="between" style={{ marginBottom: 8 }}>
           <b style={{ fontSize: 17 }}>Add a booking</b>
