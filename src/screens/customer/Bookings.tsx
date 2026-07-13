@@ -46,7 +46,7 @@ function statusBadge(s: string) {
 
 export default function Bookings() {
   const { bookings, addresses, cancelBooking, addReview, updateBooking, updateSeries, cancelSeries,
-    externalBookings, connectedListings, notify, sendEmail, openAccount, dismissBooking, addManualStay } = useStore();
+    externalBookings, connectedListings, notify, sendEmail, openAccount, dismissBooking, addManualStay, removeExternalBooking } = useStore();
   const [manualOpen, setManualOpen] = useState(false);
   const nav = useNavigate();
   const [reviewFor, setReviewFor] = useState<Booking | null>(null);
@@ -229,6 +229,7 @@ export default function Bookings() {
           nav("/book");
         }}
         onBookTurnaround={bookTurnaround}
+        onRemoveStay={removeExternalBooking}
       />
 
       {cancelledList.length > 0 && (
@@ -723,7 +724,7 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
 /* ---------------- calendar ---------------- */
 function CalendarView({
   bookings, cancelledBookings, externalBookings, legendProps, propertySummaries, colorForListing, propForAddr,
-  onEdit, onReview, onRefund, onTip, onAddForDay, onBookTurnaround,
+  onEdit, onReview, onRefund, onTip, onAddForDay, onBookTurnaround, onRemoveStay,
 }: {
   bookings: Booking[];
   cancelledBookings: Booking[];
@@ -738,6 +739,7 @@ function CalendarView({
   onTip: (b: Booking) => void;
   onAddForDay: (date: string) => void;
   onBookTurnaround: (addressId: string | undefined, date: string, externalBookingId?: string) => void;
+  onRemoveStay: (id: string) => void;
 }) {
   const [month, setMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
   const [selected, setSelected] = useState<string | null>(null);
@@ -1028,6 +1030,12 @@ function CalendarView({
                       <div className="row" style={{ minWidth: 0, gap: 6 }}>
                         <b style={{ fontSize: 13.5, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{prop.nick}</b>
                         <span className={"platbadge " + b.platform}>{platformLabel(b.platform)}</span>
+                        {/* manual (non-platform) stays can be deleted here */}
+                        {b.platform === "other" && (
+                          <button className="iconbtn" style={{ width: 24, height: 24, fontSize: 13, marginLeft: 2 }}
+                            title="Delete this booking"
+                            onClick={(e) => { e.stopPropagation(); if (confirm("Delete this manual booking?")) onRemoveStay(b.id); }}>✕</button>
+                        )}
                       </div>
                       {kind === "out" && (cover ? (
                         <span className="propsum__ok" style={{ fontSize: 11.5 }}>✓ Clean {cover.time}</span>
