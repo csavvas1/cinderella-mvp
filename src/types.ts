@@ -30,8 +30,12 @@ export interface Cleaner {
   busySlots: string[]; // e.g. ["2026-07-03T11:00"]
   // working window for auto-accept
   workDays: string[];  // ["Mon","Tue",...]
-  workStart: string;   // "08:00"
+  workStart: string;   // "08:00" (flattened week window — fallback)
   workEnd: string;     // "18:00"
+  // per-day hours (real agents). When present, availability checks the specific
+  // day's slots instead of the flattened workStart/workEnd window, so a split
+  // schedule (e.g. Mon 09-12 + Sat 14-18) doesn't show false midday availability.
+  daySchedule?: Record<string, { start: string; end: string }[]>;
   extras: string[];    // ["Ironing","Deep clean","Pet-friendly",...]
 }
 

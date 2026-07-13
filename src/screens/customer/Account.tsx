@@ -683,6 +683,25 @@ export default function Account() {
             })()}
           </div>
 
+          {/* Warn the agent when their profile is incomplete — without a rate,
+              a service city AND a work schedule they won't appear to customers. */}
+          {(() => {
+            const rateSet = agentProfile.rateWeekday > 0 && agentProfile.rateWeekend > 0;
+            const schedSet = Object.values(sched).some((s) => s && s.length);
+            const citySet = serviceCities.length > 0;
+            if (rateSet && schedSet && citySet) return null;
+            const missing = [
+              !rateSet && "your rates",
+              !citySet && "at least one city you work in",
+              !schedSet && "a work schedule",
+            ].filter(Boolean);
+            return (
+              <div className="note amber" style={{ marginTop: 8 }}>
+                You won't appear to customers yet. Add {missing.join(", ")} under Rates &amp; availability so people can find and book you.
+              </div>
+            );
+          })()}
+
           {/* GET PAID */}
           <div className="card row between" style={{ marginTop: 12, cursor: "pointer" }} onClick={() => setShowPayout(true)}>
             <b style={{ fontSize: 14 }}>Get paid</b>

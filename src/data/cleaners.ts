@@ -59,6 +59,7 @@ export function agentRowToCleaner(r: PublicAgentRow, fallbackName?: string): Cle
     workDays,
     workStart: workStart || "08:00",
     workEnd: workEnd || "18:00",
+    daySchedule: scheduledDays.length ? ds : undefined,
     extras: [],
   };
 }
@@ -386,7 +387,15 @@ export function isCleanerFree(
     if (cleaner) {
       const dow = WDAY[new Date(date + "T00:00:00").getDay()];
       if (!cleaner.workDays.includes(dow)) return false;
-      if (reqStart < toMin(cleaner.workStart) || reqEnd > toMin(cleaner.workEnd)) return false;
+      // Prefer the exact per-day schedule (real agents) so a split schedule
+      // doesn't show false midday availability; fall back to the flat window.
+      const slots = cleaner.daySchedule?.[dow];
+      if (slots && slots.length) {
+        const fits = slots.some((s) => reqStart >= toMin(s.start) && reqEnd <= toMin(s.end));
+        if (!fits) return false;
+      } else if (reqStart < toMin(cleaner.workStart) || reqEnd > toMin(cleaner.workEnd)) {
+        return false;
+      }
     }
     // clash with an existing booking for this cleaner on this date
     const clash = bookings.some((b) => {
