@@ -443,9 +443,11 @@ body {
 }
 /* while dragging, don't also show the hard .active background (the overlay
    handles the fill) so the two don't stack. Text stays white on the active. */
-:root[data-dragging="1"] .wolt__pill.active,
-:root[data-dragging="1"] .wolt__round.active { background: transparent; }
-/* keep the ::after transition off DURING the drag for 1:1 tracking */
+/* hide the hard .active background for the whole swipe (incl. the committed
+   settle) so the old pill's fill doesn't flash back before the route swaps */
+:root[data-swiping="1"] .wolt__pill.active,
+:root[data-swiping="1"] .wolt__round.active { background: transparent; }
+/* keep the ::after transition off DURING the active drag for 1:1 tracking */
 :root[data-dragging="1"] .wolt__pill::after,
 :root[data-dragging="1"] .wolt__round::after { transition: none; }
 .tabbar button {

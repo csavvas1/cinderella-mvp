@@ -171,6 +171,11 @@ function Shell() {
                 // to the target in sync with the page settle.
                 if (Math.abs(f) > 0 && Math.abs(f) < 1) r.setAttribute("data-dragging", "1");
                 else r.removeAttribute("data-dragging");
+                // data-swiping = any active swipe incl. the committed settle, used
+                // to keep the OLD pill's solid .active background hidden until the
+                // route swaps (otherwise it flashes back on for the settle window).
+                if (f !== 0) r.setAttribute("data-swiping", "1");
+                else r.removeAttribute("data-swiping");
               }}
               renderPage={(i) => TAB_PAGE[tabs[i]]()}
             />
