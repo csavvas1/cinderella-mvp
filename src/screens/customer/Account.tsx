@@ -345,9 +345,9 @@ export default function Account() {
       <div className="acct-sec">Customer</div>
 
       {/* PROPERTIES */}
-      <div className="between">
+      <div className="between" style={{ alignItems: "center", marginTop: 16 }}>
         <div className="label" style={{ margin: 0 }}>My properties</div>
-        <div className="row" style={{ gap: 10, alignItems: "center" }}>
+        <div className="row" style={{ gap: 8, alignItems: "center", flexShrink: 0 }}>
           <button className="btn sm secondary" onClick={() => { setJoinErr(""); setJoinCode(""); setJoinOpen(true); }}>Join</button>
           <button className="btn sm secondary" onClick={() => { setEditId(null); resetForm(); setShowAdd(true); }}>+ Add</button>
         </div>

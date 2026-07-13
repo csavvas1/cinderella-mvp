@@ -224,17 +224,22 @@ function LockScreen({ onUnlock }: { onUnlock: () => void }) {
   const { loginWithBiometric, biometricEmail } = useStore();
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
+  // Guard so the Face ID prompt fires AT MOST once — StrictMode double-effects or
+  // a re-mount during auth hydration were triggering it twice in a row.
+  const scanned = useRef(false);
 
   async function scan() {
+    if (scanned.current) return;
+    scanned.current = true;
     setErr(""); setBusy(true);
     // Demo account has no real credential — resolve instantly like before.
     if (biometricEmail === "savvas@cinderella.cy") { onUnlock(); return; }
     const res = await loginWithBiometric(); // real Face ID / Touch ID prompt
     setBusy(false);
-    if (res.error) setErr(res.error);
+    if (res.error) { setErr(res.error); scanned.current = false; } // allow retry
     else onUnlock();
   }
-  // auto-trigger the real prompt on mount
+  // auto-trigger the real prompt on mount (once)
   useEffect(() => { scan(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
