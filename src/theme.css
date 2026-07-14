@@ -391,6 +391,17 @@ body {
   box-shadow: 0 6px 16px rgba(20,21,26,0.20);
 }
 :root .wolt__pill.active .ic, :root .wolt__round.active .ic { color: #fff; }
+/* DURING a swipe the active pill hasn't lost its .active class yet (the route
+   swaps only on settle), so the forced-white rule above would pin the old
+   active icon white and make it lag. While swiping, let the --fill color-mix
+   drive the icon colour instead, so it fades out 1:1 with the drag. */
+:root[data-swiping="1"] .wolt__pill.active .ic,
+:root[data-swiping="1"] .wolt__round.active .ic {
+  color: color-mix(in srgb, #fff calc(var(--fill, 0) * 100%), var(--accent));
+}
+:root[data-swiping="1"] .wolt__round.active .ic {
+  color: color-mix(in srgb, #fff calc(var(--fill, 0) * 100%), var(--text));
+}
 :root .wolt__pill--agent.active,
 :root[data-theme="dark"] .wolt__pill--agent.active {
   background: var(--agent); border-color: var(--agent);
@@ -726,7 +737,6 @@ body {
   height: 17px; padding: 0 6px 0 5px; border-radius: 999px; box-sizing: border-box;
   background: var(--agent); color: #fff;
   font-size: 10.5px; font-weight: 800; line-height: 1;
-  border: 2px solid var(--card);
   box-shadow: 0 1px 3px rgba(14,165,233,0.35);
 }
 .propcard__count svg { display: block; margin-bottom: .5px; opacity: .95; }
