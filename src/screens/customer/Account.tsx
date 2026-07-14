@@ -58,7 +58,7 @@ export default function Account() {
     agentActivated, activateAgent, deactivateAgent, bookings, updateBooking, notify,
     launchSide, setLaunchSide, setRole, changePassword,
     biometricEnabled, biometricEmail, enableBiometric, disableBiometric, lastAccount,
-    connectedListings, addListing, removeListing, joinProperty,
+    connectedListings, addListing, removeListing,
     recordConsent, consents, hasAcceptedCurrent,
     agentProfile, setAgentProfile,
     pushEnabled, requestPushPermission,
@@ -140,17 +140,22 @@ export default function Account() {
   // center used to recentre the map when a suggestion is picked.
   const [pin, setPin] = useState<{ lat: number; lng: number } | undefined>(undefined);
   const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | undefined>(undefined);
-  // join a shared property (partner)
-  const [joinOpen, setJoinOpen] = useState(false);
-  const [joinCode, setJoinCode] = useState("");
-  const [joinErr, setJoinErr] = useState("");
-  const [joinBusy, setJoinBusy] = useState(false);
-  async function submitJoin() {
-    setJoinErr(""); setJoinBusy(true);
-    const res = await joinProperty(joinCode);
-    setJoinBusy(false);
-    if (res.error) { setJoinErr(res.error); return; }
-    setJoinOpen(false); setJoinCode("");
+  // share a property with a partner (co-manage). Holds the property being shared.
+  const [shareProp, setShareProp] = useState<PropertyAddress | null>(null);
+  const [shareCopied, setShareCopied] = useState(false);
+  // Build the invite link. A co-worker opening it is sent to login/signup and the
+  // property is auto-added to their profile once authenticated (see Login ?join).
+  function shareLink(code: string) {
+    return `${window.location.origin}/?join=${code}`;
+  }
+  async function doShare(a: PropertyAddress) {
+    if (!a.shareCode) return;
+    const url = shareLink(a.shareCode);
+    const text = `Help me co-manage "${a.nickname}" on Cinderella. Open this link to get access to its calendar and cleaning schedule: ${url}`;
+    if (navigator.share) {
+      try { await navigator.share({ title: "Co-manage a property", text, url }); return; } catch { /* cancelled → fall through to copy */ }
+    }
+    try { await navigator.clipboard?.writeText(url); setShareCopied(true); setTimeout(() => setShareCopied(false), 1500); } catch { /* ignore */ }
   }
   const [acLoading, setAcLoading] = useState(false);
   const acSeq = useRef(0);
@@ -345,29 +350,11 @@ export default function Account() {
       <div className="acct-sec">Customer</div>
 
       {/* PROPERTIES */}
-      <div className="between" style={{ marginTop: 16 }}>
+      <div className="between" style={{ marginTop: 16, marginBottom: 10 }}>
         <div className="label" style={{ margin: 0 }}>My properties</div>
         <button className="btn sm secondary" onClick={() => { setEditId(null); resetForm(); setShowAdd(true); }}>+ Add</button>
       </div>
 
-      {joinOpen && (
-        <div className="modal__backdrop center" onClick={() => setJoinOpen(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="between" style={{ marginBottom: 8 }}>
-              <b style={{ fontSize: 17 }}>Join a shared property</b>
-              <button className="iconbtn" onClick={() => setJoinOpen(false)}>✕</button>
-            </div>
-            <p className="sub" style={{ marginTop: 0 }}>Enter the share code your partner gave you to co-manage their property.</p>
-            <input className="input" value={joinCode} placeholder="Share code"
-              onChange={(e) => setJoinCode(e.target.value)} style={{ letterSpacing: 1 }} />
-            {joinErr && <div className="loginerr" style={{ marginTop: 8 }}>{joinErr}</div>}
-            <div style={{ height: 12 }} />
-            <button className="btn" disabled={joinBusy || !joinCode.trim()} style={{ opacity: joinBusy || !joinCode.trim() ? 0.5 : 1 }} onClick={submitJoin}>
-              {joinBusy ? "Joining…" : "Join property"}
-            </button>
-          </div>
-        </div>
-      )}
 
       {showAdd && (
         <div className="modal__backdrop" onClick={() => { setShowAdd(false); setEditId(null); resetForm(); }}>
@@ -505,26 +492,6 @@ export default function Account() {
               );
             })()}
 
-            {/* Share this property with a partner (co-owner). They enter this
-                code in their app to see the calendar + book cleaners for it. */}
-            {(() => {
-              const saved = editId ? addresses.find((a) => a.id === editId) : null;
-              if (!saved?.shareCode || saved.isShared) return null; // only the owner shares
-              return (
-                <div className="note" style={{ marginTop: 14 }}>
-                  <b style={{ fontSize: 12.5 }}>Share with a partner</b>
-                  <p style={{ fontSize: 12, margin: "6px 0 8px" }}>
-                    Give this code to a partner. They enter it under <b>Join a shared property</b> to co-manage this home.
-                  </p>
-                  <input className="input" readOnly value={saved.shareCode} onFocus={(e) => e.currentTarget.select()} style={{ fontSize: 13, fontWeight: 700, letterSpacing: 1 }} />
-                  <button className="btn sm secondary" style={{ marginTop: 8 }}
-                    onClick={() => { navigator.clipboard?.writeText(saved.shareCode!); }}>
-                    Copy code
-                  </button>
-                </div>
-              );
-            })()}
-
             <div style={{ height: 14 }} />
             {(() => {
               const apt = form.propertyType === "apartment";
@@ -549,10 +516,27 @@ export default function Account() {
             </span>
             <div className="grow" style={{ minWidth: 0 }}>
               <b style={{ fontSize: 14 }}>{a.nickname}</b>
-              {a.nickname !== a.address && (
-                <div className="tiny muted" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.address}</div>
-              )}
+              <div className="propcard__meta">
+                {a.nickname !== a.address && (
+                  <span className="propcard__addr">{a.address}</span>
+                )}
+                {/* discrete "N people have access" badge — owner side only */}
+                {!a.isShared && (a.memberCount ?? 0) > 0 && (
+                  <span className="propcard__shared" title={`Shared with ${a.memberCount} ${a.memberCount === 1 ? "person" : "people"}`}>
+                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM16.5 11a2.5 2.5 0 1 0 0-5" /><path d="M3 20c0-2.5 2.7-4 6-4s6 1.5 6 4M17 16c2.3.3 4 1.6 4 4" /></svg>
+                    {a.memberCount}
+                  </span>
+                )}
+                {/* partner badge when this property was shared TO me */}
+                {a.isShared && <span className="propcard__partner">Shared with you</span>}
+              </div>
             </div>
+            {/* Share (owner only — a partner can't re-share someone else's home) */}
+            {!a.isShared && (
+              <button className="iconbtn" title="Share property" onClick={() => { setShareCopied(false); setShareProp(a); }}>
+                <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="M8.6 10.5l6.8-4M8.6 13.5l6.8 4" /></svg>
+              </button>
+            )}
             <button className="iconbtn" title="Edit property" onClick={() => openEditProperty(a)}>
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20h4L18.5 9.5a2 2 0 0 0-3-3L5 17v3Z" /><path d="M13.5 6.5l3 3" /></svg>
             </button>
@@ -563,18 +547,32 @@ export default function Account() {
         </div>
       ))}
 
-      {/* JOIN A SHARED PROPERTY — its own entry point so it reads as a partner
-          relationship, not another way to add your own property. */}
-      <button className="sharejoin" onClick={() => { setJoinErr(""); setJoinCode(""); setJoinOpen(true); }}>
-        <span className="sharejoin__ic" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM15 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" /><path d="M4 20c0-2.8 2.2-5 5-5M20 20c0-2.8-2.2-5-5-5" /></svg>
-        </span>
-        <span className="sharejoin__txt">
-          <b>Co-manage a partner's home</b>
-          <span className="tiny muted">Enter a share code they gave you</span>
-        </span>
-        <span className="dayrow__chev">›</span>
-      </button>
+      {/* SHARE A PROPERTY — send a co-worker an invite link. They open it, sign
+          in, and the property is auto-added to their profile (see Login ?join). */}
+      {shareProp && (
+        <div className="modal__backdrop" onClick={() => setShareProp(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="between" style={{ marginBottom: 8 }}>
+              <b style={{ fontSize: 17 }}>Share this property</b>
+              <button className="iconbtn" onClick={() => setShareProp(null)}>✕</button>
+            </div>
+            <p className="sub" style={{ marginTop: 0 }}>
+              Give a co-worker access to <b>{shareProp.nickname}</b>. They'll be able to see and edit its calendar, cleaning schedule and bookings. Anyone opening the link and signing in gets access automatically.
+            </p>
+            {(shareProp.memberCount ?? 0) > 0 && (
+              <div className="tiny muted" style={{ marginBottom: 10 }}>
+                {shareProp.memberCount} {shareProp.memberCount === 1 ? "person has" : "people have"} access.
+              </div>
+            )}
+            <div className="label">Invite link</div>
+            <input className="input" readOnly value={shareProp.shareCode ? shareLink(shareProp.shareCode) : ""} onFocus={(e) => e.currentTarget.select()} style={{ fontSize: 12 }} />
+            <div style={{ height: 12 }} />
+            <button className="btn" onClick={() => doShare(shareProp)}>
+              {shareCopied ? "Link copied ✓" : (typeof navigator !== "undefined" && "share" in navigator ? "Share via message, email…" : "Copy invite link")}
+            </button>
+          </div>
+        </div>
+      )}
 
       {removeProp && (() => {
         const affected = bookings.filter(

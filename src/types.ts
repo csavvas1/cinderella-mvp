@@ -91,6 +91,7 @@ export interface PropertyAddress {
   exportToken?: string; // guards the public combined-iCal export feed for this property
   shareCode?: string;   // invite code to share this property with a partner
   isShared?: boolean;   // true when this property was shared TO me (I'm a partner, not owner)
+  memberCount?: number; // how many partners (besides the owner) have access to this property
 }
 
 export type Recurrence = "none" | "weekly" | "biweekly";
@@ -237,7 +238,8 @@ export type NotifKind =
   | "refund_resolved"    // customer: refund approved/declined
   | "job_completed"      // customer: cleaner marked the job done
   | "review_new"         // agent: customer left a review
-  | "tip_new";           // agent: customer tipped
+  | "tip_new"            // agent: customer tipped
+  | "property_shared";   // customer: a partner shared a property with you
 
 // ---- legal consent proof ----
 // One acceptance record per legal document the user agreed to. Stores the exact

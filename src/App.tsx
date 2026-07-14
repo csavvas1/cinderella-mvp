@@ -8,6 +8,22 @@ import SwipePager from "./components/SwipePager";
 import { LogoMark } from "./components/Logo";
 import { useStore } from "./context/AppStore";
 
+// A property-share invite link is ?join=CODE. Capture it as soon as the app
+// loads (before any auth redirect strips the query) and stash it so it survives
+// the trip through login/signup. Consumed once the user is signed in (see Shell).
+function captureJoinCode(): string {
+  try {
+    const fromSearch = new URLSearchParams(window.location.search).get("join");
+    const hash = window.location.hash;
+    const qIdx = hash.indexOf("?");
+    const fromHash = qIdx >= 0 ? new URLSearchParams(hash.slice(qIdx + 1)).get("join") : null;
+    const code = (fromSearch || fromHash || "").trim();
+    if (code) sessionStorage.setItem("pendingJoin", code);
+  } catch { /* ignore */ }
+  return sessionStorage.getItem("pendingJoin") || "";
+}
+captureJoinCode();
+
 // Tab order per side — swipe navigation cycles within the current side only.
 const CUSTOMER_TABS = ["/book", "/bookings"];
 const AGENT_TABS = ["/agent/jobs", "/agent/calendar", "/agent/referrals"];
@@ -37,9 +53,32 @@ import Calendar from "./screens/agent/Calendar";
 import Referrals from "./screens/agent/Referrals";
 
 function Shell() {
-  const { role, accountOpen, closeAccount, refresh } = useStore();
+  const { role, accountOpen, closeAccount, refresh, joinProperty, notify } = useStore();
   const nav = useNavigate();
   const { pathname } = useLocation();
+
+  // Consume a pending property-share invite (?join=CODE). Runs once now that the
+  // user is authenticated: joins the property, then clears the code so a refresh
+  // doesn't retry. joinProperty re-hydrates so the shared property appears.
+  const joinTried = useRef(false);
+  useEffect(() => {
+    if (joinTried.current) return;
+    const code = sessionStorage.getItem("pendingJoin");
+    if (!code) return;
+    joinTried.current = true;
+    sessionStorage.removeItem("pendingJoin");
+    (async () => {
+      const res = await joinProperty(code);
+      notify({
+        audience: "customer",
+        kind: "property_shared",
+        title: res.error ? "Couldn't add shared property" : "Property shared with you",
+        body: res.error
+          ? res.error
+          : "You now have access to a property a partner shared — find it under My properties.",
+      });
+    })();
+  }, [joinProperty, notify]);
 
   // scroll container ref — pull-to-refresh only arms when this is at the top.
   const screenRef = useRef<HTMLDivElement | null>(null);

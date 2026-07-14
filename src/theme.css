@@ -713,22 +713,24 @@ body {
   color: var(--indigo);
 }
 
-/* join a shared property — dashed to read as "add a relationship", distinct
-   from the solid owned-property cards above it */
-.sharejoin {
-  width: 100%; display: flex; align-items: center; gap: 11px; text-align: left;
-  background: none; border: 1px dashed var(--border); border-radius: 14px;
-  padding: 11px 12px; margin-top: 2px; cursor: pointer; color: var(--text);
-  transition: border-color .15s, background .15s;
+/* property card sub-line: address + discrete access badges */
+.propcard__meta { display: flex; align-items: center; gap: 8px; margin-top: 1px; min-width: 0; }
+.propcard__addr {
+  font-size: 12px; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
 }
-.sharejoin:active { transform: scale(.99); }
-.sharejoin:hover { border-color: var(--indigo); background: var(--indigo-soft); }
-.sharejoin__ic {
-  width: 38px; height: 38px; border-radius: 11px; background: var(--indigo-soft);
-  display: grid; place-items: center; flex-shrink: 0; color: var(--indigo);
+/* "N people have access" — muted, small, never shouts */
+.propcard__shared {
+  display: inline-flex; align-items: center; gap: 3px; flex-shrink: 0;
+  font-size: 11px; font-weight: 700; color: var(--muted);
 }
-.sharejoin__txt { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
-.sharejoin__txt b { font-size: 14px; }
+.propcard__shared svg { opacity: .8; }
+/* partner tag when a property was shared TO me */
+.propcard__partner {
+  flex-shrink: 0; font-size: 10.5px; font-weight: 800; letter-spacing: .2px;
+  color: var(--indigo); background: var(--indigo-soft);
+  padding: 2px 7px; border-radius: 999px;
+}
 
 /* empty jobs state (agent) */
 .emptyjobs {

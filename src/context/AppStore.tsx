@@ -682,6 +682,20 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         ...rowToAddress(r),
         isShared: r.user_id !== uid,
       }));
+      // Count partners per property so the card can show a discrete "N people
+      // have access" badge. RLS lets the owner see members of their properties.
+      if (addresses?.length) {
+        try {
+          const { data: members } = await supabase.from("property_members").select("address_id");
+          if (members) {
+            const counts = new Map<string, number>();
+            for (const m of members as { address_id: string }[]) {
+              counts.set(m.address_id, (counts.get(m.address_id) ?? 0) + 1);
+            }
+            addresses = addresses.map((a) => ({ ...a, memberCount: counts.get(a.id) ?? 0 }));
+          }
+        } catch { /* ignore */ }
+      }
     } catch { /* ignore */ }
 
     // load saved payment cards from Postgres
