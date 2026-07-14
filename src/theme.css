@@ -348,7 +348,7 @@ body {
 .wolt__pill, .wolt__round {
   /* Apple-style "liquid glass": low opacity, heavy blur + saturation, a bright
      top edge and soft inner highlight so it reads as frosted crystal */
-  background: rgba(255, 255, 255, 0.38);
+  background: rgba(255, 255, 255, 0.20);
   -webkit-backdrop-filter: saturate(2) blur(30px);
   backdrop-filter: saturate(2) blur(30px);
   color: #14151a; cursor: pointer;
@@ -364,7 +364,7 @@ body {
 }
 :root[data-theme="dark"] .wolt__pill,
 :root[data-theme="dark"] .wolt__round {
-  background: rgba(40, 42, 52, 0.34);
+  background: rgba(40, 42, 52, 0.18);
   color: #f3f4f8;
   border-color: rgba(255, 255, 255, 0.14);
   box-shadow:
