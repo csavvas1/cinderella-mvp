@@ -45,7 +45,7 @@ const VAT_RATE = 0.19;
 // the Supabase dashboard once registered; until then the line is omitted.
 const VAT_NUMBER = Deno.env.get("VAT_NUMBER") || "";
 
-const MONTHS_EL = ["Ιανουάριος","Φεβρουάριος","Μάρτιος","Απρίλιος","Μάιος","Ιούνιος","Ιούλιος","Αύγουστος","Σεπτέμβριος","Οκτώβριος","Νοέμβριος","Δεκέμβριος"];
+const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
 type Period = { kind: "current" | "month" | "year"; month?: number; year?: number };
 
@@ -54,15 +54,15 @@ function windowFor(p: Period): { from: string; to: string; label: string } {
   const iso = (d: Date) => d.toISOString().slice(0, 10);
   if (p.kind === "year") {
     const y = p.year ?? now.getFullYear();
-    return { from: `${y}-01-01`, to: `${y + 1}-01-01`, label: `Έτος ${y}` };
+    return { from: `${y}-01-01`, to: `${y + 1}-01-01`, label: `Year ${y}` };
   }
   if (p.kind === "month") {
     const y = p.year ?? now.getFullYear();
     const m = (p.month ?? now.getMonth() + 1);
-    return { from: iso(new Date(Date.UTC(y, m - 1, 1))), to: iso(new Date(Date.UTC(y, m, 1))), label: `${MONTHS_EL[m - 1]} ${y}` };
+    return { from: iso(new Date(Date.UTC(y, m - 1, 1))), to: iso(new Date(Date.UTC(y, m, 1))), label: `${MONTHS[m - 1]} ${y}` };
   }
   const y = now.getFullYear(), m = now.getMonth();
-  return { from: iso(new Date(Date.UTC(y, m, 1))), to: iso(new Date(Date.UTC(y, m + 1, 1))), label: `${MONTHS_EL[m]} ${y}` };
+  return { from: iso(new Date(Date.UTC(y, m, 1))), to: iso(new Date(Date.UTC(y, m + 1, 1))), label: `${MONTHS[m]} ${y}` };
 }
 
 // Fetch a Unicode (Greek-capable) font once per cold start.
@@ -111,7 +111,7 @@ Deno.serve(async (req) => {
   let title = "";
 
   if (type === "expenses") {
-    title = "Κατάσταση Εξόδων"; // Expense statement
+    title = "Expense Statement";
     const { data } = await admin.from("bookings")
       .select("date, cleaner_name, address_nickname, address, time, total, status")
       .eq("user_id", uid).eq("status", "completed")
@@ -123,7 +123,7 @@ Deno.serve(async (req) => {
       return { date: `${b.date}${b.time ? " " + b.time : ""}`, desc: `${loc}${b.cleaner_name ? " · " + b.cleaner_name : ""}`, ...v };
     });
   } else {
-    title = "Κατάσταση Εσόδων"; // Earnings statement
+    title = "Earnings Statement";
     const { data } = await admin.from("jobs")
       .select("date, customer_name, address, time, cleaner_pay, rate_per_hour, duration_hours, status")
       .eq("cleaner_id", uid).eq("status", "completed")
@@ -178,10 +178,10 @@ Deno.serve(async (req) => {
   // ---- header band ----
   page.drawRectangle({ x: 0, y: A4.h - 96, width: A4.w, height: 96, color: rgb(0.98, 0.98, 0.99) });
   T(BRAND, M, A4.h - 44, 22, bold, accent);
-  T("Καθαρισμός κατοικιών", M, A4.h - 62, 9.5, font, muted);        // "Home cleaning"
+  T("Home cleaning services", M, A4.h - 62, 9.5, font, muted);
   R(title, A4.w - M, A4.h - 40, 13, bold, ink);
   R(win.label, A4.w - M, A4.h - 56, 10.5, font, muted);
-  if (VAT_NUMBER) R(`ΑΦΜ/VAT: ${VAT_NUMBER}`, A4.w - M, A4.h - 72, 8.5, font, muted);
+  if (VAT_NUMBER) R(`VAT No.: ${VAT_NUMBER}`, A4.w - M, A4.h - 72, 8.5, font, muted);
   y = A4.h - 118;
 
   // ---- table header ----
@@ -201,15 +201,15 @@ Deno.serve(async (req) => {
   const descRight = isEarn ? colComm - 16 : colNet - 12;
 
   const headerRow = (yy: number) => {
-    T("Ημ/νία", xDate, yy, 8.5, bold, muted);
-    T("Περιγραφή", xDesc, yy, 8.5, bold, muted);
+    T("Date", xDate, yy, 8.5, bold, muted);
+    T("Description", xDesc, yy, 8.5, bold, muted);
     if (isEarn) {
-      R("Προμήθεια", colComm, yy, 8.5, bold, muted);        // commission
-      R("Εισόδημα", colIncome, yy, 8.5, bold, muted);        // income
+      R("Commission", colComm, yy, 8.5, bold, muted);
+      R("Income", colIncome, yy, 8.5, bold, muted);
     } else {
-      R("Καθαρό", colNet, yy, 8.5, bold, muted);
-      R("ΦΠΑ 19%", colVat, yy, 8.5, bold, muted);
-      R("Σύνολο", colGross, yy, 8.5, bold, muted);
+      R("Net", colNet, yy, 8.5, bold, muted);
+      R("VAT 19%", colVat, yy, 8.5, bold, muted);
+      R("Total", colGross, yy, 8.5, bold, muted);
     }
   };
   headerRow(y);
@@ -229,7 +229,7 @@ Deno.serve(async (req) => {
   };
 
   if (rows.length === 0) {
-    T("Δεν υπάρχει ολοκληρωμένη δραστηριότητα για αυτή την περίοδο.", xDate, y, 9.5, font, muted);
+    T("No completed activity for this period.", xDate, y, 9.5, font, muted);
     y -= rowH;
   } else {
     rows.forEach((r, i) => {
@@ -253,7 +253,7 @@ Deno.serve(async (req) => {
   y -= 4;
   page.drawLine({ start: { x: M, y }, end: { x: rightEdge, y }, thickness: 1, color: line });
   y -= 18;
-  T("Σύνολα", xDesc, y, 10.5, bold, ink);
+  T("Totals", xDesc, y, 10.5, bold, ink);
   if (isEarn) {
     R(eur(tCommission), colComm, y, 10, bold, muted);
     R(eur(tNet), colIncome, y, 11, bold, accent);
@@ -274,22 +274,22 @@ Deno.serve(async (req) => {
     by -= 18;
   };
   if (isEarn) {
-    summary("Εισόδημα από εργασία", eur(tNet));            // work income
-    summary("Προμήθεια πλατφόρμας", eur(tCommission));      // platform commission
-    summary("Έσοδα από συστάσεις", eur(referralTotal));    // referral income
-    summary("Συνολικό εισόδημα", eur(tNet + referralTotal), true);
+    summary("Work income", eur(tNet));
+    summary("Platform commission", eur(tCommission));
+    summary("Referral income", eur(referralTotal));
+    summary("Total income", eur(tNet + referralTotal), true);
   } else {
-    summary("Καθαρή αξία", eur(tNet));
-    summary("ΦΠΑ (19%)", eur(tVat));
-    summary("Συνολικό ποσό", eur(tGross), true);
+    summary("Net amount", eur(tNet));
+    summary("VAT (19%)", eur(tVat));
+    summary("Total amount", eur(tGross), true);
   }
   y -= boxH + 20;
 
   // ---- footer (generated date, item count) ----
   const gen = new Date().toISOString().slice(0, 10);
-  T(`Ημερομηνία έκδοσης: ${gen}`, M, M - 8, 8.5, font, muted);
-  R(`${rows.length} εγγραφές`, rightEdge, M - 8, 8.5, font, muted);
-  T("Αυτό το έγγραφο δημιουργήθηκε από την πλατφόρμα " + BRAND + ".", M, M - 20, 7.5, font, muted);
+  T(`Date issued: ${gen}`, M, M - 8, 8.5, font, muted);
+  R(`${rows.length} entries`, rightEdge, M - 8, 8.5, font, muted);
+  T("This document was generated by the " + BRAND + " platform.", M, M - 20, 7.5, font, muted);
 
   const bytes = await pdf.save();
   const fname = `${isEarn ? "esoda" : "exoda"}-${win.label.replace(/[^\w]+/g, "-").toLowerCase()}.pdf`;
