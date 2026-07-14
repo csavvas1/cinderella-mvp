@@ -102,7 +102,9 @@ export default function TabBar() {
           <span>Search</span>
         </button>
         <button data-rel={rel(1)} className={"wolt__round wolt__round--badged" + (calActive ? " active" : "") + popCls("c-cal")} onClick={() => tap("c-cal", () => nav("/bookings"))} aria-label="Calendar" title="Calendar">
-          <span className="ic"><Icon name="calendar" filled={calActive} /></span>
+          {/* single consistent glyph — only the COLOUR changes with selection now
+              (the filled/outline swap made the icon look different per state) */}
+          <span className="ic"><Icon name="calendar" filled={false} /></span>
           {customerBadge > 0 && <span className="notifbadge notifbadge--ondark">{customerBadge > 9 ? "9+" : customerBadge}</span>}
         </button>
       </>
@@ -125,10 +127,10 @@ export default function TabBar() {
           {agentBadge > 0 && <span className="notifbadge notifbadge--ondark">{agentBadge > 9 ? "9+" : agentBadge}</span>}
         </button>
         <button data-rel={rel(1)} className={"wolt__round" + (calActive ? " active" : "") + popCls("a-cal")} onClick={() => tap("a-cal", () => nav("/agent/calendar"))} aria-label="Calendar" title="Calendar">
-          <span className="ic"><Icon name="calendar" filled={calActive} /></span>
+          <span className="ic"><Icon name="calendar" filled={false} /></span>
         </button>
         <button data-rel={rel(2)} className={"wolt__round" + (referActive ? " active" : "") + popCls("a-earn")} onClick={() => tap("a-earn", () => nav("/agent/referrals"))} aria-label="Earnings" title="Earnings">
-          <span className="ic"><Icon name="earn" filled={referActive} /></span>
+          <span className="ic"><Icon name="earn" filled={false} /></span>
         </button>
       </>
     );
