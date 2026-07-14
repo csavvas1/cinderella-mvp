@@ -803,8 +803,8 @@ export default function Account() {
         </>
       )}
 
-      <div className="card row between" style={{ marginTop: 12, cursor: pushEnabled ? "default" : "pointer" }}
-        onClick={() => { if (!pushEnabled) requestPushPermission(); }}>
+      <div className="card row between" style={{ marginTop: 12, cursor: "pointer" }}
+        onClick={() => requestPushPermission()}>
         <b style={{ fontSize: 14 }}>Push notifications</b>
         <div className={"switch" + (pushEnabled ? " on" : "")}><div className="switch__dot" /></div>
       </div>

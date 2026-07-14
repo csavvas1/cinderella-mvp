@@ -42,7 +42,10 @@ export async function isBiometricAvailable(): Promise<boolean> {
 // Supabase session (the Edge Function checks the JWT). Triggers the real Face ID
 // / Touch ID prompt. Returns true on success.
 export async function registerBiometric(): Promise<boolean> {
-  const { data: sess } = await supabase.auth.getSession();
+  let { data: sess } = await supabase.auth.getSession();
+  // proactively refresh so we never send an expired access token (the Edge
+  // Function rejects a stale token with "not authenticated")
+  try { const r = await supabase.auth.refreshSession(); if (r.data.session) sess = { session: r.data.session }; } catch { /* keep existing */ }
   const token = sess.session?.access_token;
   if (!token) throw new Error("Sign in first to enable Face ID.");
 
