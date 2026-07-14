@@ -767,6 +767,53 @@ body {
 img.camthumb__img { object-fit: cover; }
 .camthumb__lbl { display: block; text-align: center; font-size: 11px; font-weight: 800; color: var(--muted); margin-top: 4px; }
 
+/* ---------- full-screen camera (native-app style) ---------- */
+.camfull {
+  position: absolute; inset: 0; z-index: 200; background: #000;
+  overflow: hidden; display: flex; flex-direction: column;
+}
+.camfull__video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.camfull.flash::after { content: ""; position: absolute; inset: 0; background: #fff; animation: shutterflash .15s ease; z-index: 210; }
+.camfull__top {
+  position: relative; z-index: 205; display: flex; align-items: center; justify-content: space-between;
+  padding: calc(14px + env(safe-area-inset-top)) 16px 12px;
+  background: linear-gradient(180deg, rgba(0,0,0,.55), rgba(0,0,0,0));
+  color: #fff;
+}
+.camfull__close { background: none; border: none; color: #fff; cursor: pointer; display: grid; place-items: center; padding: 2px; }
+.camfull__title { font-size: 15px; font-weight: 800; }
+.camfull__steps { position: relative; z-index: 205; display: flex; gap: 6px; justify-content: center; padding: 4px 12px; }
+.camfull__hint {
+  position: absolute; z-index: 205; left: 0; right: 0; top: 50%; transform: translateY(-50%);
+  text-align: center; color: rgba(255,255,255,.9); font-size: 13px; font-weight: 700;
+  text-shadow: 0 1px 4px rgba(0,0,0,.6); pointer-events: none; padding: 0 24px;
+}
+.camfull__bottom {
+  position: relative; z-index: 205; margin-top: auto;
+  padding: 16px 16px calc(20px + env(safe-area-inset-bottom));
+  background: linear-gradient(0deg, rgba(0,0,0,.6), rgba(0,0,0,0));
+}
+.camfull__thumbs { display: flex; gap: 8px; justify-content: center; margin-bottom: 14px; overflow-x: auto; }
+.camfull__thumbs .camthumb { width: 56px; flex-shrink: 0; }
+.camfull__thumbs .camthumb__img { height: 40px; }
+.camfull__thumbs .camthumb__lbl { color: rgba(255,255,255,.85); }
+.camfull__bar { display: flex; align-items: center; justify-content: space-between; }
+.camfull__slot { flex: 1; display: flex; align-items: center; }
+.camfull__slot:last-child { justify-content: flex-end; }
+.camfull__text, .camfull__done {
+  background: none; border: none; cursor: pointer; font-size: 15px; font-weight: 800; color: #fff;
+}
+.camfull__done { color: #fff; background: var(--indigo); padding: 9px 18px; border-radius: 999px; }
+.camfull__shutter {
+  width: 72px; height: 72px; border-radius: 999px; cursor: pointer; padding: 0;
+  background: transparent; border: 4px solid rgba(255,255,255,.9);
+  display: grid; place-items: center; transition: transform .08s;
+}
+.camfull__shutter:active { transform: scale(.92); }
+.camfull__shutter-ring { width: 56px; height: 56px; border-radius: 999px; background: #fff; }
+.camfull__shutter:disabled { opacity: .4; cursor: default; }
+.camfull__shutter:disabled .camfull__shutter-ring { background: rgba(255,255,255,.6); }
+
 /* ---------- refund tag + photo add ---------- */
 .refundtag {
   margin-top: 10px; font-size: 12px; font-weight: 800; padding: 7px 11px; border-radius: 9px;

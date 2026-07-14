@@ -107,64 +107,63 @@ export default function CameraCapture({
   function retake() { setPhotos((p) => p.slice(0, -1)); }
 
   return (
-    <div className="modal__backdrop" onClick={onClose}>
-      <div className="modal tall" onClick={(e) => e.stopPropagation()}>
-        <div className="between" style={{ marginBottom: 12 }}>
-          <b style={{ fontSize: 16 }}>{title}</b>
-          <button className="iconbtn" onClick={onClose}>✕</button>
+    <div className={"camfull" + (flash ? " flash" : "")}>
+      {/* full-bleed live camera */}
+      <video ref={videoRef} playsInline muted className="camfull__video" />
+
+      {/* top bar: close + title (+ guided steps) */}
+      <div className="camfull__top">
+        <button className="camfull__close" onClick={onClose} aria-label="Close">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M6 6l12 12M18 6 6 18" /></svg>
+        </button>
+        <span className="camfull__title">{title}</span>
+        <span style={{ width: 24 }} />
+      </div>
+
+      {guided && (
+        <div className="camfull__steps">
+          {steps!.map((s, i) => (
+            <div key={s} className={"camsteps__pill" + (i < photos.length ? " done" : i === photos.length ? " active" : "")}>
+              {i < photos.length ? "✓ " : ""}{s}
+            </div>
+          ))}
         </div>
+      )}
 
-        {guided && (
-          <div className="camsteps">
-            {steps!.map((s, i) => (
-              <div key={s} className={"camsteps__pill" + (i < photos.length ? " done" : i === photos.length ? " active" : "")}>
-                {i < photos.length ? "✓ " : ""}{s}
-              </div>
-            ))}
-          </div>
-        )}
+      {/* framing guide / status */}
+      <div className="camfull__hint">
+        {camErr
+          ? camErr
+          : uploading ? "Uploading…"
+          : !guidedDone ? (guided ? `Align the ${currentLabel?.toLowerCase()} in the frame` : "Position inside the frame")
+          : "Captured"}
+      </div>
 
-        {/* live viewfinder */}
-        <div className={"camview" + (flash ? " flash" : "")}>
-          <video ref={videoRef} playsInline muted
-            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", borderRadius: "inherit" }} />
-          <div className="camview__frame" />
-          {camErr
-            ? <span className="camview__guide">{camErr}</span>
-            : !guidedDone
-              ? <span className="camview__guide">{guided ? `Align the ${currentLabel?.toLowerCase()} in the frame` : "Position inside the frame"}</span>
-              : <span className="camview__guide">Captured</span>}
-        </div>
-
-        {/* shutter */}
-        <div className="cambar">
-          {photos.length > 0 ? <button className="cambar__side" onClick={retake} disabled={uploading}>Retake</button> : <span className="cambar__side" />}
-          <div className="shutterwrap">
-            <button className="shutter" onClick={capture} disabled={guidedDone || uploading || !!camErr} aria-label="Capture">
-              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 8.5a2 2 0 0 1 2-2h1.2l1-1.6a1 1 0 0 1 .85-.47h5.9a1 1 0 0 1 .85.47l1 1.6H18a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z" />
-                <circle cx="12" cy="12.5" r="3.2" />
-              </svg>
-            </button>
-            <span className="shutter__lbl">{uploading ? "Uploading…" : guidedDone ? "Done" : guided ? `Capture ${currentLabel?.toLowerCase()}` : "Capture"}</span>
-          </div>
-          {photos.length > 0 && canFinish
-            ? <button className="cambar__side primary" onClick={() => onDone(photos)}>Done</button>
-            : <span className="cambar__side" />}
-        </div>
-
+      {/* bottom controls over the video */}
+      <div className="camfull__bottom">
         {photos.length > 0 && (
-          <div className="camthumbs">
+          <div className="camfull__thumbs">
             {photos.map((p) => (
               <div key={p.id} className="camthumb">
                 {p.url
-                  ? <img className="camthumb__img" src={p.url} alt={p.label ?? "photo"} style={{ objectFit: "cover" }} />
+                  ? <img className="camthumb__img" src={p.url} alt={p.label ?? "photo"} />
                   : <div className="camthumb__img" />}
                 {p.label && <span className="camthumb__lbl">{p.label}</span>}
               </div>
             ))}
           </div>
         )}
+        <div className="camfull__bar">
+          <div className="camfull__slot">
+            {photos.length > 0 && <button className="camfull__text" onClick={retake} disabled={uploading}>Retake</button>}
+          </div>
+          <button className="camfull__shutter" onClick={capture} disabled={guidedDone || uploading || !!camErr} aria-label="Capture">
+            <span className="camfull__shutter-ring" />
+          </button>
+          <div className="camfull__slot">
+            {photos.length > 0 && canFinish && <button className="camfull__done" onClick={() => onDone(photos)}>Done</button>}
+          </div>
+        </div>
       </div>
     </div>
   );
