@@ -509,27 +509,27 @@ export default function Account() {
       {addresses.map((a) => (
         <div key={a.id} className="propcard">
           <div className="propcard__top">
-            <span className={"propcard__ic" + (a.isShared ? " propcard__ic--shared" : "")}
-              title={a.isShared ? "Shared with you by a partner" : undefined}>
+            {/* tint the house icon (sky) whenever the property is shared — either
+                shared TO me (partner) or shared out to at least one co-worker */}
+            <span className={"propcard__ic" + (a.isShared || (a.memberCount ?? 0) > 0 ? " propcard__ic--shared" : "")}
+              title={a.isShared ? "Shared with you by a partner" : ((a.memberCount ?? 0) > 0 ? "Shared with a co-worker" : undefined)}>
               {a.propertyType === "house"
                 ? <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 11 12 4l8 7" /><path d="M6 10v9h12v-9" /><path d="M10 19v-5h4v5" /></svg>
                 : <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="6" y="3" width="12" height="18" rx="1.5" /><path d="M9.5 7h1M13.5 7h1M9.5 11h1M13.5 11h1M9.5 15h1M13.5 15h1" /></svg>}
             </span>
             <div className="grow" style={{ minWidth: 0 }}>
               <b style={{ fontSize: 14 }}>{a.nickname}</b>
-              <div className="propcard__meta">
-                {a.nickname !== a.address && (
-                  <span className="propcard__addr">{a.address}</span>
-                )}
-                {/* discrete "N people have access" badge — owner side only */}
-                {!a.isShared && (a.memberCount ?? 0) > 0 && (
-                  <span className="propcard__shared" title={`Shared with ${a.memberCount} ${a.memberCount === 1 ? "person" : "people"}`}>
-                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM16.5 11a2.5 2.5 0 1 0 0-5" /><path d="M3 20c0-2.5 2.7-4 6-4s6 1.5 6 4M17 16c2.3.3 4 1.6 4 4" /></svg>
-                    {a.memberCount}
-                  </span>
-                )}
-              </div>
+              {a.nickname !== a.address && (
+                <div className="tiny muted" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.address}</div>
+              )}
             </div>
+            {/* discrete "N have access" badge — right side, doesn't crowd the address */}
+            {!a.isShared && (a.memberCount ?? 0) > 0 && (
+              <span className="propcard__shared" title={`Shared with ${a.memberCount} ${a.memberCount === 1 ? "person" : "people"}`}>
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM16.5 11a2.5 2.5 0 1 0 0-5" /><path d="M3 20c0-2.5 2.7-4 6-4s6 1.5 6 4M17 16c2.3.3 4 1.6 4 4" /></svg>
+                {a.memberCount}
+              </span>
+            )}
             {/* Share (owner only — a partner can't re-share someone else's home) */}
             {!a.isShared && (
               <button className="iconbtn" title="Share property" onClick={() => { setShareCopied(false); setShareProp(a); }}>
