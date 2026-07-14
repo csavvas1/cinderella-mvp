@@ -7,12 +7,13 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      // Take over immediately + reload so a new deploy shows without the user
-      // having to fully kill/reopen the installed PWA.
-      workbox: {
-        clientsClaim: true,
-        skipWaiting: true,
-        cleanupOutdatedCaches: true,
+      // Custom service worker (injectManifest) so we can add Web Push handlers
+      // (push + notificationclick) alongside the workbox precache.
+      strategies: "injectManifest",
+      srcDir: "src",
+      filename: "sw.ts",
+      injectManifest: {
+        globPatterns: ["**/*.{js,css,html,png,svg,ico,webmanifest}"],
       },
       includeAssets: ["favicon.png", "apple-touch-icon.png"],
       manifest: {
