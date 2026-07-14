@@ -472,15 +472,22 @@ body {
    settle) so the old pill's fill doesn't flash back before the route swaps */
 :root[data-swiping="1"] .wolt__pill.active,
 :root[data-swiping="1"] .wolt__round.active { background: transparent; }
-/* keep the ::after transition off DURING the active drag for 1:1 tracking */
+/* Keep the ::after transition off for the WHOLE swipe — both the live drag
+   (data-dragging) AND the committed settle (data-swiping). During the settle the
+   page still slides ~0.25s, but the colour should already be at its target the
+   instant you release, not drain in over an extra 0.09s afterwards. */
 :root[data-dragging="1"] .wolt__pill::after,
-:root[data-dragging="1"] .wolt__round::after { transition: none; }
+:root[data-dragging="1"] .wolt__round::after,
+:root[data-swiping="1"] .wolt__pill::after,
+:root[data-swiping="1"] .wolt__round::after { transition: none; }
 /* icon colour glides to its target on settle (matching the ::after fill), but
    tracks the finger 1:1 while dragging (transition off) — this is the fix for
    the icon lagging a beat behind the background colour. */
 .wolt__pill .ic, .wolt__round .ic { transition: color .09s ease; }
 :root[data-dragging="1"] .wolt__pill .ic,
-:root[data-dragging="1"] .wolt__round .ic { transition: none; }
+:root[data-dragging="1"] .wolt__round .ic,
+:root[data-swiping="1"] .wolt__pill .ic,
+:root[data-swiping="1"] .wolt__round .ic { transition: none; }
 .tabbar button {
   background: none; border: none; cursor: pointer;
   display: flex; flex-direction: column; align-items: center; gap: 3px;
