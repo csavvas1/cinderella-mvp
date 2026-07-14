@@ -13,12 +13,33 @@
 //        bookingId?, jobId?, createdAt } }
 // ============================================================================
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import webpush from "npm:web-push@3.6.7";
 
 const admin = createClient(
   Deno.env.get("SUPABASE_URL")!,
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   { auth: { persistSession: false } },
 );
+
+const VAPID_PUBLIC = Deno.env.get("VAPID_PUBLIC") ?? "";
+const VAPID_PRIVATE = Deno.env.get("VAPID_PRIVATE") ?? "";
+if (VAPID_PUBLIC && VAPID_PRIVATE) {
+  webpush.setVapidDetails(Deno.env.get("VAPID_SUBJECT") ?? "mailto:support@cinderella.cy", VAPID_PUBLIC, VAPID_PRIVATE);
+}
+
+// Fire a Web Push to every saved subscription of a user (best-effort).
+async function pushToUser(userId: string, title: string, body: string, url = "/") {
+  if (!VAPID_PUBLIC || !VAPID_PRIVATE) return;
+  const { data: subs } = await admin.from("push_subscriptions").select("endpoint, p256dh, auth").eq("user_id", userId);
+  if (!subs?.length) return;
+  const payload = JSON.stringify({ title, body, url, tag: `${userId}-${Date.now()}` });
+  const stale: string[] = [];
+  await Promise.all(subs.map(async (s) => {
+    try { await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payload); }
+    catch (e) { const c = (e as { statusCode?: number }).statusCode; if (c === 404 || c === 410) stale.push(s.endpoint); }
+  }));
+  if (stale.length) await admin.from("push_subscriptions").delete().in("endpoint", stale);
+}
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -68,5 +89,9 @@ Deno.serve(async (req) => {
     created_at: n.created_at ?? new Date().toISOString(),
   });
   if (error) return json({ error: error.message }, 500);
+
+  // deliver a real push so the agent is alerted even with the app closed
+  await pushToUser(targetUid, String(n.title ?? "Σιντερέλλα"), String(n.body ?? ""), "/agent/jobs");
+
   return json({ ok: true });
 });

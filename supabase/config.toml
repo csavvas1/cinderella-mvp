@@ -38,3 +38,8 @@ verify_jwt = false
 # JWT itself + queries only their rows; platform gate off for the CORS preflight
 # (the browser sends a preflight before the POST that downloads the PDF).
 verify_jwt = false
+
+[functions.send-push]
+# Delivers a Web Push to a user's saved subscriptions. Verifies the caller's JWT
+# itself; platform gate off for the CORS preflight.
+verify_jwt = false
