@@ -184,6 +184,7 @@ export default function JobDetail() {
       {cam && (
         <CameraCapture
           title={cam === "before" ? "Before photos" : "After photos"}
+          folder={`job/${j.id}/${cam}`}
           onClose={() => setCam(null)}
           onDone={(p) => { cam === "before" ? setBefore(p) : setAfter(p); setCam(null); }}
         />

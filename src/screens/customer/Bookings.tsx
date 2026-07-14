@@ -551,6 +551,7 @@ function RefundModal({ booking, onClose, onSubmit }: {
       {cam && (
         <CameraCapture
           title="Photograph the issue"
+          folder="dispute"
           onClose={() => setCam(false)}
           onDone={(p) => { setPhotos(p); setCam(false); }}
         />

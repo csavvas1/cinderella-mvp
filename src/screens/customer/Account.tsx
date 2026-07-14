@@ -1162,6 +1162,7 @@ export default function Account() {
         <CameraCapture
           title={docType === "passport" ? "Photograph your passport" : "Photograph your ID"}
           steps={docType === "passport" ? ["Photo page"] : ["Front", "Back"]}
+          folder="id"
           onClose={() => setIdCam(false)}
           onDone={() => { setIdUp(true); setIdName(""); setIdCam(false); }}
         />
@@ -1247,7 +1248,7 @@ function DisputeModal({ booking, onClose, onRespond }: {
           </>
         )}
       </div>
-      {cam && <CameraCapture title="Your proof photos" onClose={() => setCam(false)} onDone={(p) => { setProof(p); setCam(false); }} />}
+      {cam && <CameraCapture title="Your proof photos" folder="dispute" onClose={() => setCam(false)} onDone={(p) => { setProof(p); setCam(false); }} />}
     </div>
   );
 }
