@@ -187,7 +187,7 @@ Deno.serve(async (req) => {
 
   // ---- table header ----
   // Expenses:  Date | Description | Net | VAT 19% | Gross
-  // Earnings:  Date | Description | Commission | Income   (no VAT split — see note)
+  // Earnings:  Date | Description | Income   (no VAT split — see note)
   const isEarn = type === "earnings";
   const xDate = M;
   const xDesc = M + 92;
