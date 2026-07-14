@@ -357,7 +357,10 @@ body {
     0 8px 24px rgba(20, 21, 26, 0.16),
     0 1px 3px rgba(20, 21, 26, 0.10),
     inset 0 1px 0 rgba(255, 255, 255, 0.6);
-  transition: transform .18s cubic-bezier(.34,1.56,.64,1), background .28s ease, color .28s ease;
+  /* No `background` transition: the ::after overlay handles the colour fill in
+     sync with the swipe. Transitioning the solid .active background too made it
+     bloom in ~0.28s AFTER a swipe settled (the trailing "weird" animation). */
+  transition: transform .18s cubic-bezier(.34,1.56,.64,1), color .28s ease;
 }
 :root[data-theme="dark"] .wolt__pill,
 :root[data-theme="dark"] .wolt__round {
