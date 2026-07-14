@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { supabase } from "../lib/supabase";
 
 export interface CapturedPhoto {
@@ -112,7 +113,10 @@ export default function CameraCapture({
 
   function retake() { setPhotos((p) => p.slice(0, -1)); }
 
-  return (
+  // Render into the phone frame so the full-screen overlay is anchored to the
+  // viewport (not a tall, scrollable tab page) — no scrolling to reach the X.
+  const host = (typeof document !== "undefined" && document.querySelector(".phone")) || (typeof document !== "undefined" ? document.body : null);
+  const ui = (
     <div className={"camfull" + (flash ? " flash" : "")}>
       {/* full-bleed live camera */}
       <video ref={videoRef} playsInline muted className="camfull__video" />
@@ -174,4 +178,6 @@ export default function CameraCapture({
       </div>
     </div>
   );
+
+  return host ? createPortal(ui, host) : ui;
 }
