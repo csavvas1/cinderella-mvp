@@ -151,6 +151,8 @@ export interface Job {
   id: string;
   customerName: string;
   customerPhone?: string;   // so the cleaner can call the customer on the job day
+  beforePhotos?: string[];  // proof photo URLs (proofs bucket)
+  afterPhotos?: string[];
   type: "Residential" | "Office" | "Short-let";
   propertyType?: PropertyType; // "apartment" | "house" — pulled from customer property
   apartmentNumber?: string;

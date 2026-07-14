@@ -277,6 +277,7 @@ interface AppState {
   addJob: (j: Job) => void;
   addJobs: (js: Job[]) => void;
   setJobStatus: (id: string, status: Job["status"]) => void;
+  saveJobPhotos: (jobId: string, kind: "before" | "after", urls: string[]) => void;
   dismissJob: (id: string) => void;          // agent hides a cancelled row from the Jobs list (record kept)
   acknowledgeJob: (id: string) => void;      // agent acknowledges a modified job -> restores its prior status
   markJobSeen: (id: string) => void;         // agent opened an auto-accepted job -> clears its "new" badge
@@ -1359,6 +1360,16 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       (j.status === "approved" && j.autoAccepted && !j.seenByAgent) ||
       (j.status === "cancelled" && !j.dismissedByAgent))).length,
     markJobSeen: (id) => { setJobs((p) => p.map((j) => (j.id === id ? { ...j, seenByAgent: true } : j))); dbPatchJob(id, { seen_by_agent: true }); },
+    // Persist proof photos onto the job as the cleaner captures them. The cleaner
+    // isn't the job's customer, so the write goes through the agent-job-update
+    // Edge Function (service role, verifies caller = cleaner_uid).
+    saveJobPhotos: (jobId, kind, urls) => {
+      const col = kind === "before" ? "beforePhotos" : "afterPhotos";
+      setJobs((p) => p.map((j) => (j.id === jobId ? { ...j, [col]: urls } : j)));
+      const dbCol = kind === "before" ? "before_photos" : "after_photos";
+      const job = jobs.find((j) => j.id === jobId);
+      void agentJobUpdate(jobId, { [dbCol]: urls }, job?.bookingId, undefined, null);
+    },
     setJobStatus: (id, status) => {
       const job = jobs.find((j) => j.id === id);
       // Declining a job the agent had ALREADY accepted (approved/modified) is a

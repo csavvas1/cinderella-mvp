@@ -241,6 +241,8 @@ export interface JobRow {
   booking_id: string | null;
   customer_name: string;
   customer_phone: string | null;
+  before_photos: string[] | null;
+  after_photos: string[] | null;
   type: Job["type"];
   property_type: "apartment" | "house" | null;
   apartment_number: string | null;
@@ -288,6 +290,8 @@ export function rowToJob(r: JobRow): Job {
     id: r.id,
     customerName: r.customer_name,
     customerPhone: r.customer_phone ?? undefined,
+    beforePhotos: r.before_photos ?? undefined,
+    afterPhotos: r.after_photos ?? undefined,
     type: r.type,
     propertyType: r.property_type ?? undefined,
     apartmentNumber: r.apartment_number ?? undefined,
@@ -344,6 +348,8 @@ export function jobToRow(j: Job): Record<string, unknown> {
     booking_id: j.bookingId ?? null,
     customer_name: j.customerName,
     customer_phone: j.customerPhone ?? null,
+    before_photos: j.beforePhotos ?? null,
+    after_photos: j.afterPhotos ?? null,
     type: j.type,
     property_type: j.propertyType ?? null,
     apartment_number: j.apartmentNumber ?? null,

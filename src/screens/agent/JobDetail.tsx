@@ -8,11 +8,13 @@ import MapPicker from "../../components/MapPicker";
 export default function JobDetail() {
   const { id } = useParams();
   const nav = useNavigate();
-  const { jobs, setJobStatus, acknowledgeJob, markJobSeen } = useStore();
+  const { jobs, setJobStatus, saveJobPhotos, acknowledgeJob, markJobSeen } = useStore();
   const j = jobs.find((x) => x.id === id);
   const [cam, setCam] = useState<null | "before" | "after">(null);
-  const [before, setBefore] = useState<CapturedPhoto[]>([]);
-  const [after, setAfter] = useState<CapturedPhoto[]>([]);
+  // proof photo URLs come straight off the job (persisted), so they survive a
+  // reload and are visible to both cleaner and customer.
+  const before = j?.beforePhotos ?? [];
+  const after = j?.afterPhotos ?? [];
   const [showCancel, setShowCancel] = useState(false);
   // Opening an auto-accepted job clears its "new" badge on the Jobs/agent tabs.
   useEffect(() => {
@@ -177,6 +179,12 @@ export default function JobDetail() {
                 {after.length ? `✓ After (${after.length})` : "After"}
               </button>
             </div>
+            {(before.length > 0 || after.length > 0) && (
+              <div style={{ marginTop: 12 }}>
+                {before.length > 0 && <ProofStrip label="Before" urls={before} />}
+                {after.length > 0 && <ProofStrip label="After" urls={after} />}
+              </div>
+            )}
           </div>
         </>
       )}
@@ -186,7 +194,12 @@ export default function JobDetail() {
           title={cam === "before" ? "Before photos" : "After photos"}
           folder={`job/${j.id}/${cam}`}
           onClose={() => setCam(null)}
-          onDone={(p) => { cam === "before" ? setBefore(p) : setAfter(p); setCam(null); }}
+          onDone={(p) => {
+            const urls = p.map((x) => x.url).filter((u): u is string => !!u);
+            const existing = cam === "before" ? before : after;
+            saveJobPhotos(j.id, cam!, [...existing, ...urls]);
+            setCam(null);
+          }}
         />
       )}
 
@@ -226,6 +239,21 @@ export default function JobDetail() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function ProofStrip({ label, urls }: { label: string; urls: string[] }) {
+  return (
+    <div style={{ marginTop: 8 }}>
+      <div className="tiny muted" style={{ fontWeight: 800, marginBottom: 4 }}>{label}</div>
+      <div style={{ display: "flex", gap: 8, overflowX: "auto" }}>
+        {urls.map((u) => (
+          <a key={u} href={u} target="_blank" rel="noreferrer" style={{ flexShrink: 0 }}>
+            <img src={u} alt={label} style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 10, border: "1px solid var(--border)" }} />
+          </a>
+        ))}
+      </div>
     </div>
   );
 }
