@@ -1567,9 +1567,16 @@ input[type="range"]::-webkit-slider-thumb {
   box-shadow: 0 -10px 40px rgba(0,0,0,.3); animation: slideup .22s ease;
   max-height: 86%; overflow-y: auto;
   scrollbar-width: none; -ms-overflow-style: none;
+  /* NOTE: tab-page modals get lifted above the floating island — see rule below */
 }
 .modal::-webkit-scrollbar { width: 0; height: 0; display: none; }
 @keyframes slideup { from { transform: translateY(100%);} to { transform: none; } }
+/* Modals opened from a swipeable tab page sit above the floating island, so lift
+   the sheet up to clear it (island bottom 16px + ~40px tall + a small gap). */
+.swipe__page .modal {
+  margin-bottom: calc(74px + env(safe-area-inset-bottom));
+  border-bottom-left-radius: 24px; border-bottom-right-radius: 24px;
+}
 
 /* Sub-views opened from within the account sheet must FULLY cover it — no gap at
    the top, no account content bleeding through, and no seeing the account scroll
