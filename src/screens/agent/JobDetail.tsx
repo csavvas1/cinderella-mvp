@@ -126,32 +126,6 @@ export default function JobDetail() {
         <div className="jd__row"><span className="jd__k">You earn</span><span className="price">€{earn}</span></div>
       </div>
 
-      {(() => {
-        const fmt = (ms?: number) => ms
-          ? new Date(ms).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })
-          : null;
-        const rows: { k: string; v: string }[] = [];
-        if (j.alertedAt) rows.push({ k: "Alert received", v: fmt(j.alertedAt)! });
-        if (j.respondedAt && j.response) {
-          const mins = j.alertedAt ? Math.max(0, Math.round((j.respondedAt - j.alertedAt) / 60000)) : null;
-          const dur = mins == null ? "" : mins < 60 ? ` · ${mins}m` : ` · ${Math.floor(mins / 60)}h ${mins % 60}m`;
-          rows.push({ k: "Responded", v: `${j.response}${dur} · ${fmt(j.respondedAt)}` });
-        }
-        if (j.outcome) rows.push({ k: "Outcome", v: `${j.outcome} · ${fmt(j.outcomeAt)}` });
-        if (rows.length === 0) return null;
-        return (
-          <div className="card jd__card" style={{ marginTop: 12 }}>
-            <div className="jd__k" style={{ marginBottom: 6, fontWeight: 800 }}>Timeline</div>
-            {rows.map((r, i) => (
-              <div key={r.k}>
-                {i > 0 && <div className="divider" />}
-                <div className="jd__row"><span className="jd__k">{r.k}</span><b className="jd__v" style={{ textTransform: "capitalize" }}>{r.v}</b></div>
-              </div>
-            ))}
-          </div>
-        );
-      })()}
-
       {/* exact location pin the customer placed, so the agent finds the door */}
       {hasPin && (
         <div style={{ marginTop: 14 }}>
