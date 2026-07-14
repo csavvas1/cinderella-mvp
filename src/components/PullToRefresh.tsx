@@ -36,6 +36,10 @@ export default function PullToRefresh({
 
   function onStart(e: React.TouchEvent) {
     if (spin) return;
+    // Never arm a pull while a modal/sheet is open — pulling down would refresh
+    // and tear down the view the user is looking at. Any open .modal__backdrop
+    // (or account sheet) blocks the gesture.
+    if (document.querySelector(".modal__backdrop, .acctsheet")) { startY.current = null; return; }
     // only arm a pull if we're scrolled to the very top
     const atTop = (scrollRef.current?.scrollTop ?? 0) <= 0;
     if (!atTop) { startY.current = null; return; }

@@ -163,9 +163,14 @@ function Shell() {
   }
 
   // On (re)entering the app after login, land on the side the launch preference
-  // selected (role is set from the account's launchSide at login).
+  // selected (role is set from the account's launchSide at login). Only redirect
+  // if we're NOT already on a valid route for this side — otherwise a Shell
+  // remount (e.g. after a pull-to-refresh re-hydrate) would yank the user back
+  // to the default tab instead of leaving them where they were.
   useEffect(() => {
-    nav(role === "agent" ? "/agent/jobs" : "/book");
+    const onAgent = pathname.startsWith("/agent");
+    const onValidSide = role === "agent" ? onAgent : !onAgent;
+    if (!onValidSide) nav(role === "agent" ? "/agent/jobs" : "/book");
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Keep the URL on the correct side when the role toggle flips.
