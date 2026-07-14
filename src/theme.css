@@ -717,15 +717,19 @@ body {
    icon sky so it's recognisable at a glance */
 .propcard__ic { position: relative; }
 .propcard__ic--shared { background: var(--agent-soft); color: var(--agent); }
-/* "N have access" — tiny count badge on the icon's top-right corner, so the
-   sharing state + count live entirely on the icon and never touch the address */
+/* "N have access" — a person-glyph + count pill on the icon's top-right corner.
+   The person icon makes the meaning ("shared with people") unmistakable; the
+   whole indicator lives on the icon and never touches the address. */
 .propcard__count {
-  position: absolute; top: -5px; right: -5px; min-width: 16px; height: 16px;
-  padding: 0 4px; border-radius: 999px; box-sizing: border-box;
+  position: absolute; top: -6px; right: -8px;
+  display: inline-flex; align-items: center; gap: 2px;
+  height: 17px; padding: 0 6px 0 5px; border-radius: 999px; box-sizing: border-box;
   background: var(--agent); color: #fff;
-  font-size: 10px; font-weight: 800; line-height: 16px; text-align: center;
+  font-size: 10.5px; font-weight: 800; line-height: 1;
   border: 2px solid var(--card);
+  box-shadow: 0 1px 3px rgba(14,165,233,0.35);
 }
+.propcard__count svg { display: block; margin-bottom: .5px; opacity: .95; }
 
 /* empty jobs state (agent) */
 .emptyjobs {

@@ -519,7 +519,10 @@ export default function Account() {
                 ? <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 11 12 4l8 7" /><path d="M6 10v9h12v-9" /><path d="M10 19v-5h4v5" /></svg>
                 : <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="6" y="3" width="12" height="18" rx="1.5" /><path d="M9.5 7h1M13.5 7h1M9.5 11h1M13.5 11h1M9.5 15h1M13.5 15h1" /></svg>}
               {!a.isShared && (a.memberCount ?? 0) > 0 && (
-                <span className="propcard__count">{a.memberCount}</span>
+                <span className="propcard__count">
+                  <svg viewBox="0 0 24 24" width="9" height="9" fill="currentColor" aria-hidden="true"><circle cx="12" cy="8" r="4" /><path d="M4 20c0-3.9 3.6-6.5 8-6.5s8 2.6 8 6.5Z" /></svg>
+                  {a.memberCount}
+                </span>
               )}
             </span>
             <div className="grow" style={{ minWidth: 0 }}>
