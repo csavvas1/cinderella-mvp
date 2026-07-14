@@ -783,7 +783,12 @@ img.camthumb__img { object-fit: cover; }
   background: linear-gradient(180deg, rgba(0,0,0,.55), rgba(0,0,0,0));
   color: #fff;
 }
-.camfull__close { background: none; border: none; color: #fff; cursor: pointer; display: grid; place-items: center; padding: 2px; }
+.camfull__close {
+  background: rgba(0,0,0,.45); border: none; color: #fff; cursor: pointer;
+  display: grid; place-items: center; width: 38px; height: 38px; border-radius: 999px;
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+}
+.camfull__close:active { transform: scale(.9); }
 .camfull__title { font-size: 15px; font-weight: 800; }
 .camfull__steps { position: relative; z-index: 205; display: flex; gap: 6px; justify-content: center; padding: 4px 12px; }
 .camfull__hint {
