@@ -5,6 +5,7 @@ import { monthlyPerformance, rewardForMonth, type MonthlyPerf, type ReferralRewa
 import { APP_NAME } from "../../data/brand";
 import Dropdown from "../../components/Dropdown";
 import { useSwipeDownClose } from "../../lib/useSwipeDownClose";
+import { downloadStatementPdf, monthNumber } from "../../lib/statements";
 import type { Referee } from "../../context/AppStore";
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -21,10 +22,6 @@ function prevMonthDefaults() {
   return { month: MONTHS[d.getMonth()], year: String(d.getFullYear()) };
 }
 
-function downloadStatement(period: string) {
-  alert(`Downloading earnings statement for ${period} (PDF).`);
-}
-
 export default function Referrals() {
   const { referralCode, referees, jobs } = useStore();
   const REFERRAL = getConfig().referral;
@@ -38,6 +35,14 @@ export default function Referrals() {
   const [dlMonth, setDlMonth] = useState(pm.month);
   const [dlYear, setDlYear] = useState(pm.year);
   const [dlYearAnnual, setDlYearAnnual] = useState(String(new Date().getFullYear() - 1));
+  const [dlBusy, setDlBusy] = useState<string | null>(null);
+  const [dlErr, setDlErr] = useState("");
+  async function downloadStatement(key: string, period: Parameters<typeof downloadStatementPdf>[1]) {
+    setDlErr(""); setDlBusy(key);
+    const res = await downloadStatementPdf("earnings", period);
+    setDlBusy(null);
+    if (res.error) setDlErr(res.error);
+  }
 
   const month = currentMonthKey();
   const monthName = monthShort(month);
@@ -170,21 +175,28 @@ export default function Referrals() {
                 <div className="earnmonth__total" style={{ marginTop: 2 }}>€{total.toFixed(0)}</div>
                 <div className="tiny muted">{tasks} jobs · work + referrals</div>
               </div>
-              <button className="dl" onClick={() => downloadStatement("this month")}>PDF</button>
+              <button className="dl" disabled={dlBusy === "cur"} onClick={() => downloadStatement("cur", { kind: "current" })}>{dlBusy === "cur" ? "…" : "PDF"}</button>
             </div>
+            {dlErr && <div className="loginerr" style={{ marginBottom: 12 }}>{dlErr}</div>}
             <div className="label" style={{ marginTop: 0 }}>Monthly statement</div>
             <div className="card">
               <div className="row" style={{ gap: 8 }}>
                 <Dropdown value={dlMonth} options={MONTHS} onChange={setDlMonth} />
                 <div style={{ width: 110 }}><Dropdown value={dlYear} options={YEARS} onChange={setDlYear} /></div>
               </div>
-              <button className="btn agent" style={{ marginTop: 12 }} onClick={() => downloadStatement(`${dlMonth} ${dlYear}`)}>Download</button>
+              <button className="btn agent" style={{ marginTop: 12 }} disabled={dlBusy === "mon"}
+                onClick={() => downloadStatement("mon", { kind: "month", month: monthNumber(dlMonth), year: Number(dlYear) })}>
+                {dlBusy === "mon" ? "Preparing…" : "Download"}
+              </button>
             </div>
             <div className="label">Yearly income statement</div>
             <div className="card">
               <p className="sub" style={{ marginTop: 0 }}>Full-year summary for your tax return.</p>
               <Dropdown value={dlYearAnnual} options={YEARS} onChange={setDlYearAnnual} />
-              <button className="btn agent" style={{ marginTop: 12 }} onClick={() => downloadStatement(`full year ${dlYearAnnual}`)}>Download</button>
+              <button className="btn agent" style={{ marginTop: 12 }} disabled={dlBusy === "yr"}
+                onClick={() => downloadStatement("yr", { kind: "year", year: Number(dlYearAnnual) })}>
+                {dlBusy === "yr" ? "Preparing…" : "Download"}
+              </button>
             </div>
           </div>
         </div>

@@ -10,6 +10,7 @@ import { syncListing } from "../../data/ical";
 import { marketStats } from "../../data/cleaners";
 import { cardExpiryStatus } from "../../data/platform";
 import { isBiometricAvailable } from "../../lib/webauthn";
+import { downloadStatementPdf, monthNumber } from "../../lib/statements";
 import MapPicker from "../../components/MapPicker";
 import { CY_CITIES } from "../../data/addressPresets";
 import LegalDocModal from "../../components/LegalDocModal";
@@ -25,9 +26,6 @@ const DAY_FULL: Record<string, string> = {
   Fri: "Friday", Sat: "Saturday", Sun: "Sunday",
 };
 
-function downloadExpenses(period: string) {
-  alert(`Downloading expense statement for ${period} (PDF).`);
-}
 
 // Statement pickers default to the PREVIOUS month (last complete period).
 function prevMonthDefaults() {
@@ -93,6 +91,14 @@ export default function Account() {
   const [expMonth, setExpMonth] = useState(_pm.month);
   const [expYear, setExpYear] = useState(_pm.year);
   const [expYearAnnual, setExpYearAnnual] = useState(String(new Date().getFullYear() - 1));
+  const [dlBusy, setDlBusy] = useState<string | null>(null); // which download is in flight
+  const [dlErr, setDlErr] = useState("");
+  async function downloadExpenses(key: string, period: Parameters<typeof downloadStatementPdf>[1]) {
+    setDlErr(""); setDlBusy(key);
+    const res = await downloadStatementPdf("expenses", period);
+    setDlBusy(null);
+    if (res.error) setDlErr(res.error);
+  }
 
   // cleaner activation + legal
   const [showActivate, setShowActivate] = useState(false);
@@ -653,21 +659,28 @@ export default function Account() {
                 <div className="earnmonth__total" style={{ marginTop: 2 }}>€{spentThisMonth.toFixed(0)}</div>
                 <div className="tiny muted">{spentCount} cleanings</div>
               </div>
-              <button className="dl" onClick={() => downloadExpenses("this month")}>PDF</button>
+              <button className="dl" disabled={dlBusy === "cur"} onClick={() => downloadExpenses("cur", { kind: "current" })}>{dlBusy === "cur" ? "…" : "PDF"}</button>
             </div>
+            {dlErr && <div className="loginerr" style={{ marginBottom: 12 }}>{dlErr}</div>}
             <div className="label" style={{ marginTop: 0 }}>Monthly statement</div>
             <div className="card">
               <div className="row" style={{ gap: 8 }}>
                 <Dropdown value={expMonth} options={MONTHS} onChange={setExpMonth} />
                 <div style={{ width: 110 }}><Dropdown value={expYear} options={YEARS} onChange={setExpYear} /></div>
               </div>
-              <button className="btn" style={{ marginTop: 12 }} onClick={() => downloadExpenses(`${expMonth} ${expYear}`)}>Download</button>
+              <button className="btn" style={{ marginTop: 12 }} disabled={dlBusy === "mon"}
+                onClick={() => downloadExpenses("mon", { kind: "month", month: monthNumber(expMonth), year: Number(expYear) })}>
+                {dlBusy === "mon" ? "Preparing…" : "Download"}
+              </button>
             </div>
             <div className="label">Yearly statement</div>
             <div className="card">
               <p className="sub" style={{ marginTop: 0 }}>Full-year expense summary.</p>
               <Dropdown value={expYearAnnual} options={YEARS} onChange={setExpYearAnnual} />
-              <button className="btn" style={{ marginTop: 12 }} onClick={() => downloadExpenses(`full year ${expYearAnnual}`)}>Download</button>
+              <button className="btn" style={{ marginTop: 12 }} disabled={dlBusy === "yr"}
+                onClick={() => downloadExpenses("yr", { kind: "year", year: Number(expYearAnnual) })}>
+                {dlBusy === "yr" ? "Preparing…" : "Download"}
+              </button>
             </div>
           </div>
         </div>

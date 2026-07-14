@@ -32,3 +32,9 @@ verify_jwt = false
 # Agent accept/decline/complete on a job they don't own as customer. Verifies
 # the caller is the job's cleaner itself; platform gate off for the preflight.
 verify_jwt = false
+
+[functions.statements]
+# Generates a PDF statement from the caller's own data. Verifies the caller's
+# JWT itself + queries only their rows; platform gate off for the CORS preflight
+# (the browser sends a preflight before the POST that downloads the PDF).
+verify_jwt = false
