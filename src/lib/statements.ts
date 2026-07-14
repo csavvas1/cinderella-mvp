@@ -16,7 +16,11 @@ export type StatementPeriod =
   | { kind: "month"; month: number; year: number }   // month 1-12
   | { kind: "year"; year: number };
 
-export async function downloadStatementPdf(type: StatementType, period: StatementPeriod): Promise<{ error?: string }> {
+export async function downloadStatementPdf(
+  type: StatementType,
+  period: StatementPeriod,
+  extra?: { referralTotal?: number },
+): Promise<{ error?: string }> {
   const { data: sess } = await supabase.auth.getSession();
   const token = sess.session?.access_token;
   if (!token) return { error: "Sign in to download statements." };
@@ -29,7 +33,7 @@ export async function downloadStatementPdf(type: StatementType, period: Statemen
         apikey: ANON,
         authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ type, period }),
+      body: JSON.stringify({ type, period, ...extra }),
     });
     if (!res.ok) {
       const msg = await res.json().catch(() => ({}));

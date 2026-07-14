@@ -39,7 +39,10 @@ export default function Referrals() {
   const [dlErr, setDlErr] = useState("");
   async function downloadStatement(key: string, period: Parameters<typeof downloadStatementPdf>[1]) {
     setDlErr(""); setDlBusy(key);
-    const res = await downloadStatementPdf("earnings", period);
+    // referral bonus is computed client-side for the CURRENT month; pass it so the
+    // PDF's referral-income line is populated for the current-period statement.
+    const extra = period.kind === "current" ? { referralTotal: referEarn } : undefined;
+    const res = await downloadStatementPdf("earnings", period, extra);
     setDlBusy(null);
     if (res.error) setDlErr(res.error);
   }
