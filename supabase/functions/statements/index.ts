@@ -12,8 +12,8 @@
 //   ->  application/pdf   |   { error }
 //
 // expenses  = a CUSTOMER's completed bookings (what they paid, VAT-inclusive).
-// earnings  = an AGENT's completed jobs (gross value, platform commission, net
-//             paid) + a referral-bonus figure, for their tax return.
+// earnings  = an AGENT's completed jobs (income received) + a referral-bonus
+//             figure, for their tax return.
 // ============================================================================
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { PDFDocument, rgb, type PDFFont } from "npm:pdf-lib@1.17.1";
@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
     return { net, vat: gross - net, gross };
   };
 
-  type Row = { date: string; desc: string; net: number; vat: number; gross: number; commission?: number };
+  type Row = { date: string; desc: string; net: number; vat: number; gross: number };
   let rows: Row[] = [];
   let title = "";
 
@@ -136,17 +136,15 @@ Deno.serve(async (req) => {
     rows = (data ?? []).map((j) => {
       const grossVal = Number(j.rate_per_hour ?? 0) * Number(j.duration_hours ?? 0);
       const income = Number(j.cleaner_pay ?? grossVal);      // what the cleaner actually received
-      const commission = Math.max(0, grossVal - income);     // platform commission withheld
       // NOTE: no VAT split on earnings — whether the cleaner charges VAT depends
-      // on their own VAT-registration status, so we report gross income only and
-      // leave VAT to their own accountant. VAT columns are used for expenses.
-      return { date: `${j.date}${j.time ? " " + j.time : ""}`, desc: String(j.customer_name || j.address || ""), net: income, vat: 0, gross: income, commission };
+      // on their own VAT-registration status, so we report income only and leave
+      // VAT to their own accountant. VAT columns are used for expenses.
+      return { date: `${j.date}${j.time ? " " + j.time : ""}`, desc: String(j.customer_name || j.address || ""), net: income, vat: 0, gross: income };
     });
   }
 
   const sum = (f: (r: Row) => number) => rows.reduce((s, r) => s + f(r), 0);
   const tNet = sum((r) => r.net), tVat = sum((r) => r.vat), tGross = sum((r) => r.gross);
-  const tCommission = sum((r) => r.commission ?? 0);
 
   // ---- build the PDF -------------------------------------------------------
   await loadFonts();
@@ -182,7 +180,6 @@ Deno.serve(async (req) => {
   // ---- header band ----
   page.drawRectangle({ x: 0, y: A4.h - 96, width: A4.w, height: 96, color: rgb(0.98, 0.98, 0.99) });
   T(BRAND, M, A4.h - 44, 22, bold, accent);
-  T("Home cleaning services", M, A4.h - 62, 9.5, font, muted);
   R(title, A4.w - M, A4.h - 40, 13, bold, ink);
   R(win.label, A4.w - M, A4.h - 56, 10.5, font, muted);
   if (VAT_NUMBER) R(`VAT No.: ${VAT_NUMBER}`, A4.w - M, A4.h - 72, 8.5, font, muted);
@@ -201,14 +198,12 @@ Deno.serve(async (req) => {
   const colNet = colVat - 82;
   // earnings columns
   const colIncome = rightEdge;
-  const colComm = colIncome - 92;
-  const descRight = isEarn ? colComm - 16 : colNet - 12;
+  const descRight = isEarn ? colIncome - 16 : colNet - 12;
 
   const headerRow = (yy: number) => {
     T("Date", xDate, yy, 8.5, bold, muted);
     T("Description", xDesc, yy, 8.5, bold, muted);
     if (isEarn) {
-      R("Commission", colComm, yy, 8.5, bold, muted);
       R("Income", colIncome, yy, 8.5, bold, muted);
     } else {
       R("Net", colNet, yy, 8.5, bold, muted);
@@ -242,7 +237,6 @@ Deno.serve(async (req) => {
       T(r.date, xDate, y, 9, font, ink);
       T(clip(r.desc, 9, descRight - xDesc), xDesc, y, 9, font, ink);
       if (isEarn) {
-        R(eur(r.commission ?? 0), colComm, y, 9, font, muted);
         R(eur(r.net), colIncome, y, 9, font, ink);
       } else {
         R(eur(r.net), colNet, y, 9, font, ink);
@@ -259,7 +253,6 @@ Deno.serve(async (req) => {
   y -= 18;
   T("Totals", xDesc, y, 10.5, bold, ink);
   if (isEarn) {
-    R(eur(tCommission), colComm, y, 10, bold, muted);
     R(eur(tNet), colIncome, y, 11, bold, accent);
   } else {
     R(eur(tNet), colNet, y, 10, bold, ink);
@@ -269,7 +262,7 @@ Deno.serve(async (req) => {
   y -= 26;
 
   // ---- summary box ----
-  const boxH = isEarn ? 90 : 78;
+  const boxH = 78;
   page.drawRectangle({ x: M, y: y - boxH, width: rightEdge - M, height: boxH, borderColor: line, borderWidth: 1, color: rgb(0.985, 0.986, 0.99) });
   let by = y - 20;
   const summary = (label: string, val: string, strong = false) => {
@@ -279,7 +272,6 @@ Deno.serve(async (req) => {
   };
   if (isEarn) {
     summary("Work income", eur(tNet));
-    summary("Platform commission", eur(tCommission));
     summary("Referral income", eur(referralTotal));
     summary("Total income", eur(tNet + referralTotal), true);
   } else {
