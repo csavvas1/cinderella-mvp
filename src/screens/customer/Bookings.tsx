@@ -329,9 +329,9 @@ export default function Bookings() {
         <RefundModal
           booking={refundFor}
           onClose={() => setRefundFor(null)}
-          onSubmit={(reason, note, hasPhoto) => {
+          onSubmit={(reason, note, photos) => {
             updateBooking(refundFor.id, {
-              refund: { status: "pending", reason, note, hasPhoto, date: new Date().toISOString().slice(0, 10) },
+              refund: { status: "pending", reason, note, hasPhoto: photos.length > 0, photos, date: new Date().toISOString().slice(0, 10) },
             });
             notify({
               audience: "agent", kind: "refund_requested", jobId: refundFor.jobId,
@@ -514,7 +514,7 @@ function refundOpen(booking: Booking): boolean {
 }
 
 function RefundModal({ booking, onClose, onSubmit }: {
-  booking: Booking; onClose: () => void; onSubmit: (reason: string, note: string, hasPhoto: boolean) => void;
+  booking: Booking; onClose: () => void; onSubmit: (reason: string, note: string, photos: string[]) => void;
 }) {
   const [reason, setReason] = useState(REFUND_REASONS[0]);
   const [note, setNote] = useState("");
@@ -545,7 +545,7 @@ function RefundModal({ booking, onClose, onSubmit }: {
           </div>
           <div style={{ height: 14 }} />
           <button className="btn" disabled={!note.trim()} style={{ opacity: !note.trim() ? 0.5 : 1 }}
-            onClick={() => onSubmit(reason, note, hasPhoto)}>Submit request</button>
+            onClick={() => onSubmit(reason, note, photos.map((p) => p.url).filter((u): u is string => !!u))}>Submit request</button>
         </>
       )}
       {cam && (

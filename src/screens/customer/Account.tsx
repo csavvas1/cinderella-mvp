@@ -1085,9 +1085,9 @@ export default function Account() {
         <DisputeModal
           booking={disputeFor}
           onClose={() => setDisputeFor(null)}
-          onRespond={(stance, note, hasProof) => {
+          onRespond={(stance, note, proofPhotos) => {
             updateBooking(disputeFor.id, {
-              refund: { ...disputeFor.refund!, agentResponse: { stance, note, hasProof, date: new Date().toISOString().slice(0, 10) } },
+              refund: { ...disputeFor.refund!, agentResponse: { stance, note, hasProof: proofPhotos.length > 0, proofPhotos, date: new Date().toISOString().slice(0, 10) } },
             });
             notify({
               audience: "customer", kind: "refund_resolved", bookingId: disputeFor.id,
@@ -1239,7 +1239,7 @@ export default function Account() {
 function DisputeModal({ booking, onClose, onRespond }: {
   booking: Booking;
   onClose: () => void;
-  onRespond: (stance: "accept" | "dispute", note: string, hasProof: boolean) => void;
+  onRespond: (stance: "accept" | "dispute", note: string, proofPhotos: string[]) => void;
 }) {
   const r = booking.refund!;
   const [note, setNote] = useState(r.agentResponse?.note ?? "");
@@ -1257,7 +1257,17 @@ function DisputeModal({ booking, onClose, onRespond }: {
           <div className="between"><b style={{ fontSize: 14 }}>{booking.addressNickname}</b><span className="tiny muted">{r.date}</span></div>
           <div className="tiny muted" style={{ marginTop: 4 }}>Reason: <b>{r.reason}</b> · €{booking.total}</div>
           <div className="tiny" style={{ marginTop: 6 }}>“{r.note}”</div>
-          <div className="tiny muted" style={{ marginTop: 6 }}>{r.hasPhoto ? "Customer attached time-stamped photos" : "No customer photos"}</div>
+          {r.photos && r.photos.length > 0 ? (
+            <div style={{ display: "flex", gap: 8, overflowX: "auto", marginTop: 10 }}>
+              {r.photos.map((u) => (
+                <a key={u} href={u} target="_blank" rel="noreferrer" style={{ flexShrink: 0 }}>
+                  <img src={u} alt="evidence" style={{ width: 60, height: 60, objectFit: "cover", borderRadius: 9, border: "1px solid var(--border)" }} />
+                </a>
+              ))}
+            </div>
+          ) : (
+            <div className="tiny muted" style={{ marginTop: 6 }}>No customer photos</div>
+          )}
         </div>
         {r.agentResponse ? (
           <div className={"note" + (r.agentResponse.stance === "dispute" ? " amber" : "")}>
@@ -1273,8 +1283,8 @@ function DisputeModal({ booking, onClose, onRespond }: {
             </button>
             <div className="note" style={{ marginTop: 12 }}>Our team weighs both sides + the time-stamped photos, then decides.</div>
             <div className="row" style={{ gap: 8, marginTop: 14 }}>
-              <button className="btn secondary grow" onClick={() => onRespond("accept", note, proof.length > 0)}>Accept refund</button>
-              <button className="btn agent grow" disabled={!note.trim()} style={{ opacity: !note.trim() ? 0.5 : 1 }} onClick={() => onRespond("dispute", note, proof.length > 0)}>Dispute it</button>
+              <button className="btn secondary grow" onClick={() => onRespond("accept", note, proof.map((p) => p.url).filter((u): u is string => !!u))}>Accept refund</button>
+              <button className="btn agent grow" disabled={!note.trim()} style={{ opacity: !note.trim() ? 0.5 : 1 }} onClick={() => onRespond("dispute", note, proof.map((p) => p.url).filter((u): u is string => !!u))}>Dispute it</button>
             </div>
           </>
         )}

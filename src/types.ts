@@ -142,8 +142,9 @@ export interface Booking {
     reason: string;
     note: string;
     hasPhoto: boolean;
+    photos?: string[];   // evidence photo URLs (proofs bucket)
     date: string;
-    agentResponse?: { stance: "accept" | "dispute"; note: string; hasProof: boolean; date: string };
+    agentResponse?: { stance: "accept" | "dispute"; note: string; hasProof: boolean; proofPhotos?: string[]; date: string };
   };
 }
 
