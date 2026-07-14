@@ -1194,7 +1194,10 @@ input[type="range"]::-webkit-slider-thumb {
 .swipe__track { display: flex; width: 100%; will-change: transform; }
 /* each page takes the full viewport width so exactly one shows at rest, with the
    neighbour parked just off-screen ready to slide in as you drag. */
-.swipe__page { flex: 0 0 100%; width: 100%; min-width: 100%; }
+/* position:relative so a modal's `position:absolute; inset:0` backdrop resolves
+   to the CURRENT page, not the 3-wide track (which centered the modal over the
+   neighbouring slot — e.g. the how-it-works modal appearing on the calendar). */
+.swipe__page { flex: 0 0 100%; width: 100%; min-width: 100%; position: relative; }
 
 .backlink { background: none; border: none; color: var(--indigo); font-weight: 700; font-size: 14px; cursor: pointer; padding: 0; margin-bottom: 6px; }
 
