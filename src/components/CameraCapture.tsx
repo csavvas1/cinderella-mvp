@@ -117,13 +117,14 @@ export default function CameraCapture({
       {/* full-bleed live camera */}
       <video ref={videoRef} playsInline muted className="camfull__video" />
 
-      {/* top bar: close + title (+ guided steps) */}
+      {/* close button — absolutely pinned top-right, always visible */}
+      <button className="camfull__close" onClick={onClose} aria-label="Close">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M6 6l12 12M18 6 6 18" /></svg>
+      </button>
+
+      {/* title bar */}
       <div className="camfull__top">
-        <button className="camfull__close" onClick={onClose} aria-label="Close">
-          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M6 6l12 12M18 6 6 18" /></svg>
-        </button>
         <span className="camfull__title">{title}</span>
-        <span style={{ width: 24 }} />
       </div>
 
       {guided && (
