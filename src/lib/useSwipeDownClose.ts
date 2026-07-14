@@ -16,7 +16,9 @@ export function useSwipeDownClose(onClose: () => void, threshold = 90) {
   function set(y: number, animate: boolean) {
     const el = ref.current;
     if (!el) return;
-    el.style.transition = animate ? "transform .22s cubic-bezier(.32,.72,.35,1)" : "none";
+    // match the account sheet's close speed (.3s, same easing) so the dismiss
+    // feels consistent across the app
+    el.style.transition = animate ? "transform .3s cubic-bezier(.32,.72,.35,1)" : "none";
     el.style.transform = y > 0 ? `translateY(${y}px)` : "";
   }
 
@@ -52,7 +54,7 @@ export function useSwipeDownClose(onClose: () => void, threshold = 90) {
     startY.current = null;
     if (dy.current >= threshold) {
       set(window.innerHeight, true); // slide out
-      setTimeout(onClose, 180);
+      setTimeout(onClose, 300);      // match the .3s slide-out before unmounting
     } else {
       set(0, true); // spring back
     }
