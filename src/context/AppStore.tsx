@@ -210,6 +210,14 @@ function turnaroundOrphanNotifs(
     }));
 }
 
+export interface IdentityVerification {
+  docType: "id" | "passport";
+  docNumber?: string;
+  expiry?: string;
+  photos: string[];
+  status: "submitted" | "verified" | "rejected";
+}
+
 interface AppState {
   role: Role;
   setRole: (r: Role) => void;
@@ -278,6 +286,8 @@ interface AppState {
   addJobs: (js: Job[]) => void;
   setJobStatus: (id: string, status: Job["status"]) => void;
   saveJobPhotos: (jobId: string, kind: "before" | "after", urls: string[]) => void;
+  verification: IdentityVerification | null;
+  submitVerification: (v: { docType: "id" | "passport"; docNumber: string; expiry: string; photos: string[] }) => Promise<{ error?: string }>;
   dismissJob: (id: string) => void;          // agent hides a cancelled row from the Jobs list (record kept)
   acknowledgeJob: (id: string) => void;      // agent acknowledges a modified job -> restores its prior status
   markJobSeen: (id: string) => void;         // agent opened an auto-accepted job -> clears its "new" badge
@@ -492,6 +502,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   const [biometricEnabled, setBiometricEnabled] = useState<boolean>(init.current.biometricEnabled);
   const [biometricEmail, setBiometricEmail] = useState<string | null>(init.current.biometricEmail);
   const [lastAccount, setLastAccount] = useState<{ email: string; name: string } | null>(init.current.lastAccount);
+  const [verification, setVerification] = useState<IdentityVerification | null>(null);
   const [accountOpen, setAccountOpen] = useState(false);
   const [pushEnabled, setPushEnabled] = useState<boolean>(
     typeof Notification !== "undefined" && Notification.permission === "granted"
@@ -700,6 +711,15 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           }
         } catch { /* ignore */ }
       }
+    } catch { /* ignore */ }
+
+    // load identity verification (if any)
+    try {
+      const { data: v } = await supabase.from("identity_verifications")
+        .select("doc_type, doc_number, expiry, photos, status").eq("user_id", uid).maybeSingle();
+      setVerification(v
+        ? { docType: v.doc_type as "id" | "passport", docNumber: v.doc_number ?? undefined, expiry: v.expiry ?? undefined, photos: v.photos ?? [], status: v.status as IdentityVerification["status"] }
+        : null);
     } catch { /* ignore */ }
 
     // load saved payment cards from Postgres
@@ -1369,6 +1389,18 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       const dbCol = kind === "before" ? "before_photos" : "after_photos";
       const job = jobs.find((j) => j.id === jobId);
       void agentJobUpdate(jobId, { [dbCol]: urls }, job?.bookingId, undefined, null);
+    },
+    verification,
+    submitVerification: async ({ docType, docNumber, expiry, photos }) => {
+      if (!isRealUser || !currentKey) return { error: "Sign in to verify." };
+      const row = {
+        user_id: currentKey, doc_type: docType, doc_number: docNumber,
+        expiry, photos, status: "submitted", updated_at: new Date().toISOString(),
+      };
+      const { error } = await supabase.from("identity_verifications").upsert(row);
+      if (error) return { error: error.message };
+      setVerification({ docType, docNumber, expiry, photos, status: "submitted" });
+      return {};
     },
     setJobStatus: (id, status) => {
       const job = jobs.find((j) => j.id === id);

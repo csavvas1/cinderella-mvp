@@ -11,6 +11,7 @@ import { marketStats } from "../../data/cleaners";
 import { cardExpiryStatus } from "../../data/platform";
 import { isBiometricAvailable } from "../../lib/webauthn";
 import { downloadStatementPdf, monthNumber } from "../../lib/statements";
+import { supabase } from "../../lib/supabase";
 import MapPicker from "../../components/MapPicker";
 import { CY_CITIES } from "../../data/addressPresets";
 import LegalDocModal from "../../components/LegalDocModal";
@@ -60,6 +61,7 @@ export default function Account() {
     recordConsent, consents, hasAcceptedCurrent,
     agentProfile, setAgentProfile,
     pushEnabled, requestPushPermission,
+    verification, submitVerification,
   } = useStore();
 
   const bioOn = biometricEnabled && biometricEmail === lastAccount?.email;
@@ -120,11 +122,16 @@ export default function Account() {
   const [showDisputes, setShowDisputes] = useState(false);
   const [disputeFor, setDisputeFor] = useState<Booking | null>(null);
   const [showVerify, setShowVerify] = useState(false);
-  const [verifyStatus, setVerifyStatus] = useState<"none" | "submitted" | "verified">("none");
+  // verification status is server-backed (store); "none" when no submission
+  const verifyStatus: "none" | "submitted" | "verified" =
+    verification?.status === "verified" ? "verified" : verification?.status === "submitted" ? "submitted" : "none";
   const [idUp, setIdUp] = useState(false);
+  const [idPhotos, setIdPhotos] = useState<string[]>([]);   // uploaded doc photo URLs
   const [idName, setIdName] = useState("");
   const [idNumber, setIdNumber] = useState("");
   const [idExpiry, setIdExpiry] = useState("");
+  const [idBusy, setIdBusy] = useState(false);
+  const [idErr, setIdErr] = useState("");
   const [docType, setDocType] = useState<"id" | "passport">("id");
   const idInput = useRef<HTMLInputElement>(null);
   const [idCam, setIdCam] = useState(false);
@@ -1119,7 +1126,6 @@ export default function Account() {
                 <p className="sub" style={{ marginTop: 4, maxWidth: 280, margin: "4px auto 0" }}>We're checking your document. This usually takes up to 24 hours — you'll be notified once approved.</p>
                 <div style={{ height: 16 }} />
                 <button className="btn secondary" onClick={() => setShowVerify(false)}>Close</button>
-                <button className="linklike" style={{ marginTop: 10 }} onClick={() => setVerifyStatus("verified")}>Simulate approval (demo)</button>
               </div>
             ) : (
               <>
@@ -1129,7 +1135,20 @@ export default function Account() {
                   <button className={docType === "passport" ? "active" : ""} onClick={() => { if (docType !== "passport") { setDocType("passport"); setIdUp(false); setIdName(""); } }}>Passport</button>
                 </div>
                 <input ref={idInput} type="file" accept="image/*,application/pdf" hidden
-                  onChange={(e) => { const f = e.target.files?.[0]; if (f) { setIdName(f.name); setIdUp(true); } }} />
+                  onChange={async (e) => {
+                    const f = e.target.files?.[0]; if (!f) return;
+                    setIdErr(""); setIdBusy(true);
+                    try {
+                      const { data: sess } = await supabase.auth.getSession();
+                      const uid = sess.session?.user.id ?? "anon";
+                      const path = `${uid}/id/${Date.now()}-${f.name.replace(/[^\w.]+/g, "_")}`;
+                      const { error } = await supabase.storage.from("proofs").upload(path, f, { upsert: false });
+                      if (error) throw error;
+                      const { data: pub } = supabase.storage.from("proofs").getPublicUrl(path);
+                      setIdPhotos([pub.publicUrl]); setIdUp(true); setIdName(f.name);
+                    } catch (err) { setIdErr((err as Error).message || "Upload failed."); }
+                    finally { setIdBusy(false); }
+                  }} />
                 <div className="vdoc">
                   <div className="between">
                     <b style={{ fontSize: 13.5 }}>{docType === "passport" ? "Passport photo page" : "ID card (front & back)"}</b>
@@ -1145,11 +1164,20 @@ export default function Account() {
                 <div className="label">Expiry date</div>
                 <input className="input expiryinput" value={idExpiry} inputMode="numeric" placeholder="MM / YY" maxLength={5}
                   onChange={(e) => { let v = e.target.value.replace(/[^\d]/g, "").slice(0, 4); if (v.length >= 3) v = v.slice(0, 2) + "/" + v.slice(2); setIdExpiry(v); }} />
+                {idErr && <div className="note amber" style={{ marginTop: 12 }}>{idErr}</div>}
                 <div style={{ height: 16 }} />
                 {(() => {
-                  const ok = idUp && idNumber.trim() && /^\d{2}\/\d{2}$/.test(idExpiry);
+                  const ok = idUp && idPhotos.length > 0 && idNumber.trim() && /^\d{2}\/\d{2}$/.test(idExpiry);
                   return (
-                    <button className="btn" disabled={!ok} style={{ opacity: ok ? 1 : .5 }} onClick={() => setVerifyStatus("submitted")}>Submit for review</button>
+                    <button className="btn" disabled={!ok || idBusy} style={{ opacity: ok && !idBusy ? 1 : .5 }}
+                      onClick={async () => {
+                        setIdErr(""); setIdBusy(true);
+                        const res = await submitVerification({ docType, docNumber: idNumber.trim(), expiry: idExpiry, photos: idPhotos });
+                        setIdBusy(false);
+                        if (res.error) setIdErr(res.error);
+                      }}>
+                      {idBusy ? "Submitting…" : "Submit for review"}
+                    </button>
                   );
                 })()}
               </>
@@ -1164,7 +1192,10 @@ export default function Account() {
           steps={docType === "passport" ? ["Photo page"] : ["Front", "Back"]}
           folder="id"
           onClose={() => setIdCam(false)}
-          onDone={() => { setIdUp(true); setIdName(""); setIdCam(false); }}
+          onDone={(p) => {
+            const urls = p.map((x) => x.url).filter((u): u is string => !!u);
+            setIdPhotos(urls); setIdUp(urls.length > 0); setIdName(""); setIdCam(false);
+          }}
         />
       )}
 
