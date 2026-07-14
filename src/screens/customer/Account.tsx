@@ -509,7 +509,8 @@ export default function Account() {
       {addresses.map((a) => (
         <div key={a.id} className="propcard">
           <div className="propcard__top">
-            <span className="propcard__ic">
+            <span className={"propcard__ic" + (a.isShared ? " propcard__ic--shared" : "")}
+              title={a.isShared ? "Shared with you by a partner" : undefined}>
               {a.propertyType === "house"
                 ? <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 11 12 4l8 7" /><path d="M6 10v9h12v-9" /><path d="M10 19v-5h4v5" /></svg>
                 : <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="6" y="3" width="12" height="18" rx="1.5" /><path d="M9.5 7h1M13.5 7h1M9.5 11h1M13.5 11h1M9.5 15h1M13.5 15h1" /></svg>}
@@ -527,8 +528,6 @@ export default function Account() {
                     {a.memberCount}
                   </span>
                 )}
-                {/* partner badge when this property was shared TO me */}
-                {a.isShared && <span className="propcard__partner">Shared with you</span>}
               </div>
             </div>
             {/* Share (owner only — a partner can't re-share someone else's home) */}
