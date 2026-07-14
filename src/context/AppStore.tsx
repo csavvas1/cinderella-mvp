@@ -8,6 +8,7 @@ import { makeReferralCode } from "../data/referral";
 import { priceJob } from "../data/platform";
 import { supabase } from "../lib/supabase";
 import { registerBiometric, verifyBiometric } from "../lib/webauthn";
+import { enablePush, syncExistingSubscription } from "../lib/push";
 import { rowToProfile, profileToRow, rowToAddress, addressToRow, rowToCard, cardToRow, rowToBooking, bookingToRow, rowToJob, jobToRow, rowToNotif, notifToRow, rowToListing, listingToRow, rowToExternalBooking, externalBookingToRow, rowToReview, reviewToRow, type ProfileFields, type UsersRow, type AddressRow, type CardRow, type BookingRow, type JobRow, type NotifRow, type ListingRow, type ExternalBookingRow, type ReviewRow } from "../lib/profile";
 
 export interface AgentProfile {
@@ -810,6 +811,9 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       if (pref === "agent" && profile?.agentActivated) setRole("agent");
       else if (pref === "customer") setRole("customer");
     }
+    // if this device already granted push, make sure its subscription is saved
+    // under the now-signed-in account
+    void syncExistingSubscription();
   }
 
   // real sign-in
@@ -1577,8 +1581,9 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     sendEmail: (subject, body) => sendEmailMock(currentEmail || "you@cinderella.cy", subject, body),
     pushEnabled,
     requestPushPermission: () => {
-      if (typeof Notification === "undefined") return;
-      Notification.requestPermission().then((perm) => setPushEnabled(perm === "granted"));
+      // ask permission, subscribe to Web Push, and persist the subscription so
+      // notifications arrive even when the app is closed
+      void enablePush().then((res) => setPushEnabled(res.granted));
     },
     markNotificationsRead: (audience) => {
       patchAcct({
