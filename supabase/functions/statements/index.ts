@@ -65,14 +65,18 @@ function windowFor(p: Period): { from: string; to: string; label: string } {
   return { from: iso(new Date(Date.UTC(y, m, 1))), to: iso(new Date(Date.UTC(y, m + 1, 1))), label: `${MONTHS[m]} ${y}` };
 }
 
-// Fetch a Unicode (Greek-capable) font once per cold start.
+// Fetch a Unicode font that covers BOTH Latin and Greek in a SINGLE file, once
+// per cold start. (The fontsource "greek-*" subset files contain only Greek
+// glyphs, so Latin text rendered as tofu squares.) DejaVu Sans ships one TTF
+// with full Latin+Greek coverage.
 let REG: Uint8Array | null = null;
 let BLD: Uint8Array | null = null;
 async function loadFonts() {
   if (REG && BLD) return;
-  const base = "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans@latest/greek-400-normal.ttf";
-  const baseB = "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans@latest/greek-700-normal.ttf";
+  const base = "https://cdn.jsdelivr.net/npm/dejavu-fonts-ttf@2.37.3/ttf/DejaVuSans.ttf";
+  const baseB = "https://cdn.jsdelivr.net/npm/dejavu-fonts-ttf@2.37.3/ttf/DejaVuSans-Bold.ttf";
   const [a, b] = await Promise.all([fetch(base), fetch(baseB)]);
+  if (!a.ok || !b.ok) throw new Error(`font fetch failed (${a.status}/${b.status})`);
   REG = new Uint8Array(await a.arrayBuffer());
   BLD = new Uint8Array(await b.arrayBuffer());
 }
