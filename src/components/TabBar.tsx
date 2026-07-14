@@ -93,7 +93,9 @@ export default function TabBar() {
     // active tab index (Search=0, Calendar=1); data-rel = pill index minus active,
     // clamped to -1/0/1, so the swipe colour handoff knows prev/active/next.
     const activeIdx = calActive ? 1 : 0;
-    const rel = (i: number) => Math.max(-1, Math.min(1, i - activeIdx));
+    // EXACT offset (not clamped): only the true neighbour (rel ±1) reacts to a
+    // swipe. Clamping collapsed distant tabs onto ±1 so they lit up too.
+    const rel = (i: number) => i - activeIdx;
     return (
       <>
         <button data-rel={rel(0)} className={"wolt__pill" + (bookActive ? " active" : "") + popCls("c-book")}
@@ -115,9 +117,11 @@ export default function TabBar() {
     const jobsActive = isActive("/agent/jobs");
     const calActive = isActive("/agent/calendar");
     const referActive = isActive("/agent/referrals");
-    // active tab index (Jobs=0, Calendar=1, Refer=2); data-rel = clamp(i - active).
+    // active tab index (Jobs=0, Calendar=1, Refer=2). EXACT offset (not clamped)
+    // so only the immediate neighbour (rel ±1) fills on a swipe — clamping made
+    // both the calendar and the wallet share rel=1 and light up together.
     const activeIdx = referActive ? 2 : calActive ? 1 : 0;
-    const rel = (i: number) => Math.max(-1, Math.min(1, i - activeIdx));
+    const rel = (i: number) => i - activeIdx;
     return (
       <>
         <button data-rel={rel(0)} className={"wolt__pill wolt__pill--agent wolt__pill--badged" + (jobsActive ? " active" : "") + popCls("a-jobs")}
