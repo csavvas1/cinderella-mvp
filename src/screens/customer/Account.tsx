@@ -345,12 +345,9 @@ export default function Account() {
       <div className="acct-sec">Customer</div>
 
       {/* PROPERTIES */}
-      <div className="between" style={{ alignItems: "center", marginTop: 16 }}>
+      <div className="between" style={{ marginTop: 16 }}>
         <div className="label" style={{ margin: 0 }}>My properties</div>
-        <div className="row" style={{ gap: 8, alignItems: "center", flexShrink: 0 }}>
-          <button className="btn sm secondary" onClick={() => { setJoinErr(""); setJoinCode(""); setJoinOpen(true); }}>Join</button>
-          <button className="btn sm secondary" onClick={() => { setEditId(null); resetForm(); setShowAdd(true); }}>+ Add</button>
-        </div>
+        <button className="btn sm secondary" onClick={() => { setEditId(null); resetForm(); setShowAdd(true); }}>+ Add</button>
       </div>
 
       {joinOpen && (
@@ -565,6 +562,19 @@ export default function Account() {
           </div>
         </div>
       ))}
+
+      {/* JOIN A SHARED PROPERTY — its own entry point so it reads as a partner
+          relationship, not another way to add your own property. */}
+      <button className="sharejoin" onClick={() => { setJoinErr(""); setJoinCode(""); setJoinOpen(true); }}>
+        <span className="sharejoin__ic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM15 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" /><path d="M4 20c0-2.8 2.2-5 5-5M20 20c0-2.8-2.2-5-5-5" /></svg>
+        </span>
+        <span className="sharejoin__txt">
+          <b>Co-manage a partner's home</b>
+          <span className="tiny muted">Enter a share code they gave you</span>
+        </span>
+        <span className="dayrow__chev">›</span>
+      </button>
 
       {removeProp && (() => {
         const affected = bookings.filter(

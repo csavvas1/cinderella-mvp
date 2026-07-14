@@ -11,10 +11,10 @@ function Icon({ name, filled }: { name: string; filled: boolean }) {
       return <svg viewBox="0 0 24 24" width="24" height="24"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" strokeWidth="1.9" /><path d="M20 20l-3.2-3.2" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" /></svg>;
     case "search-wolt": // Wolt-style chunky magnifier (bolder rings + thick handle)
       return <svg viewBox="0 0 24 24" width="24" height="24"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" strokeWidth="2.6" /><path d="M19.5 19.5l-4-4" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" /></svg>;
-    case "earn": // plain € symbol — earnings (work + referral)
-      return <svg viewBox="0 0 24 24" width="24" height="24">
-        <text x="12" y="18" textAnchor="middle" fontSize="19" fontWeight="800" fill="currentColor" fontFamily="-apple-system, Segoe UI, Roboto, sans-serif">€</text>
-      </svg>;
+    case "earn": // wallet — earnings (work + referral)
+      return filled
+        ? <svg viewBox="0 0 24 24" width="24" height="24"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H17a2 2 0 0 1 2 2v.5H5.5A2.5 2.5 0 0 1 3 7.5Z" fill="currentColor" /><rect x="3" y="7" width="18" height="12.5" rx="2.5" fill="currentColor" /><circle cx="16.5" cy="13.5" r="1.6" fill="#fff" /></svg>
+        : <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M3 8.5A2.5 2.5 0 0 1 5.5 6H16a2 2 0 0 1 2 2" /><rect x="3" y="8" width="18" height="12" rx="2.5" /><circle cx="16.5" cy="14" r="1.4" fill="currentColor" stroke="none" /></svg>;
     case "calendar":
       return filled
         ? <svg viewBox="0 0 24 24" width="24" height="24"><rect x="3" y="4.5" width="18" height="16" rx="3" fill="currentColor" /><path d="M8 2.5v4M16 2.5v4" stroke="#fff" strokeWidth="1.9" strokeLinecap="round" /><rect x="3" y="8.5" width="18" height="1.6" fill="#fff" /></svg>

@@ -320,7 +320,13 @@ body {
   position: absolute; left: 50%; transform: translateX(-50%);
   bottom: calc(16px + env(safe-area-inset-bottom));
   z-index: 60; display: flex; align-items: center; gap: 9px;
+  /* the container is only a positioning wrapper — let taps fall through the gaps
+     around/between the pills to the page beneath (otherwise the island's box
+     silently eats clicks on buttons that sit under it, e.g. the low "See how it
+     works" link on a short page). The pills re-enable pointer events. */
+  pointer-events: none;
 }
+.wolt__pill, .wolt__round { pointer-events: auto; }
 /* island rises up from off-screen bottom when the account sheet closes */
 .wolt.woltrise { animation: woltrise .42s cubic-bezier(.22,.61,.36,1); }
 @keyframes woltrise {
@@ -367,9 +373,14 @@ body {
   padding: 10px 20px; border-radius: 999px;
   font-size: 13.5px; font-weight: 700; letter-spacing: -0.1px;
 }
-.wolt__pill .ic { display: grid; place-items: center; height: 17px; color: var(--indigo); }
+/* --accent = the fill colour for THIS pill (indigo customer / agent green).
+   The icon colour is mixed from accent -> white by --fill so the glyph turns
+   white in lock-step with the background overlay during a swipe (no post-swipe
+   lag from waiting on the .active class to swap). */
+.wolt__pill, .wolt__round { --accent: var(--indigo); }
+.wolt__pill--agent, .wolt .wolt__pill--agent ~ .wolt__round { --accent: var(--agent); }
+.wolt__pill .ic { display: grid; place-items: center; height: 17px; color: color-mix(in srgb, #fff calc(var(--fill, 0) * 100%), var(--accent)); }
 .wolt__pill .ic svg { width: 17px; height: 17px; }
-.wolt__pill--agent .ic { color: var(--agent); }
 /* active = current page: SOLID (opaque) accent fill + glow ring, so the current
    tab stands out clearly against the translucent glass of the others.
    High-specificity selectors (:root scope) so the fill also wins in dark mode. */
@@ -395,7 +406,7 @@ body {
   display: grid; place-items: center;
   width: 40px; height: 40px; border-radius: 999px;
 }
-.wolt__round .ic { display: grid; place-items: center; height: 18px; color: var(--text); }
+.wolt__round .ic { display: grid; place-items: center; height: 18px; color: color-mix(in srgb, #fff calc(var(--fill, 0) * 100%), var(--text)); }
 .wolt__round .ic svg { width: 18px; height: 18px; }
 .wolt__pill:active, .wolt__round:active { transform: scale(.88); }
 
@@ -450,6 +461,12 @@ body {
 /* keep the ::after transition off DURING the active drag for 1:1 tracking */
 :root[data-dragging="1"] .wolt__pill::after,
 :root[data-dragging="1"] .wolt__round::after { transition: none; }
+/* icon colour glides to its target on settle (matching the ::after fill), but
+   tracks the finger 1:1 while dragging (transition off) — this is the fix for
+   the icon lagging a beat behind the background colour. */
+.wolt__pill .ic, .wolt__round .ic { transition: color .09s ease; }
+:root[data-dragging="1"] .wolt__pill .ic,
+:root[data-dragging="1"] .wolt__round .ic { transition: none; }
 .tabbar button {
   background: none; border: none; cursor: pointer;
   display: flex; flex-direction: column; align-items: center; gap: 3px;
@@ -695,6 +712,23 @@ body {
   display: grid; place-items: center; font-size: 19px; flex-shrink: 0;
   color: var(--indigo);
 }
+
+/* join a shared property — dashed to read as "add a relationship", distinct
+   from the solid owned-property cards above it */
+.sharejoin {
+  width: 100%; display: flex; align-items: center; gap: 11px; text-align: left;
+  background: none; border: 1px dashed var(--border); border-radius: 14px;
+  padding: 11px 12px; margin-top: 2px; cursor: pointer; color: var(--text);
+  transition: border-color .15s, background .15s;
+}
+.sharejoin:active { transform: scale(.99); }
+.sharejoin:hover { border-color: var(--indigo); background: var(--indigo-soft); }
+.sharejoin__ic {
+  width: 38px; height: 38px; border-radius: 11px; background: var(--indigo-soft);
+  display: grid; place-items: center; flex-shrink: 0; color: var(--indigo);
+}
+.sharejoin__txt { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
+.sharejoin__txt b { font-size: 14px; }
 
 /* empty jobs state (agent) */
 .emptyjobs {

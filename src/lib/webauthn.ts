@@ -47,7 +47,17 @@ export async function registerBiometric(): Promise<boolean> {
   if (!token) throw new Error("Sign in first to enable Face ID.");
 
   const options = await callFn("register-options", {}, token);
-  const attResp = await startRegistration({ optionsJSON: options });
+  let attResp;
+  try {
+    attResp = await startRegistration({ optionsJSON: options });
+  } catch (err) {
+    // The server excludes already-registered credentials, so if this device is
+    // already enrolled the browser throws InvalidStateError ("authenticator was
+    // previously registered"). That's not a failure — the device already has a
+    // working passkey, so treat it as success and just (re)enable the flag.
+    if ((err as { name?: string }).name === "InvalidStateError") return true;
+    throw err;
+  }
   const verify = await callFn("register-verify", { response: attResp }, token);
   return !!verify.verified;
 }
