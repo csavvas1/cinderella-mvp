@@ -772,6 +772,9 @@ img.camthumb__img { object-fit: cover; }
   position: absolute; inset: 0; z-index: 200; background: #000;
   overflow: hidden; display: flex; flex-direction: column;
 }
+/* hide the floating tab island (and app bar) while the camera is full-screen */
+:root[data-camera-open] .wolt,
+:root[data-camera-open] .appbar { display: none; }
 .camfull__video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .camfull.flash::after { content: ""; position: absolute; inset: 0; background: #fff; animation: shutterflash .15s ease; z-index: 210; }
 .camfull__top {

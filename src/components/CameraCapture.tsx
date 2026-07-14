@@ -42,6 +42,12 @@ export default function CameraCapture({
   const guidedDone = guided && photos.length >= steps!.length;
   const canFinish = (guided ? guidedDone : photos.length > 0) && !uploading;
 
+  // hide the floating tab island while the full-screen camera is open
+  useEffect(() => {
+    document.documentElement.setAttribute("data-camera-open", "1");
+    return () => document.documentElement.removeAttribute("data-camera-open");
+  }, []);
+
   // start the camera on mount; stop it on unmount
   useEffect(() => {
     let cancelled = false;
