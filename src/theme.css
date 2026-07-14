@@ -713,10 +713,11 @@ body {
   color: var(--indigo);
 }
 
-/* "N have access" — discrete right-side chip, sits before the action icons and
-   never competes with the address for width */
+/* "N have access" — discrete right-side chip. align-self top so it lines up with
+   the nickname row and leaves the address line fully clear below it */
 .propcard__shared {
   display: inline-flex; align-items: center; gap: 3px; flex-shrink: 0;
+  align-self: flex-start; margin-top: 1px;
   font-size: 11px; font-weight: 800; color: var(--agent);
   background: var(--agent-soft); padding: 3px 8px; border-radius: 999px;
 }
