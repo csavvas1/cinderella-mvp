@@ -16,7 +16,7 @@
 //             paid) + a referral-bonus figure, for their tax return.
 // ============================================================================
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { PDFDocument, rgb, type PDFFont, type PDFPage } from "npm:pdf-lib@1.17.1";
+import { PDFDocument, rgb, type PDFFont } from "npm:pdf-lib@1.17.1";
 import fontkit from "npm:@pdf-lib/fontkit@1.1.1";
 
 const admin = createClient(
@@ -35,9 +35,15 @@ function json(body: unknown, status = 200) {
 }
 
 // --- business constants -----------------------------------------------------
+// Cyprus standard VAT rate is 19% and applies to domestic cleaning services
+// (the reduced 3% "treatment cleaning" rate is for waste treatment, not home
+// cleaning; 9%/5% don't apply). Prices are treated as VAT-inclusive.
 const BRAND = "Σταχτοπούτα";
-const VAT_RATE = 0.19;               // Cyprus standard rate; prices are VAT-inclusive
-const VAT_NUMBER = "CY00000000X";    // TODO: replace with the real registered VAT No.
+const VAT_RATE = 0.19;
+// The platform's VAT registration number is a legal identifier issued to the
+// business — it must NOT be faked. Set it via the VAT_NUMBER function secret in
+// the Supabase dashboard once registered; until then the line is omitted.
+const VAT_NUMBER = Deno.env.get("VAT_NUMBER") || "";
 
 const MONTHS_EL = ["Ιανουάριος","Φεβρουάριος","Μάρτιος","Απρίλιος","Μάιος","Ιούνιος","Ιούλιος","Αύγουστος","Σεπτέμβριος","Οκτώβριος","Νοέμβριος","Δεκέμβριος"];
 
@@ -125,10 +131,12 @@ Deno.serve(async (req) => {
       .order("date", { ascending: true });
     rows = (data ?? []).map((j) => {
       const grossVal = Number(j.rate_per_hour ?? 0) * Number(j.duration_hours ?? 0);
-      const net = Number(j.cleaner_pay ?? grossVal);        // what the cleaner actually received
-      const commission = Math.max(0, grossVal - net);        // platform commission
-      const v = splitVat(net);                               // VAT split on the cleaner's income
-      return { date: `${j.date}${j.time ? " " + j.time : ""}`, desc: String(j.customer_name || j.address || ""), net: v.net, vat: v.vat, gross: v.gross, commission };
+      const income = Number(j.cleaner_pay ?? grossVal);      // what the cleaner actually received
+      const commission = Math.max(0, grossVal - income);     // platform commission withheld
+      // NOTE: no VAT split on earnings — whether the cleaner charges VAT depends
+      // on their own VAT-registration status, so we report gross income only and
+      // leave VAT to their own accountant. VAT columns are used for expenses.
+      return { date: `${j.date}${j.time ? " " + j.time : ""}`, desc: String(j.customer_name || j.address || ""), net: income, vat: 0, gross: income, commission };
     });
   }
 
@@ -173,29 +181,36 @@ Deno.serve(async (req) => {
   T("Καθαρισμός κατοικιών", M, A4.h - 62, 9.5, font, muted);        // "Home cleaning"
   R(title, A4.w - M, A4.h - 40, 13, bold, ink);
   R(win.label, A4.w - M, A4.h - 56, 10.5, font, muted);
-  R(`VAT No.: ${VAT_NUMBER}`, A4.w - M, A4.h - 72, 8.5, font, muted);
+  if (VAT_NUMBER) R(`ΑΦΜ/VAT: ${VAT_NUMBER}`, A4.w - M, A4.h - 72, 8.5, font, muted);
   y = A4.h - 118;
 
   // ---- table header ----
-  // columns: Date | Description | Net | VAT | Gross   (+ Commission for earnings)
+  // Expenses:  Date | Description | Net | VAT 19% | Gross
+  // Earnings:  Date | Description | Commission | Income   (no VAT split — see note)
   const isEarn = type === "earnings";
   const xDate = M;
   const xDesc = M + 92;
   const rightEdge = A4.w - M;
-  // right-aligned money columns
+  // right-aligned money columns (expenses)
   const colGross = rightEdge;
-  const colVat = colGross - 78;
-  const colNet = colVat - 78;
-  const colComm = isEarn ? colNet - 78 : colNet; // earnings: an extra commission col left of Net
-  const descRight = isEarn ? colComm - 90 : colNet - 12;
+  const colVat = colGross - 82;
+  const colNet = colVat - 82;
+  // earnings columns
+  const colIncome = rightEdge;
+  const colComm = colIncome - 92;
+  const descRight = isEarn ? colComm - 16 : colNet - 12;
 
   const headerRow = (yy: number) => {
     T("Ημ/νία", xDate, yy, 8.5, bold, muted);
     T("Περιγραφή", xDesc, yy, 8.5, bold, muted);
-    if (isEarn) R("Προμήθεια", colComm, yy, 8.5, bold, muted);
-    R("Καθαρό", colNet, yy, 8.5, bold, muted);
-    R("ΦΠΑ 19%", colVat, yy, 8.5, bold, muted);
-    R("Σύνολο", colGross, yy, 8.5, bold, muted);
+    if (isEarn) {
+      R("Προμήθεια", colComm, yy, 8.5, bold, muted);        // commission
+      R("Εισόδημα", colIncome, yy, 8.5, bold, muted);        // income
+    } else {
+      R("Καθαρό", colNet, yy, 8.5, bold, muted);
+      R("ΦΠΑ 19%", colVat, yy, 8.5, bold, muted);
+      R("Σύνολο", colGross, yy, 8.5, bold, muted);
+    }
   };
   headerRow(y);
   y -= 6;
@@ -222,10 +237,14 @@ Deno.serve(async (req) => {
       if (i % 2 === 1) page.drawRectangle({ x: M - 4, y: y - 4, width: rightEdge - M + 8, height: rowH, color: zebra });
       T(r.date, xDate, y, 9, font, ink);
       T(clip(r.desc, 9, descRight - xDesc), xDesc, y, 9, font, ink);
-      if (isEarn) R(eur(r.commission ?? 0), colComm, y, 9, font, muted);
-      R(eur(r.net), colNet, y, 9, font, ink);
-      R(eur(r.vat), colVat, y, 9, font, ink);
-      R(eur(r.gross), colGross, y, 9, font, ink);
+      if (isEarn) {
+        R(eur(r.commission ?? 0), colComm, y, 9, font, muted);
+        R(eur(r.net), colIncome, y, 9, font, ink);
+      } else {
+        R(eur(r.net), colNet, y, 9, font, ink);
+        R(eur(r.vat), colVat, y, 9, font, ink);
+        R(eur(r.gross), colGross, y, 9, font, ink);
+      }
       y -= rowH;
     });
   }
@@ -235,14 +254,18 @@ Deno.serve(async (req) => {
   page.drawLine({ start: { x: M, y }, end: { x: rightEdge, y }, thickness: 1, color: line });
   y -= 18;
   T("Σύνολα", xDesc, y, 10.5, bold, ink);
-  if (isEarn) R(eur(tCommission), colComm, y, 10, bold, muted);
-  R(eur(tNet), colNet, y, 10, bold, ink);
-  R(eur(tVat), colVat, y, 10, bold, ink);
-  R(eur(tGross), colGross, y, 11, bold, accent);
+  if (isEarn) {
+    R(eur(tCommission), colComm, y, 10, bold, muted);
+    R(eur(tNet), colIncome, y, 11, bold, accent);
+  } else {
+    R(eur(tNet), colNet, y, 10, bold, ink);
+    R(eur(tVat), colVat, y, 10, bold, ink);
+    R(eur(tGross), colGross, y, 11, bold, accent);
+  }
   y -= 26;
 
   // ---- summary box ----
-  const boxH = isEarn ? 108 : 78;
+  const boxH = isEarn ? 90 : 78;
   page.drawRectangle({ x: M, y: y - boxH, width: rightEdge - M, height: boxH, borderColor: line, borderWidth: 1, color: rgb(0.985, 0.986, 0.99) });
   let by = y - 20;
   const summary = (label: string, val: string, strong = false) => {
@@ -251,9 +274,8 @@ Deno.serve(async (req) => {
     by -= 18;
   };
   if (isEarn) {
-    summary("Καθαρές αμοιβές (εργασία)", eur(tNet));       // net work income
-    summary("ΦΠΑ (19%)", eur(tVat));
-    summary("Προμήθεια πλατφόρμας", eur(tCommission));
+    summary("Εισόδημα από εργασία", eur(tNet));            // work income
+    summary("Προμήθεια πλατφόρμας", eur(tCommission));      // platform commission
     summary("Έσοδα από συστάσεις", eur(referralTotal));    // referral income
     summary("Συνολικό εισόδημα", eur(tNet + referralTotal), true);
   } else {
