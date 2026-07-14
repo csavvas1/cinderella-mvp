@@ -243,6 +243,8 @@ Deno.serve(async (req) => {
         R(eur(r.vat), colVat, y, 9, font, ink);
         R(eur(r.gross), colGross, y, 9, font, ink);
       }
+      // separator under each row so the eye tracks across columns cleanly
+      page.drawLine({ start: { x: M, y: y - 5 }, end: { x: rightEdge, y: y - 5 }, thickness: 0.5, color: line });
       y -= rowH;
     });
   }
