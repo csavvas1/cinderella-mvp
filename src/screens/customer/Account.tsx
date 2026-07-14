@@ -808,6 +808,22 @@ export default function Account() {
         <b style={{ fontSize: 14 }}>Push notifications</b>
         <div className={"switch" + (pushEnabled ? " on" : "")}><div className="switch__dot" /></div>
       </div>
+      {(() => {
+        // iOS only allows Web Push once the app is INSTALLED to the home screen
+        // (not in a Safari tab). Tell the user instead of failing silently.
+        const ua = navigator.userAgent || "";
+        const isIOS = /iPhone|iPad|iPod/i.test(ua);
+        const standalone = window.matchMedia?.("(display-mode: standalone)").matches
+          || (navigator as unknown as { standalone?: boolean }).standalone === true;
+        if (isIOS && !standalone) {
+          return (
+            <div className="note amber" style={{ marginTop: 8 }}>
+              On iPhone, notifications work only after you add the app to your Home Screen: tap the <b>Share</b> icon → <b>Add to Home Screen</b>, then open it from the icon and turn this on.
+            </div>
+          );
+        }
+        return null;
+      })()}
 
       <div className="card row between" style={{ marginTop: 12 }}>
         <b style={{ fontSize: 14 }}>Appearance</b>
