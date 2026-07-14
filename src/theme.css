@@ -713,17 +713,19 @@ body {
   color: var(--indigo);
 }
 
-/* "N have access" — its own small chip on a line under the address, so it never
-   competes with the address for horizontal width */
-.propcard__shared {
-  display: inline-flex; align-items: center; gap: 3px; margin-top: 4px;
-  font-size: 11px; font-weight: 800; color: var(--agent);
-  background: var(--agent-soft); padding: 2px 8px; border-radius: 999px;
-}
-.propcard__shared svg { opacity: .9; }
 /* a shared property (shared TO me, or shared out to a co-worker): tint the house
    icon sky so it's recognisable at a glance */
+.propcard__ic { position: relative; }
 .propcard__ic--shared { background: var(--agent-soft); color: var(--agent); }
+/* "N have access" — tiny count badge on the icon's top-right corner, so the
+   sharing state + count live entirely on the icon and never touch the address */
+.propcard__count {
+  position: absolute; top: -5px; right: -5px; min-width: 16px; height: 16px;
+  padding: 0 4px; border-radius: 999px; box-sizing: border-box;
+  background: var(--agent); color: #fff;
+  font-size: 10px; font-weight: 800; line-height: 16px; text-align: center;
+  border: 2px solid var(--card);
+}
 
 /* empty jobs state (agent) */
 .emptyjobs {
