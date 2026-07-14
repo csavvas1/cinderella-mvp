@@ -222,7 +222,6 @@ export default function Referrals() {
               <div className="divider" />
               <div className="tiny muted">
                 So on a €2,000 month you each get €{(2000 * REFERRAL.referrerShare).toFixed(0)} — for as long as they keep hitting the targets.
-                Refer 3 cleaners like this and that's €{(3 * 2000 * REFERRAL.referrerShare).toFixed(0)}/month extra, hands-free.
               </div>
             </div>
 
