@@ -201,9 +201,9 @@ export default function JobDetail() {
         </div>
       ) : isLive ? (
         <div className="row" style={{ gap: 10 }}>
-          {/* call only on the day of the job */}
-          {isJobDay && (
-            <button className="btn secondary grow" onClick={() => alert("Would call the customer (masked number).")}>Call</button>
+          {/* call only on the day of the job, and only if we have a number */}
+          {isJobDay && j.customerPhone && (
+            <a className="btn secondary grow" href={`tel:${j.customerPhone.replace(/[^\d+]/g, "")}`} style={{ textAlign: "center" }}>Call</a>
           )}
           <button className="btn danger grow" onClick={() => setShowCancel(true)}>Cancel</button>
         </div>

@@ -240,6 +240,7 @@ export interface JobRow {
   cleaner_id: string | null;
   booking_id: string | null;
   customer_name: string;
+  customer_phone: string | null;
   type: Job["type"];
   property_type: "apartment" | "house" | null;
   apartment_number: string | null;
@@ -286,6 +287,7 @@ export function rowToJob(r: JobRow): Job {
   return {
     id: r.id,
     customerName: r.customer_name,
+    customerPhone: r.customer_phone ?? undefined,
     type: r.type,
     propertyType: r.property_type ?? undefined,
     apartmentNumber: r.apartment_number ?? undefined,
@@ -341,6 +343,7 @@ export function jobToRow(j: Job): Record<string, unknown> {
     cleaner_id: null,  // mock cleaner ids (c1, c5) aren't real users; keep null in DB
     booking_id: j.bookingId ?? null,
     customer_name: j.customerName,
+    customer_phone: j.customerPhone ?? null,
     type: j.type,
     property_type: j.propertyType ?? null,
     apartment_number: j.apartmentNumber ?? null,

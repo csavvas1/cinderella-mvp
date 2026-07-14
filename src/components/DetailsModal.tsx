@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { isBiometricAvailable, verifyBiometric } from "../lib/webauthn";
 
 type Editing = null | "phone" | "password";
 
@@ -27,13 +28,30 @@ export default function DetailsModal({
   const [showPw, setShowPw] = useState(false);          // show-while-typing toggle
   const [bioGate, setBioGate] = useState(false);        // biometric prompt before the form
   const [bioScanning, setBioScanning] = useState(false);
+  const [bioErr, setBioErr] = useState("");
+  const [bioAvail, setBioAvail] = useState(false);
+  useEffect(() => { isBiometricAvailable().then(setBioAvail); }, []);
 
-  // Mock biometric prompt gating access to the change form (matches the app's
-  // existing Face ID / fingerprint mock — a real build would call WebAuthn here).
-  function askBiometric() {
+  // Real biometric confirmation before revealing the password-change form. If the
+  // device has a platform authenticator, run the actual WebAuthn check; if it
+  // fails, block. If no biometric is enrolled/available, fall through — the
+  // active Supabase session already proves identity, so we don't lock the user
+  // out of changing their password just because they never set up Face ID.
+  async function askBiometric() {
+    setBioErr("");
+    if (!bioAvail) { setEditing("password"); return; }
     setBioGate(true);
     setBioScanning(true);
-    setTimeout(() => { setBioScanning(false); setBioGate(false); setEditing("password"); }, 900);
+    try {
+      const ok = await verifyBiometric(email);
+      setBioScanning(false); setBioGate(false);
+      if (ok) setEditing("password");
+      else setBioErr("Couldn't verify. Try again.");
+    } catch {
+      // no enrolled credential for this account (or user cancelled): allow the
+      // change to proceed on the strength of the existing session.
+      setBioScanning(false); setBioGate(false); setEditing("password");
+    }
   }
 
   async function savePassword() {
@@ -109,12 +127,15 @@ export default function DetailsModal({
             </div>
           </div>
         ) : (
-          <div className="detailrow">
-            <div className="grow" style={{ minWidth: 0 }}>
-              <div className="detailrow__lbl">Password</div>
-              <div className="detailrow__val">••••••••••</div>
+          <div>
+            <div className="detailrow">
+              <div className="grow" style={{ minWidth: 0 }}>
+                <div className="detailrow__lbl">Password</div>
+                <div className="detailrow__val">••••••••••</div>
+              </div>
+              <button className="detailrow__edit" onClick={askBiometric}>Change</button>
             </div>
-            <button className="detailrow__edit" onClick={askBiometric}>Change</button>
+            {bioErr && <div className="note amber" style={{ marginTop: 8 }}>{bioErr}</div>}
           </div>
         )}
 

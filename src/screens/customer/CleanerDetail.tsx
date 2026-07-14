@@ -12,7 +12,7 @@ import type { Booking, Job, Recurrence } from "../../types";
 export default function CleanerDetail() {
   const { id } = useParams();
   const nav = useNavigate();
-  const { addBookings, addJobs, bookings, cards, addresses, reviewsFor, favourites, toggleFavourite, customerRep, userName, notify, sendEmail, openAccount, showSupplyWarning, dismissSupplyWarning, dismissBooking, cleaners } = useStore();
+  const { addBookings, addJobs, bookings, cards, addresses, reviewsFor, favourites, toggleFavourite, customerRep, userName, userPhone, notify, sendEmail, openAccount, showSupplyWarning, dismissSupplyWarning, dismissBooking, cleaners } = useStore();
   const cleaner = cleaners.find((c) => c.id === id);
   // a real agent's id is a uuid (present in the fetched real list); mocks are c1/c5
   const isRealAgent = !CLEANERS.some((c) => c.id === id);
@@ -99,6 +99,7 @@ export default function CleanerDetail() {
       newJobs.push({
         id: jid,
         customerName: userName || "You (customer)",
+        customerPhone: userPhone || undefined,
         customerRating: customerRep.reviewsCount > 0 ? customerRep.rating : undefined,
         customerReviewsCount: customerRep.reviewsCount,
         customerCancellations: customerRep.cancellations ?? 0,
