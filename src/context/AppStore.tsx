@@ -655,7 +655,10 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   // Pull the Postgres profile + consents for a signed-in user into a local
   // AccountData shell (bookings/jobs stay local this milestone). Preserves any
   // locally-held bookings/jobs already stored under this uid.
-  async function hydrateProfile(uid: string, sessionEmail: string) {
+  // applyLaunchSide: only honour the launch-side preference on a fresh login.
+  // A pull-to-refresh re-hydrate must NOT reset the role, or it would bounce an
+  // agent back to the customer side (their current side is not persisted here).
+  async function hydrateProfile(uid: string, sessionEmail: string, applyLaunchSide = true) {
     let profile: ProfileFields | null = null;
     try {
       const { data, error } = await supabase.from("users").select("*").eq("id", uid).maybeSingle();
@@ -780,10 +783,12 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     // remember this account across sign-out so the login screen can offer a
     // quick Face ID unlock instead of forgetting who signed in.
     setLastAccount({ email: sessionEmail, name: profile?.name || "" });
-    // honour launch preference
-    const pref = profile?.launchSide ?? "customer";
-    if (pref === "agent" && profile?.agentActivated) setRole("agent");
-    else if (pref === "customer") setRole("customer");
+    // honour launch preference — only on a fresh login, never on refresh
+    if (applyLaunchSide) {
+      const pref = profile?.launchSide ?? "customer";
+      if (pref === "agent" && profile?.agentActivated) setRole("agent");
+      else if (pref === "customer") setRole("customer");
+    }
   }
 
   // real sign-in
@@ -1590,7 +1595,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     // account has nothing to re-fetch, so resolve immediately.
     refresh: async () => {
       if (isRealUser && currentKey && currentEmail) {
-        await hydrateProfile(currentKey, currentEmail);
+        await hydrateProfile(currentKey, currentEmail, false); // keep current side
       } else {
         await new Promise((r) => setTimeout(r, 500)); // demo: brief spinner, then done
       }

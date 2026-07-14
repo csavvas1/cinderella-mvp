@@ -4,6 +4,7 @@ import { getConfig, priceJob, currentMonthKey } from "../../data/platform";
 import { monthlyPerformance, rewardForMonth, type MonthlyPerf, type ReferralReward } from "../../data/referral";
 import { APP_NAME } from "../../data/brand";
 import Dropdown from "../../components/Dropdown";
+import { useSwipeDownClose } from "../../lib/useSwipeDownClose";
 import type { Referee } from "../../context/AppStore";
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -29,6 +30,7 @@ export default function Referrals() {
   const REFERRAL = getConfig().referral;
   const [copied, setCopied] = useState(false);
   const [showGoal, setShowGoal] = useState(false);
+  const goalSwipe = useSwipeDownClose(() => setShowGoal(false));
   const [showStatements, setShowStatements] = useState(false);
   const [openReferee, setOpenReferee] = useState<{ referee: Referee; perf: MonthlyPerf; reward: ReferralReward } | null>(null);
 
@@ -191,7 +193,9 @@ export default function Referrals() {
       {/* how it works */}
       {showGoal && (
         <div className="modal__backdrop" onClick={() => setShowGoal(false)}>
-          <div className="modal tall" onClick={(e) => e.stopPropagation()}>
+          <div className="modal tall" onClick={(e) => e.stopPropagation()}
+            ref={goalSwipe.ref}
+            onTouchStart={goalSwipe.onTouchStart} onTouchMove={goalSwipe.onTouchMove} onTouchEnd={goalSwipe.onTouchEnd}>
             <div className="between" style={{ marginBottom: 12 }}>
               <b style={{ fontSize: 16 }}>How Refer &amp; earn works</b>
               <button className="iconbtn" onClick={() => setShowGoal(false)}>✕</button>
