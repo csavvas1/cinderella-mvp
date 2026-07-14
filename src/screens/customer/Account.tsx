@@ -522,14 +522,16 @@ export default function Account() {
               {a.nickname !== a.address && (
                 <div className="tiny muted" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.address}</div>
               )}
+              {/* "N have access" — its own line under the address, full-width safe */}
+              {!a.isShared && (a.memberCount ?? 0) > 0 && (
+                <div>
+                  <span className="propcard__shared" title={`Shared with ${a.memberCount} ${a.memberCount === 1 ? "person" : "people"}`}>
+                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM16.5 11a2.5 2.5 0 1 0 0-5" /><path d="M3 20c0-2.5 2.7-4 6-4s6 1.5 6 4M17 16c2.3.3 4 1.6 4 4" /></svg>
+                    {a.memberCount}
+                  </span>
+                </div>
+              )}
             </div>
-            {/* discrete "N have access" badge — right side, doesn't crowd the address */}
-            {!a.isShared && (a.memberCount ?? 0) > 0 && (
-              <span className="propcard__shared" title={`Shared with ${a.memberCount} ${a.memberCount === 1 ? "person" : "people"}`}>
-                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM16.5 11a2.5 2.5 0 1 0 0-5" /><path d="M3 20c0-2.5 2.7-4 6-4s6 1.5 6 4M17 16c2.3.3 4 1.6 4 4" /></svg>
-                {a.memberCount}
-              </span>
-            )}
             {/* Share (owner only — a partner can't re-share someone else's home) */}
             {!a.isShared && (
               <button className="iconbtn" title="Share property" onClick={() => { setShareCopied(false); setShareProp(a); }}>
