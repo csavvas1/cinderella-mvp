@@ -34,15 +34,6 @@ export default function CameraCapture({
   const [uploading, setUploading] = useState(false);
   const [camErr, setCamErr] = useState("");
 
-  // App-side camera-permission memory (separate from the browser's own grant):
-  // "always" -> open the camera without asking, "never" -> don't open it,
-  // "ask" -> show our pre-prompt first. Stored in localStorage.
-  const PERM_KEY = "cam-perm";
-  const savedPerm = (typeof localStorage !== "undefined" ? localStorage.getItem(PERM_KEY) : null) as "always" | "never" | null;
-  const [perm, setPerm] = useState<"ask" | "always" | "never" | "granted">(savedPerm ?? "ask");
-  // "granted" = allowed for this open only (This time). "always"/"granted" both start the camera.
-  const active = perm === "always" || perm === "granted";
-
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
@@ -58,9 +49,8 @@ export default function CameraCapture({
     return () => document.documentElement.removeAttribute("data-camera-open");
   }, []);
 
-  // start the camera once allowed (perm always/granted); stop it on unmount
+  // start the camera on mount; stop it on unmount
   useEffect(() => {
-    if (!active) return;
     let cancelled = false;
     (async () => {
       try {
@@ -79,13 +69,7 @@ export default function CameraCapture({
       streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
     };
-  }, [active]);
-
-  function choose(p: "granted" | "always" | "never") {
-    if (p === "always") localStorage.setItem(PERM_KEY, "always");
-    if (p === "never") localStorage.setItem(PERM_KEY, "never");
-    setPerm(p);
-  }
+  }, []);
 
   async function capture() {
     if ((guided && guidedDone) || uploading) return;
@@ -142,31 +126,6 @@ export default function CameraCapture({
         <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M6 6l12 12M18 6 6 18" /></svg>
       </button>
 
-      {/* app-side permission pre-prompt (remembers the choice) */}
-      {perm === "ask" && (
-        <div className="camperm">
-          <div className="camperm__card">
-            <b style={{ fontSize: 16 }}>Use the camera?</b>
-            <p className="sub" style={{ margin: "8px 0 14px" }}>{title} needs the camera to take a photo.</p>
-            <button className="btn" onClick={() => choose("granted")}>Allow this time</button>
-            <div style={{ height: 8 }} />
-            <button className="btn secondary" onClick={() => choose("always")}>Always allow</button>
-            <div style={{ height: 8 }} />
-            <button className="btn secondary" onClick={() => choose("never")}>Don't allow</button>
-          </div>
-        </div>
-      )}
-      {perm === "never" && (
-        <div className="camperm">
-          <div className="camperm__card">
-            <b style={{ fontSize: 16 }}>Camera turned off</b>
-            <p className="sub" style={{ margin: "8px 0 14px" }}>You chose not to use the camera. You can re-enable it here.</p>
-            <button className="btn" onClick={() => { localStorage.removeItem(PERM_KEY); setPerm("granted"); }}>Turn camera on</button>
-            <div style={{ height: 8 }} />
-            <button className="btn secondary" onClick={onClose}>Close</button>
-          </div>
-        </div>
-      )}
 
       {/* title bar */}
       <div className="camfull__top">

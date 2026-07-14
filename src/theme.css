@@ -791,15 +791,6 @@ img.camthumb__img { object-fit: cover; }
   -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
 }
 .camfull__close:active { transform: scale(.9); }
-/* app-side camera permission prompt overlay */
-.camperm {
-  position: absolute; inset: 0; z-index: 215; display: grid; place-items: center;
-  background: rgba(0,0,0,.72); padding: 24px;
-}
-.camperm__card {
-  width: 100%; max-width: 320px; background: var(--bg); border-radius: 18px;
-  padding: 20px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,.5);
-}
 .camfull__title { font-size: 15px; font-weight: 800; }
 .camfull__steps { position: relative; z-index: 205; display: flex; gap: 6px; justify-content: center; padding: 4px 12px; }
 .camfull__hint {
