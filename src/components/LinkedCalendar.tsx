@@ -18,15 +18,20 @@ function daysBetween(a: string, b: string) {
 
 // Lane pitch: bars overlap slightly so a busy day doesn't blow up the row height.
 const BAR_H = 22;
-const LANE_PITCH = 14; // < BAR_H → ~35% vertical overlap
+const LANE_PITCH = 19; // slight ~15% vertical overlap, still readable
 const TOP_OFFSET = 22; // clears the day-number
 
 // Same grid/nav as the Standard (cleaning) calendar, with the Pro booking bars
 // overlaid. Tap a bar → detail card renders below the grid.
-export default function LinkedCalendar({ extra = [] }: { extra?: ExternalBooking[] }) {
+export default function LinkedCalendar({ extra = [], onRemove, onEditDates }: {
+  extra?: ExternalBooking[];
+  onRemove?: (id: string) => void;
+  onEditDates?: (id: string) => void;
+}) {
   const nav = useNavigate();
   const [month, setMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
   const [sel, setSel] = useState<Reservation | null>(null);
+  const manualIds = useMemo(() => new Set(extra.map((b) => b.id)), [extra]);
 
   // merge mock reservations with any hand-added manual bookings
   const allRes: Reservation[] = useMemo(() => {
@@ -151,7 +156,14 @@ export default function LinkedCalendar({ extra = [] }: { extra?: ExternalBooking
             <div className="between"><span className="muted">Dates</span><b>{fmtRange(sel.checkIn, sel.checkOut)}</b></div>
             {sel.total != null && <div className="between"><span className="muted">Total</span><b>€{sel.total}</b></div>}
           </div>
-          <button className="btn" style={{ marginTop: 14 }} onClick={() => nav("/messages")}>Message guest</button>
+          {manualIds.has(sel.id) ? (
+            <div className="row" style={{ gap: 8, marginTop: 14 }}>
+              <button className="btn secondary grow" onClick={() => { onEditDates?.(sel.id); setSel(null); }}>Edit dates</button>
+              <button className="btn danger grow" onClick={() => { onRemove?.(sel.id); setSel(null); }}>Remove</button>
+            </div>
+          ) : (
+            <button className="btn" style={{ marginTop: 14 }} onClick={() => nav("/messages")}>Message guest</button>
+          )}
         </div>
       )}
     </div>

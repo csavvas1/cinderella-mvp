@@ -2178,6 +2178,9 @@ input[type="range"]::-webkit-slider-thumb {
 .calbar-top { display: flex; align-items: stretch; gap: 8px; margin-bottom: 12px; }
 .calbar-top .segmini { flex: 1; display: flex; }
 .calbar-top .segmini button { flex: 1; text-align: center; }
+/* full-width segmented toggle with equal buttons (Pro/Standard) */
+.segmini--full { display: flex; width: 100%; }
+.segmini--full button { flex: 1; text-align: center; }
 .calbar-top__add {
   flex: none; border: 1px solid var(--border); background: var(--card); color: var(--indigo);
   border-radius: 10px; padding: 0 14px; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap;
@@ -2215,3 +2218,16 @@ input[type="range"]::-webkit-slider-thumb {
 .rescard__photo { width: 100%; height: 160px; object-fit: cover; border-radius: 14px; background: var(--indigo-soft); }
 .rescard__rows { display: flex; flex-direction: column; gap: 10px; }
 .rescard__rows .between { font-size: 14px; }
+
+/* Standard calendar: labelled cleaning chips (replaces the status dot) */
+.calchips { display: flex; flex-direction: column; gap: 2px; margin-top: auto; width: 100%; }
+.calchip {
+  font-size: 9px; font-weight: 700; line-height: 1.3; padding: 1px 4px; border-radius: 5px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+}
+.calchip--up { background: var(--indigo-soft); color: var(--indigo-dark); }
+.calchip--wait { background: rgba(245,158,11,.16); color: #b45309; }
+.calchip--done { background: rgba(22,163,74,.16); color: #15803d; }
+.calchip--cancelled { background: rgba(220,38,38,.14); color: var(--red); }
+/* give standard cells room for a chip (was a tiny square for dots) */
+.calgrid .calcell { aspect-ratio: auto; min-height: 52px; }

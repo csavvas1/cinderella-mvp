@@ -50,6 +50,7 @@ export default function Bookings() {
     externalBookings, connectedListings, notify, sendEmail, openAccount, dismissBooking, addManualStay, removeExternalBooking,
     pro } = useStore();
   const [manualOpen, setManualOpen] = useState(false);
+  const [editManual, setEditManual] = useState<import("../../types").ExternalBooking | null>(null);
   const nav = useNavigate();
   // Linked (Pro channel-manager) vs Unlinked (cleaning) calendar. Show the toggle
   // only when BOTH exist; otherwise show whichever applies.
@@ -183,11 +184,16 @@ export default function Bookings() {
 
   return (
     <div className="pad">
-      {manualOpen && (
+      {(manualOpen || editManual) && (
         <ManualStayModal
           addresses={addresses}
-          onClose={() => setManualOpen(false)}
-          onSave={(s) => { addManualStay(s); setManualOpen(false); }}
+          initial={editManual}
+          onClose={() => { setManualOpen(false); setEditManual(null); }}
+          onSave={(s) => {
+            if (editManual) removeExternalBooking(editManual.id);
+            addManualStay(s);
+            setManualOpen(false); setEditManual(null);
+          }}
         />
       )}
       {seriesList.length > 0 && (
@@ -216,23 +222,24 @@ export default function Bookings() {
         const showLinked = hasLinked && (calMode === "linked" || visible.length === 0);
         return (
           <>
-            {/* toggle + (linked only) compact manual-booking button — same height */}
-            {((hasLinked && visible.length > 0) || showLinked) && (
-              <div className="calbar-top">
-                {hasLinked && visible.length > 0 && (
-                  <div className="segmini">
-                    <button className={calMode === "linked" ? "active" : ""} onClick={() => setCalMode("linked")}>Pro</button>
-                    <button className={calMode === "unlinked" ? "active" : ""} onClick={() => setCalMode("unlinked")}>Standard</button>
-                  </div>
-                )}
-                {showLinked && (
-                  <button className="calbar-top__add" onClick={() => setManualOpen(true)}>+ Add booking</button>
-                )}
+            {/* toggle (own row, fixed size) */}
+            {hasLinked && visible.length > 0 && (
+              <div className="segmini segmini--full" style={{ marginBottom: 10 }}>
+                <button className={calMode === "linked" ? "active" : ""} onClick={() => setCalMode("linked")}>Pro</button>
+                <button className={calMode === "unlinked" ? "active" : ""} onClick={() => setCalMode("unlinked")}>Standard</button>
               </div>
+            )}
+            {/* manual-booking button below the toggle (Pro only) */}
+            {showLinked && (
+              <button className="btn sm secondary" style={{ marginBottom: 12 }} onClick={() => setManualOpen(true)}>+ Add booking manually</button>
             )}
 
             {showLinked ? (
-              <LinkedCalendar extra={externalBookings} />
+              <LinkedCalendar
+                extra={externalBookings}
+                onRemove={(id) => removeExternalBooking(id)}
+                onEditDates={(id) => { const b = externalBookings.find((x) => x.id === id); if (b) setEditManual(b); }}
+              />
             ) : (
               <CalendarView
                 bookings={visible}
@@ -832,14 +839,19 @@ function CalendarView({
             (isPast ? " past" : "") +
             (selected === date ? " sel" : "");
           const clickable = !isPast || hasCancelled;
+          const firstName = dayBookings[0]?.cleanerName?.split(" ")[0] ?? "";
           return (
             <button key={i} className={cls} disabled={!clickable} onClick={() => { if (clickable) setSelected((cur) => (cur === date ? null : date)); }}>
               <span className="calhd">
                 <span className="calnum">{day}</span>
               </span>
-              <span className="caldots">
-                {cleanStatus && <span className={"cdot " + cleanStatus} />}
-                {hasCancelled && <span className="cdot cancelled" />}
+              <span className="calchips">
+                {cleanStatus && (
+                  <span className={"calchip calchip--" + cleanStatus}>
+                    {firstName}{dayBookings.length > 1 ? ` +${dayBookings.length - 1}` : ""}
+                  </span>
+                )}
+                {hasCancelled && <span className="calchip calchip--cancelled">Cancelled</span>}
               </span>
             </button>
           );
@@ -953,16 +965,17 @@ function CalendarView({
 // Saves as an external booking with platform "other" so it shows on the calendar
 // and blocks the other platforms via the combined export feed.
 function ManualStayModal({
-  addresses, onClose, onSave,
+  addresses, initial, onClose, onSave,
 }: {
   addresses: PropertyAddress[];
+  initial?: ExternalBooking | null;
   onClose: () => void;
   onSave: (s: ExternalBooking) => void;
 }) {
-  const [addrId, setAddrId] = useState(addresses[0]?.id ?? "");
-  const [checkIn, setCheckIn] = useState("");
-  const [checkOut, setCheckOut] = useState("");
-  const [guest, setGuest] = useState("");
+  const [addrId, setAddrId] = useState(initial?.addressId ?? addresses[0]?.id ?? "");
+  const [checkIn, setCheckIn] = useState(initial?.checkIn ?? "");
+  const [checkOut, setCheckOut] = useState(initial?.checkOut ?? "");
+  const [guest, setGuest] = useState(initial && initial.guest !== "Direct booking" ? initial.guest : "");
   const valid = addrId && checkIn && checkOut && checkOut > checkIn;
   function save() {
     if (!valid) return;
@@ -985,7 +998,7 @@ function ManualStayModal({
       <div className="modal" onClick={(e) => e.stopPropagation()}
         style={{ borderRadius: 18, maxHeight: "none", width: "calc(100% - 32px)", maxWidth: 420 }}>
         <div className="between" style={{ marginBottom: 8 }}>
-          <b style={{ fontSize: 17 }}>Add a booking</b>
+          <b style={{ fontSize: 17 }}>{initial ? "Edit booking" : "Add a booking"}</b>
           <button className="iconbtn" onClick={onClose}>✕</button>
         </div>
 
@@ -996,7 +1009,7 @@ function ManualStayModal({
         <DatePicker value={checkIn} onChange={setCheckIn} />
 
         <div className="label" style={{ marginTop: 12 }}>Check-out</div>
-        <DatePicker value={checkOut} onChange={setCheckOut} />
+        <DatePicker value={checkOut} onChange={setCheckOut} openUp />
         {checkIn && checkOut && checkOut <= checkIn && (
           <div className="loginerr" style={{ marginTop: 6 }}>Check-out must be after check-in.</div>
         )}
@@ -1005,7 +1018,7 @@ function ManualStayModal({
         <input className="input" value={guest} placeholder="e.g. John S." onChange={(e) => setGuest(e.target.value)} />
 
         <div style={{ height: 14 }} />
-        <button className="btn" disabled={!valid} style={{ opacity: valid ? 1 : 0.5 }} onClick={save}>Add booking</button>
+        <button className="btn" disabled={!valid} style={{ opacity: valid ? 1 : 0.5 }} onClick={save}>{initial ? "Save changes" : "Add booking"}</button>
       </div>
     </div>,
     document.body,
