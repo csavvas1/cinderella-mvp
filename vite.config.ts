@@ -12,9 +12,16 @@ export default defineConfig({
       strategies: "injectManifest",
       srcDir: "src",
       filename: "sw.ts",
+      // injectManifest does NOT auto-inject the registration script — without
+      // this the SW never registers and navigator.serviceWorker.ready hangs,
+      // so the push toggle does nothing.
+      injectRegister: "auto",
       injectManifest: {
         globPatterns: ["**/*.{js,css,html,png,svg,ico,webmanifest}"],
       },
+      // enable the SW in `vite dev` so push can be tested on the desktop dev
+      // server (default is prod-build only).
+      devOptions: { enabled: true, type: "module" },
       includeAssets: ["favicon.png", "apple-touch-icon.png"],
       manifest: {
         name: "Σιντερέλλα",

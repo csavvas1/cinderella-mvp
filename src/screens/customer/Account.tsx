@@ -64,6 +64,15 @@ export default function Account() {
     verification, submitVerification,
   } = useStore();
 
+  const [pushBusy, setPushBusy] = useState(false);
+  const [pushErr, setPushErr] = useState("");
+  async function togglePush() {
+    setPushErr(""); setPushBusy(true);
+    const res = await requestPushPermission();
+    setPushBusy(false);
+    if (!res.granted && res.error) setPushErr(res.error);
+  }
+
   const bioOn = biometricEnabled && biometricEmail === lastAccount?.email;
   const [bioBusy, setBioBusy] = useState(false);
   const [bioErr, setBioErr] = useState("");
@@ -803,11 +812,17 @@ export default function Account() {
         </>
       )}
 
-      <div className="card row between" style={{ marginTop: 12, cursor: "pointer" }}
-        onClick={() => requestPushPermission()}>
-        <b style={{ fontSize: 14 }}>Push notifications</b>
+      <div className="card row between" style={{ marginTop: 12, cursor: pushBusy ? "default" : "pointer", opacity: pushBusy ? 0.6 : 1 }}
+        onClick={() => { if (!pushBusy) togglePush(); }}>
+        <b style={{ fontSize: 14 }}>{pushBusy ? "Enabling…" : "Push notifications"}</b>
         <div className={"switch" + (pushEnabled ? " on" : "")}><div className="switch__dot" /></div>
       </div>
+      {pushErr && <div className="loginerr" style={{ marginTop: 8 }}>{pushErr}</div>}
+      {typeof Notification !== "undefined" && Notification.permission === "denied" && (
+        <div className="note amber" style={{ marginTop: 8 }}>
+          Notifications are blocked in your browser. Click the lock/site icon in the address bar → allow Notifications, then try again.
+        </div>
+      )}
       {(() => {
         // iOS only allows Web Push once the app is INSTALLED to the home screen
         // (not in a Safari tab). Tell the user instead of failing silently.

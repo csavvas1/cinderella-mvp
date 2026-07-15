@@ -24,7 +24,12 @@ export async function enablePush(): Promise<{ granted: boolean; error?: string }
     const perm = await Notification.requestPermission();
     if (perm !== "granted") return { granted: false };
 
-    const reg = await navigator.serviceWorker.ready;
+    // serviceWorker.ready never resolves if no SW is registered — cap the wait so
+    // a misconfigured build surfaces an error instead of hanging silently.
+    const reg = await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise<never>((_, rej) => setTimeout(() => rej(new Error("Service worker not ready — is the PWA registered?")), 5000)),
+    ]);
     // reuse an existing subscription if present, else create one
     let sub = await reg.pushManager.getSubscription();
     if (!sub) {

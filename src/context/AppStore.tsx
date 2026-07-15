@@ -334,7 +334,7 @@ interface AppState {
   sendEmail: (subject: string, body: string) => void;
   // browser push
   pushEnabled: boolean;
-  requestPushPermission: () => void;
+  requestPushPermission: () => Promise<{ granted: boolean; error?: string }>;
 
   dark: boolean;              // resolved theme (system pref applied)
   toggleDark: () => void;     // quick flip between light/dark (sets explicit pref)
@@ -1580,10 +1580,12 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     notify: (n) => pushNotif(makeNotif(n)),
     sendEmail: (subject, body) => sendEmailMock(currentEmail || "you@cinderella.cy", subject, body),
     pushEnabled,
-    requestPushPermission: () => {
+    requestPushPermission: async () => {
       // ask permission, subscribe to Web Push, and persist the subscription so
       // notifications arrive even when the app is closed
-      void enablePush().then((res) => setPushEnabled(res.granted));
+      const res = await enablePush();
+      setPushEnabled(res.granted);
+      return res;
     },
     markNotificationsRead: (audience) => {
       patchAcct({
