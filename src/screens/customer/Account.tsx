@@ -358,12 +358,11 @@ export default function Account() {
             ? <div className="profcard__val" style={{ marginTop: 2 }}>{userPhone}</div>
             : <div className="tiny" style={{ color: "var(--amber)", fontWeight: 700, marginTop: 3 }}>Phone required — tap to add</div>}
           {accountNo && (
-            <div className="acctno" style={{ marginTop: 8 }}>
-              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 10h18" />
+            <div className="acctno" style={{ marginTop: 8 }} title="Member number">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true">
+                <circle cx="12" cy="8" r="4" /><path d="M4 20c0-3.9 3.6-6.5 8-6.5s8 2.6 8 6.5Z" />
               </svg>
-              <span className="acctno__lbl">Member</span>
-              <span className="acctno__num">#{accountNo}</span>
+              <span className="acctno__num">{accountNo}</span>
             </div>
           )}
         </div>

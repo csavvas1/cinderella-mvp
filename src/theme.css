@@ -2235,8 +2235,15 @@ input[type="range"]::-webkit-slider-thumb {
 .lcw__cell { align-items: stretch !important; justify-content: flex-start !important; padding: 4px 5px !important; }
 
 /* plan pill next to the email on the profile card */
-.planbadge { flex: none; display: inline-block; font-size: 10.5px; font-weight: 800; letter-spacing: .3px; padding: 3px 10px; border-radius: 999px; background: var(--surface); color: var(--muted); }
-.planbadge--pro { background: linear-gradient(135deg, var(--indigo), var(--indigo-dark)); color: #fff; }
+.planbadge {
+  flex: none; display: inline-block; font-size: 10.5px; font-weight: 800; letter-spacing: .4px;
+  text-transform: uppercase; padding: 3px 10px; border-radius: 999px;
+  background: var(--indigo-soft); color: var(--indigo); border: 1px solid var(--indigo);
+}
+.planbadge--pro {
+  background: linear-gradient(135deg, var(--indigo), var(--indigo-dark)); color: #fff; border-color: transparent;
+  box-shadow: 0 2px 8px rgba(79,70,229,.35);
+}
 
 /* prominent Go-Pro CTA button (profile → Plan) */
 .gopro-btn {
