@@ -152,7 +152,7 @@ export default function DetailsModal({
           </div>
           {pro
             ? <span className="statuspill statuspill--ok">Active</span>
-            : <span className="pro-pill">PRO</span>}
+            : <span className="detailrow__edit">Go Pro ›</span>}
         </div>
 
         {planOpen && (
