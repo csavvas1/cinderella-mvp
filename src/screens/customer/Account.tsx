@@ -62,9 +62,8 @@ export default function Account() {
     agentProfile, setAgentProfile,
     pushEnabled, requestPushPermission, disablePushNotifications,
     verification, submitVerification,
-    pro, upgradeToPro,
+    pro, upgradeToPro, cancelPro,
   } = useStore();
-  const [showGoPro, setShowGoPro] = useState(false);
 
   const [pushBusy, setPushBusy] = useState(false);
   const [pushErr, setPushErr] = useState("");
@@ -353,6 +352,11 @@ export default function Account() {
           {userPhone
             ? <div className="profcard__val" style={{ marginTop: 2 }}>{userPhone}</div>
             : <div className="tiny" style={{ color: "var(--amber)", fontWeight: 700, marginTop: 3 }}>Phone required — tap to add</div>}
+          <div style={{ marginTop: 8 }}>
+            {pro
+              ? <span className="planbadge planbadge--pro">{APP_NAME} Pro</span>
+              : <span className="planbadge">Standard · tap to go Pro</span>}
+          </div>
           {accountNo && (
             <div className="acctno" style={{ marginTop: 8 }}>
               <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -369,6 +373,9 @@ export default function Account() {
       {editProfile && (
         <DetailsModal
           email={userEmail} phone={userPhone}
+          appName={APP_NAME} pro={pro}
+          onUpgrade={upgradeToPro}
+          onCancelPro={cancelPro}
           onClose={() => setEditProfile(false)}
           onSavePhone={setUserPhone}
           onChangePassword={changePassword}
@@ -710,25 +717,7 @@ export default function Account() {
         </div>
       )}
 
-      {/* ===================== PRO (channel manager) ===================== */}
-      <div className="acct-sec">Cinderella Pro {!pro && <span className="pro-pill">PRO</span>}</div>
-      {pro ? (
-        <div className="card row between" style={{ marginTop: 12 }}>
-          <div>
-            <b style={{ fontSize: 14 }}>Pro active</b>
-            <div className="tiny muted">Your reservations calendar & guest inbox are unlocked.</div>
-          </div>
-          <span className="statuspill statuspill--ok">Active</span>
-        </div>
-      ) : (
-        <>
-          <div className="propro">
-            <div className="propro__title">Manage every booking in one place</div>
-            <p className="propro__sub">Link your properties to Airbnb, Booking.com, Vrbo & more — one calendar, one inbox, automatic guest messages.</p>
-          </div>
-          <button className="btn" style={{ marginTop: 12 }} onClick={() => setShowGoPro(true)}>Go Pro</button>
-        </>
-      )}
+      {/* Pro lives in the profile box (My details → Plan). No separate section. */}
 
       {/* ===================== CLEANER (only when activated) ===================== */}
       {agentActivated && (
@@ -889,32 +878,6 @@ export default function Account() {
       <p className="tiny muted" style={{ textAlign: "center" }}>{APP_NAME} demo · {APP_VERSION}</p>
 
       {/* ===================== MODALS ===================== */}
-
-      {/* Go Pro */}
-      {showGoPro && (
-        <div className="modal__backdrop" onClick={() => setShowGoPro(false)}>
-          <div className="modal tall" onClick={(e) => e.stopPropagation()}>
-            <div className="between" style={{ marginBottom: 8 }}>
-              <b style={{ fontSize: 18 }}>Cinderella Pro</b>
-              <button className="iconbtn" onClick={() => setShowGoPro(false)}>✕</button>
-            </div>
-            <p className="sub" style={{ marginTop: 0 }}>
-              Turn Cinderella into your whole short-let control room. Link your properties to every booking site and run them from one place.
-            </p>
-            <div className="actfeat"><div><b>All your calendars in one place</b><div className="tiny muted">Airbnb, Booking.com, Vrbo, Google & Expedia — synced side by side, no double bookings.</div></div></div>
-            <div className="actfeat"><div><b>Unified guest inbox</b><div className="tiny muted">Read and reply to every guest from one screen — never open the OTA apps again.</div></div></div>
-            <div className="actfeat"><div><b>Automatic messages</b><div className="tiny muted">Write once — welcome, check-in and thank-you notes send themselves on every booking.</div></div></div>
-            <div className="actfeat"><div><b>One tidy reservations calendar</b><div className="tiny muted">See who's arriving, from which channel, and jump straight into the chat.</div></div></div>
-            <div className="card" style={{ marginTop: 14, textAlign: "center" }}>
-              <div className="upgrade__price">€12.99/mo</div>
-              <div className="tiny muted" style={{ marginTop: 2 }}>Cancel anytime.</div>
-            </div>
-            <div style={{ height: 12 }} />
-            <button className="btn" onClick={() => { upgradeToPro(); setShowGoPro(false); }}>Upgrade to Pro</button>
-            <div className="note" style={{ marginTop: 10 }}>Demo — no real charge is made.</div>
-          </div>
-        </div>
-      )}
 
       {/* cleaner activation */}
       {showActivate && (

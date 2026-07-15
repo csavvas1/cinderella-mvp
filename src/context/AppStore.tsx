@@ -254,6 +254,7 @@ interface AppState {
 
   pro: boolean;
   upgradeToPro: () => void;
+  cancelPro: () => void;
   messageThreads: ChatThread[];
   messages: ChatMessage[];
   autoMessageTemplate: string;
@@ -1114,6 +1115,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
 
     pro: acct.pro ?? false,
     upgradeToPro: () => { patchAcct({ pro: true }); writeProfile({ pro: true }); },
+    cancelPro: () => { patchAcct({ pro: false }); writeProfile({ pro: false }); },
     messageThreads: acct.messageThreads ?? [],
     messages: acct.messages ?? [],
     autoMessageTemplate: acct.autoMessageTemplate ?? "",

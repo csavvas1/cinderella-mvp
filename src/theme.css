@@ -2199,14 +2199,13 @@ input[type="range"]::-webkit-slider-thumb {
 .lcw__bars { position: absolute; inset: 0; pointer-events: none; }
 .lcw__bars .lc__bar { pointer-events: auto; }
 .lc__bar {
-  position: absolute; display: flex; align-items: center; gap: 4px;
-  border: 1px solid rgba(0,0,0,.05); border-radius: 6px; padding: 0 6px; cursor: pointer; overflow: hidden;
-  background: var(--indigo-soft); text-align: left; box-shadow: 0 1px 2px rgba(0,0,0,.08);
+  position: absolute; display: flex; align-items: center; gap: 3px;
+  border: none; border-radius: 5px; padding: 0 5px; cursor: pointer; overflow: hidden;
+  background: var(--indigo-soft); text-align: left;
 }
 .lc__bar.clipL { border-top-left-radius: 0; border-bottom-left-radius: 0; }
 .lc__bar.clipR { border-top-right-radius: 0; border-bottom-right-radius: 0; }
-.lc__barname { font-size: 11px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
-.lc__barstat { font-size: 10px; color: var(--muted); white-space: nowrap; }
+.lc__barname { font-size: 10px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
 .lc__bar--airbnb  { background: #ffe4e5; }
 .lc__bar--booking { background: #e2ecfb; }
 .lc__bar--vrbo    { background: #e3edfd; }
@@ -2219,15 +2218,22 @@ input[type="range"]::-webkit-slider-thumb {
 .rescard__rows { display: flex; flex-direction: column; gap: 10px; }
 .rescard__rows .between { font-size: 14px; }
 
-/* Standard calendar: labelled cleaning chips (replaces the status dot) */
-.calchips { display: flex; flex-direction: column; gap: 2px; margin-top: auto; width: 100%; }
-.calchip {
-  font-size: 9px; font-weight: 700; line-height: 1.3; padding: 1px 4px; border-radius: 5px;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+/* Standard calendar: a booked day = the number inside a filled status circle.
+   Clean, no text — just "a booking exists". */
+.calcell .calmark {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 999px; font-size: 13px; font-weight: 700;
+  color: var(--text); line-height: 1;
 }
-.calchip--up { background: var(--indigo-soft); color: var(--indigo-dark); }
-.calchip--wait { background: rgba(245,158,11,.16); color: #b45309; }
-.calchip--done { background: rgba(22,163,74,.16); color: #15803d; }
-.calchip--cancelled { background: rgba(220,38,38,.14); color: var(--red); }
-/* give standard cells room for a chip (was a tiny square for dots) */
-.calgrid .calcell { aspect-ratio: auto; min-height: 52px; }
+.calmark--up   { background: var(--indigo); color: #fff; }
+.calmark--wait { background: var(--amber); color: #fff; }
+.calmark--done { background: var(--green); color: #fff; }
+.calmark--cancelled { background: transparent; color: var(--red); box-shadow: inset 0 0 0 2px var(--red); }
+/* center the mark in the standard square cell */
+.calgrid .calcell { align-items: center; justify-content: center; padding: 2px; }
+/* Pro cells keep number top-left (bars overlay), override the centering above */
+.lcw__cell { align-items: stretch !important; justify-content: flex-start !important; padding: 4px 5px !important; }
+
+/* plan badge on the profile card */
+.planbadge { display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: var(--surface); color: var(--muted); }
+.planbadge--pro { background: var(--indigo); color: #fff; }

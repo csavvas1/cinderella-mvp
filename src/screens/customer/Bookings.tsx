@@ -839,20 +839,12 @@ function CalendarView({
             (isPast ? " past" : "") +
             (selected === date ? " sel" : "");
           const clickable = !isPast || hasCancelled;
-          const firstName = dayBookings[0]?.cleanerName?.split(" ")[0] ?? "";
+          // a booked day marks the number inside a filled status-colored circle;
+          // cancelled shows a red ring. Clean, no text.
+          const mark = cleanStatus ? cleanStatus : hasCancelled ? "cancelled" : null;
           return (
             <button key={i} className={cls} disabled={!clickable} onClick={() => { if (clickable) setSelected((cur) => (cur === date ? null : date)); }}>
-              <span className="calhd">
-                <span className="calnum">{day}</span>
-              </span>
-              <span className="calchips">
-                {cleanStatus && (
-                  <span className={"calchip calchip--" + cleanStatus}>
-                    {firstName}{dayBookings.length > 1 ? ` +${dayBookings.length - 1}` : ""}
-                  </span>
-                )}
-                {hasCancelled && <span className="calchip calchip--cancelled">Cancelled</span>}
-              </span>
+              <span className={"calmark" + (mark ? " calmark--" + mark : "")}>{day}</span>
             </button>
           );
         })}

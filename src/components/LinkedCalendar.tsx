@@ -17,9 +17,9 @@ function daysBetween(a: string, b: string) {
 }
 
 // Lane pitch: bars overlap slightly so a busy day doesn't blow up the row height.
-const BAR_H = 22;
-const LANE_PITCH = 19; // slight ~15% vertical overlap, still readable
-const TOP_OFFSET = 22; // clears the day-number
+const BAR_H = 16;
+const LANE_PITCH = 18; // thin bars, tiny gap between lanes (no overlap)
+const TOP_OFFSET = 24; // clears the day-number
 
 // Same grid/nav as the Standard (cleaning) calendar, with the Pro booking bars
 // overlaid. Tap a bar → detail card renders below the grid.
@@ -129,9 +129,8 @@ export default function LinkedCalendar({ extra = [], onRemove, onEditDates }: {
                   className={"lc__bar lc__bar--" + s.r.platform + (s.clipL ? " clipL" : "") + (s.clipR ? " clipR" : "")}
                   style={{ left: `calc(${(s.col / 7) * 100}% + 3px)`, width: `calc(${(s.span / 7) * 100}% - 6px)`, top: TOP_OFFSET + s.lane * LANE_PITCH, height: BAR_H, zIndex: 5 + s.lane }}
                   onClick={() => setSel(s.r)}>
-                  <PlatformIcon platform={s.r.platform} size={13} />
+                  <PlatformIcon platform={s.r.platform} size={11} />
                   <span className="lc__barname">{s.r.property}</span>
-                  <span className="lc__barstat">🕑{s.r.nights} 👤{s.r.guests}</span>
                 </button>
               ))}
             </div>
