@@ -172,8 +172,16 @@ export default function DetailsModal({
               ].map(([t, d]) => (
                 <div className="actfeat" key={t}><div><b style={{ fontSize: 13 }}>{t}</b><div className="tiny muted">{d}</div></div></div>
               ))}
-              <div className="upgrade__price" style={{ textAlign: "center", marginTop: 6 }}>€12.99/mo</div>
-              <button className="btn" style={{ marginTop: 10 }} onClick={onUpgrade}>Switch to Pro</button>
+              <button className="gopro-btn" onClick={onUpgrade}>
+                <span className="gopro-btn__ic">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M12 2l2.9 6.1 6.6.8-4.9 4.5 1.3 6.5L12 17.8 6.1 20.4l1.3-6.5L2.5 8.9l6.6-.8Z" /></svg>
+                </span>
+                <span className="gopro-btn__txt">
+                  <span className="gopro-btn__main">Upgrade to Pro</span>
+                  <span className="gopro-btn__sub">€12.99/mo · cancel anytime</span>
+                </span>
+                <span className="gopro-btn__chev">›</span>
+              </button>
               <div className="note" style={{ marginTop: 8 }}>Demo — no real charge.</div>
             </div>
           )
