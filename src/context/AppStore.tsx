@@ -1,8 +1,9 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import type { AppNotification, Booking, Card, ConnectedListing, ConsentRecord, CustomerReputation, ExternalBooking, Job, NotifAudience, PropertyAddress, Review, Role } from "../types";
+import type { AppNotification, Booking, Card, ChatMessage, ChatThread, ConnectedListing, ConsentRecord, CustomerReputation, ExternalBooking, Job, NotifAudience, PropertyAddress, Review, Role } from "../types";
 import { CUSTOMER_DOC_IDS, CLEANER_DOC_IDS, getLegalDoc, SUPPLY_TERMS_VERSION } from "../data/legal";
 import { SEED_ADDRESSES, SEED_BOOKINGS, SEED_CARDS, SEED_JOBS, SEED_LISTINGS, SEED_EXTERNAL_BOOKINGS } from "../data/seed";
 import { CLEANERS, agentRowToCleaner, type PublicAgentRow } from "../data/cleaners";
+import { SEED_THREADS, SEED_MESSAGES, DEFAULT_AUTO_TEMPLATE, renderTemplate } from "../data/messages";
 import type { Cleaner } from "../types";
 import { makeReferralCode } from "../data/referral";
 import { priceJob } from "../data/platform";
@@ -62,6 +63,9 @@ interface AccountData {
   referralCode?: string;        // this account's own code to share
   referredByCode?: string;      // the code this account signed up with (if any)
   pro?: boolean;                           // paid "Pro" tier: unlocks channel-manager (reservations + inbox)
+  messageThreads?: ChatThread[];           // unified inbox threads (cleaner + guest)
+  messages?: ChatMessage[];                // all messages across threads
+  autoMessageTemplate?: string;            // template auto-sent when a booking is created
   connectedListings?: ConnectedListing[]; // channel-manager: synced platforms
   externalBookings?: ExternalBooking[];   // guest stays pulled from platforms
   notifications?: AppNotification[];       // in-app alert feed (both sides)
@@ -250,6 +254,14 @@ interface AppState {
 
   pro: boolean;
   upgradeToPro: () => void;
+  messageThreads: ChatThread[];
+  messages: ChatMessage[];
+  autoMessageTemplate: string;
+  unreadMessages: number;
+  addMessage: (threadId: string, m: ChatMessage) => void;
+  markThreadRead: (threadId: string) => void;
+  ensureThread: (t: ChatThread) => string;
+  setAutoMessageTemplate: (tpl: string) => void;
   connectedListings: ConnectedListing[];
   externalBookings: ExternalBooking[];
   addListing: (l: ConnectedListing, bookings: ExternalBooking[]) => void;
@@ -377,6 +389,10 @@ function seededAccount(name: string): AccountData {
     customerRep: { rating: 4.7, reviewsCount: 12, cancellations: 1 }, // established, good customer
     referralCode: makeReferralCode(DEMO_EMAIL),
     notifications: seedNotifications(),
+    pro: true, // demo account is Pro so channel-manager features are visible
+    messageThreads: SEED_THREADS,
+    messages: SEED_MESSAGES,
+    autoMessageTemplate: DEFAULT_AUTO_TEMPLATE,
     connectedListings: SEED_LISTINGS,
     externalBookings: SEED_EXTERNAL_BOOKINGS,
     // demo account already accepted all current docs (customer + cleaner)
@@ -633,6 +649,42 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     dbInsertNotif(notif);
   }
 
+  // When bookings are created, auto-send the user's template into each booking's
+  // cleaner thread (creating the thread if needed). Functional read so it composes
+  // with the booking patch fired in the same tick.
+  function fireAutoMessages(bs: Booking[]) {
+    if (!currentKey || !bs.length) return;
+    setAccounts((p) => {
+      const cur = p[currentKey];
+      if (!cur) return p;
+      const tpl = cur.autoMessageTemplate;
+      if (!tpl) return p;
+      const threads = [...(cur.messageThreads ?? [])];
+      const msgs = [...(cur.messages ?? [])];
+      bs.forEach((b) => {
+        const threadId = "tc_" + b.cleanerId;
+        let thread = threads.find((t) => t.id === threadId);
+        if (!thread) {
+          thread = {
+            id: threadId, kind: "cleaner", guest: b.cleanerName, cleanerId: b.cleanerId,
+            property: b.addressNickname, platform: "other",
+            subject: "About your cleaning", dateRange: "", lastAt: Date.now(), unread: false,
+          };
+          threads.unshift(thread);
+        }
+        const body = renderTemplate(tpl, {
+          guest: cur.name || "there", property: b.addressNickname,
+          date: b.date, cleaner: b.cleanerName,
+        });
+        const at = Date.now();
+        msgs.push({ id: crypto.randomUUID(), threadId, from: "host", body, at, channel: "airbnb", automated: true });
+        const ti = threads.findIndex((t) => t.id === threadId);
+        if (ti >= 0) threads[ti] = { ...threads[ti], lastAt: at };
+      });
+      return { ...p, [currentKey]: { ...cur, messageThreads: threads, messages: msgs } };
+    });
+  }
+
   useEffect(() => {
     const snapshot: Persisted = { accounts, currentKey, currentEmail, loggedIn, role, jobs, themePref, biometricEnabled, biometricEmail, lastAccount };
     localStorage.setItem(KEY, JSON.stringify(snapshot));
@@ -792,6 +844,9 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           accountNo: profile?.accountNo ?? base.accountNo,
           favourites: profile?.favourites ?? base.favourites,
           pro: profile?.pro ?? base.pro,
+          autoMessageTemplate: profile?.autoMessageTemplate ?? base.autoMessageTemplate,
+          messageThreads: base.messageThreads,
+          messages: base.messages,
           consents: consents.length ? consents : (base.consents ?? []),
           addresses: addresses ?? base.addresses,
           cards: cards ?? base.cards,
@@ -1059,6 +1114,30 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
 
     pro: acct.pro ?? false,
     upgradeToPro: () => { patchAcct({ pro: true }); writeProfile({ pro: true }); },
+    messageThreads: acct.messageThreads ?? [],
+    messages: acct.messages ?? [],
+    autoMessageTemplate: acct.autoMessageTemplate ?? "",
+    unreadMessages: (acct.messageThreads ?? []).filter((t) => t.unread).length,
+    addMessage: (threadId, m) => {
+      patchAcct({
+        messages: [...(acct.messages ?? []), m],
+        messageThreads: (acct.messageThreads ?? []).map((t) =>
+          t.id === threadId ? { ...t, lastAt: m.at, unread: m.from === "guest" } : t),
+      });
+    },
+    markThreadRead: (threadId) => {
+      patchAcct({
+        messageThreads: (acct.messageThreads ?? []).map((t) =>
+          t.id === threadId ? { ...t, unread: false } : t),
+      });
+    },
+    ensureThread: (t) => {
+      const existing = (acct.messageThreads ?? []).find((x) => x.id === t.id);
+      if (existing) return existing.id;
+      patchAcct({ messageThreads: [t, ...(acct.messageThreads ?? [])] });
+      return t.id;
+    },
+    setAutoMessageTemplate: (tpl) => { patchAcct({ autoMessageTemplate: tpl }); writeProfile({ autoMessageTemplate: tpl }); },
     connectedListings: acct.connectedListings ?? [],
     externalBookings: acct.externalBookings ?? [],
     addListing: (l, bs) => {
@@ -1146,8 +1225,8 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     },
 
     bookings: acct.bookings,
-    addBooking: (b) => { patchAcct({ bookings: [b, ...acct.bookings] }); dbInsertBookings([b]); },
-    addBookings: (bs) => { patchAcct({ bookings: [...bs, ...acct.bookings] }); dbInsertBookings(bs); },
+    addBooking: (b) => { patchAcct({ bookings: [b, ...acct.bookings] }); dbInsertBookings([b]); fireAutoMessages([b]); },
+    addBookings: (bs) => { patchAcct({ bookings: [...bs, ...acct.bookings] }); dbInsertBookings(bs); fireAutoMessages(bs); },
     dismissBooking: (id) => {
       patchAcct({ bookings: acct.bookings.map((b) => (b.id === id ? { ...b, dismissedByCustomer: true } : b)) });
       dbPatchBooking(id, { dismissed_by_customer: true });

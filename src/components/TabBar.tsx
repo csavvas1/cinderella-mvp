@@ -19,6 +19,10 @@ function Icon({ name, filled }: { name: string; filled: boolean }) {
       return filled
         ? <svg viewBox="0 0 24 24" width="24" height="24"><rect x="3" y="4.5" width="18" height="16" rx="3" fill="currentColor" /><path d="M8 2.5v4M16 2.5v4" stroke="#fff" strokeWidth="1.9" strokeLinecap="round" /><rect x="3" y="8.5" width="18" height="1.6" fill="#fff" /></svg>
         : <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="3" /><path d="M8 2.5v4M16 2.5v4M3 9h18" /></svg>;
+    case "messages": // chat bubble
+      return filled
+        ? <svg viewBox="0 0 24 24" width="24" height="24"><path d="M21 11.5a7.5 7.5 0 0 1-10.9 6.7L4 20l1.3-4.2A7.5 7.5 0 1 1 21 11.5Z" fill="currentColor" /></svg>
+        : <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a7.5 7.5 0 0 1-10.9 6.7L4 20l1.3-4.2A7.5 7.5 0 1 1 21 11.5Z" /></svg>;
     case "user": // Account
       return filled
         ? <svg viewBox="0 0 24 24" width="24" height="24"><circle cx="12" cy="8" r="4" fill="currentColor" /><path d="M4 20c0-3.9 3.6-6.5 8-6.5s8 2.6 8 6.5Z" fill="currentColor" /></svg>
@@ -45,7 +49,7 @@ const AGENT_TABS = [
 ];
 
 export default function TabBar() {
-  const { role, accountOpen, agentBadge, customerBadge } = useStore();
+  const { role, accountOpen, agentBadge, customerBadge, unreadMessages } = useStore();
   const nav = useNavigate();
   const { pathname } = useLocation();
   const agent = role === "agent";
@@ -89,12 +93,10 @@ export default function TabBar() {
 
   function CustomerContent() {
     const calActive = isActive("/bookings");
-    const bookActive = !calActive;
-    // active tab index (Search=0, Calendar=1); data-rel = pill index minus active,
-    // clamped to -1/0/1, so the swipe colour handoff knows prev/active/next.
-    const activeIdx = calActive ? 1 : 0;
-    // EXACT offset (not clamped): only the true neighbour (rel ±1) reacts to a
-    // swipe. Clamping collapsed distant tabs onto ±1 so they lit up too.
+    const msgActive = isActive("/messages");
+    const bookActive = !calActive && !msgActive;
+    // active tab index (Search=0, Calendar=1, Messages=2)
+    const activeIdx = msgActive ? 2 : calActive ? 1 : 0;
     const rel = (i: number) => i - activeIdx;
     return (
       <>
@@ -104,10 +106,12 @@ export default function TabBar() {
           <span>Search</span>
         </button>
         <button data-rel={rel(1)} className={"wolt__round wolt__round--badged" + (calActive ? " active" : "") + popCls("c-cal")} onClick={() => tap("c-cal", () => nav("/bookings"))} aria-label="Calendar" title="Calendar">
-          {/* single consistent glyph — only the COLOUR changes with selection now
-              (the filled/outline swap made the icon look different per state) */}
           <span className="ic"><Icon name="calendar" filled={false} /></span>
           {customerBadge > 0 && <span className="notifbadge notifbadge--ondark">{customerBadge > 9 ? "9+" : customerBadge}</span>}
+        </button>
+        <button data-rel={rel(2)} className={"wolt__round wolt__round--badged" + (msgActive ? " active" : "") + popCls("c-msg")} onClick={() => tap("c-msg", () => nav("/messages"))} aria-label="Messages" title="Messages">
+          <span className="ic"><Icon name="messages" filled={false} /></span>
+          {unreadMessages > 0 && <span className="notifbadge notifbadge--ondark">{unreadMessages > 9 ? "9+" : unreadMessages}</span>}
         </button>
       </>
     );

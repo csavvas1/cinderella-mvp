@@ -6,14 +6,13 @@ const D = 24 * H;
 const now = Date.now();
 
 export const SEED_THREADS: ChatThread[] = [
-  { id: "t1", guest: "Amelia Walker",  property: "Riverside Retreat", reservationId: "r9", platform: "booking", subject: "Day of Arrival — Welcome Email",  dateRange: "18 Jul - 24 Jul", lastAt: now - 2 * H,  unread: true  },
-  { id: "t2", guest: "Harry Thompson", property: "Seaside Apartment", platform: "airbnb",  subject: "Day of Arrival — Welcome Email",  dateRange: "25 Jul - 30 Jul", lastAt: now - 1 * D,  unread: false },
-  { id: "t3", guest: "Amelia Walker",  property: "Riverside Retreat", platform: "booking", subject: "Payment Reminder",                 dateRange: "17 Jul - 22 Jul", lastAt: now - 2 * D,  unread: false },
-  { id: "t4", guest: "George Clarke",  property: "City Studio",       reservationId: "r6", platform: "expedia", subject: "Check-out — Thanks for Staying",  dateRange: "22 Jun - 25 Jun", lastAt: now - 6 * D,  unread: false },
-  { id: "t5", guest: "Isla Robinson",  property: "Marina Loft",       platform: "vrbo",    subject: "Check-out — Thanks for Staying",  dateRange: "20 Jun - 21 Jun", lastAt: now - 7 * D,  unread: false },
-  { id: "t6", guest: "Mia Phillips",   property: "Beachfront Loft",   platform: "airbnb",  subject: "Thanks for reaching out",         dateRange: "4 Aug - 7 Aug",   lastAt: now - 9 * D,  unread: false },
-  { id: "t7", guest: "Ava Mitchell",   property: "Seaside Apartment", platform: "booking", subject: "Check-out — Thanks for Staying",  dateRange: "16 May - 20 May", lastAt: now - 30 * D, unread: false },
-  { id: "t8", guest: "Jack Edwards",   property: "City Studio",       platform: "airbnb",  subject: "Check-out — Thanks for Staying",  dateRange: "16 Apr - 19 Apr", lastAt: now - 60 * D, unread: false },
+  { id: "t1", kind: "guest", guest: "Amelia Walker",  property: "Riverside Retreat", reservationId: "r9", platform: "booking", subject: "Day of Arrival — Welcome Email",  dateRange: "18 Jul - 24 Jul", lastAt: now - 2 * H,  unread: true  },
+  { id: "t2", kind: "guest", guest: "Harry Thompson", property: "Seaside Apartment", platform: "airbnb",  subject: "Day of Arrival — Welcome Email",  dateRange: "25 Jul - 30 Jul", lastAt: now - 1 * D,  unread: false },
+  { id: "t3", kind: "guest", guest: "Amelia Walker",  property: "Riverside Retreat", platform: "booking", subject: "Payment Reminder",                 dateRange: "17 Jul - 22 Jul", lastAt: now - 2 * D,  unread: false },
+  { id: "t4", kind: "guest", guest: "George Clarke",  property: "City Studio",       reservationId: "r6", platform: "expedia", subject: "Check-out — Thanks for Staying",  dateRange: "22 Jun - 25 Jun", lastAt: now - 6 * D,  unread: false },
+  { id: "t5", kind: "guest", guest: "Isla Robinson",  property: "Marina Loft",       platform: "vrbo",    subject: "Check-out — Thanks for Staying",  dateRange: "20 Jun - 21 Jun", lastAt: now - 7 * D,  unread: false },
+  // a cleaner<->customer thread (always available to normal users too)
+  { id: "tc1", kind: "cleaner", guest: "Maria (cleaner)", cleanerId: "c1", property: "Seaside Apartment", platform: "other", subject: "About your cleaning", dateRange: "", lastAt: now - 4 * H, unread: false },
 ];
 
 // Full message list for the top thread so the thread view looks real.
@@ -24,9 +23,23 @@ export const SEED_MESSAGES: ChatMessage[] = [
   { id: "m4", threadId: "t1", from: "host",  title: "Pre-Arrival — 2 Days Before Arrival", body: "Hi Amelia,\n\nYour stay at Riverside Retreat Lisbon begins in 2 days. A quick note to help you prepare: check-in is from 15:00, and the door code will be sent on the morning of arrival.", at: now - 2 * H, channel: "email", automated: true },
 ];
 
+// cleaner thread starter message
+SEED_MESSAGES.push(
+  { id: "mc1", threadId: "tc1", from: "guest", body: "Hi! Looking forward to the clean on the booked date. The keys are in the lockbox.", at: now - 4 * H, channel: "airbnb" },
+);
+
 // A couple of canned quick-replies for the composer mock.
 export const QUICK_REPLIES = [
   "Hi! Check-in is from 15:00 and the door code will be sent on your arrival morning.",
   "Thanks so much for staying with us — we'd love a review if you enjoyed your stay!",
   "The Wi-Fi name is WorldNest_Guest and the password is on the fridge.",
 ];
+
+// Default auto-message template sent when a booking is created. Placeholders:
+// {guest} {property} {date} {cleaner} are substituted at send time.
+export const DEFAULT_AUTO_TEMPLATE =
+  "Hi {guest},\n\nYour booking at {property} on {date} is confirmed. {cleaner} will take care of everything — reach out any time if you need something.\n\nWarm regards,\nThe Cinderella Team";
+
+export function renderTemplate(tpl: string, vars: Record<string, string>): string {
+  return tpl.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? `{${k}}`);
+}

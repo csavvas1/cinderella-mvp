@@ -9,6 +9,7 @@ import PropertyPicker from "../../components/PropertyPicker";
 import DatePicker from "../../components/DatePicker";
 import Dropdown from "../../components/Dropdown";
 import CameraCapture, { type CapturedPhoto } from "../../components/CameraCapture";
+import LinkedCalendar, { hasLinkedReservations } from "../../components/LinkedCalendar";
 import { priceJob } from "../../data/platform";
 import type { Booking, Review, ListingPlatform, ExternalBooking, PropertyAddress } from "../../types";
 
@@ -46,9 +47,14 @@ function statusBadge(s: string) {
 
 export default function Bookings() {
   const { bookings, addresses, cancelBooking, addReview, updateBooking, updateSeries, cancelSeries,
-    externalBookings, connectedListings, notify, sendEmail, openAccount, dismissBooking, addManualStay, removeExternalBooking } = useStore();
+    externalBookings, connectedListings, notify, sendEmail, openAccount, dismissBooking, addManualStay, removeExternalBooking,
+    pro } = useStore();
   const [manualOpen, setManualOpen] = useState(false);
   const nav = useNavigate();
+  // Linked (Pro channel-manager) vs Unlinked (cleaning) calendar. Show the toggle
+  // only when BOTH exist; otherwise show whichever applies.
+  const hasLinked = pro && hasLinkedReservations();
+  const [calMode, setCalMode] = useState<"linked" | "unlinked">(hasLinked ? "linked" : "unlinked");
   const [reviewFor, setReviewFor] = useState<Booking | null>(null);
   const [editFor, setEditFor] = useState<Booking | null>(null);
   const [refundFor, setRefundFor] = useState<Booking | null>(null);
@@ -206,31 +212,45 @@ export default function Bookings() {
         </>
       )}
 
-      {connectedListings.length > 0 && (
-        <button className="btn sm secondary" style={{ marginBottom: 12 }} onClick={() => setManualOpen(true)}>
-          + Add a booking manually
-        </button>
+      {/* Linked (Pro) vs Unlinked calendar toggle — only when both exist */}
+      {hasLinked && visible.length > 0 && (
+        <div className="segmini" style={{ marginBottom: 12 }}>
+          <button className={calMode === "linked" ? "active" : ""} onClick={() => setCalMode("linked")}>Linked</button>
+          <button className={calMode === "unlinked" ? "active" : ""} onClick={() => setCalMode("unlinked")}>Unlinked</button>
+        </div>
       )}
 
-      <CalendarView
-        bookings={visible}
-        cancelledBookings={cancelledList}
-        externalBookings={externalBookings}
-        legendProps={legendProps}
-        propertySummaries={propertySummaries}
-        colorForListing={colorForListing}
-        propForAddr={propForAddr}
-        onEdit={(b) => setEditFor(b)}
-        onReview={(b) => setReviewFor(b)}
-        onRefund={(b) => setRefundFor(b)}
-        onTip={(b) => setTipFor(b)}
-        onAddForDay={(date) => {
-          sessionStorage.setItem("book-preset", JSON.stringify({ date }));
-          nav("/book");
-        }}
-        onBookTurnaround={bookTurnaround}
-        onRemoveStay={removeExternalBooking}
-      />
+      {hasLinked && (calMode === "linked" || visible.length === 0) ? (
+        <LinkedCalendar />
+      ) : (
+        <>
+          {connectedListings.length > 0 && (
+            <button className="btn sm secondary" style={{ marginBottom: 12 }} onClick={() => setManualOpen(true)}>
+              + Add a booking manually
+            </button>
+          )}
+
+          <CalendarView
+            bookings={visible}
+            cancelledBookings={cancelledList}
+            externalBookings={externalBookings}
+            legendProps={legendProps}
+            propertySummaries={propertySummaries}
+            colorForListing={colorForListing}
+            propForAddr={propForAddr}
+            onEdit={(b) => setEditFor(b)}
+            onReview={(b) => setReviewFor(b)}
+            onRefund={(b) => setRefundFor(b)}
+            onTip={(b) => setTipFor(b)}
+            onAddForDay={(date) => {
+              sessionStorage.setItem("book-preset", JSON.stringify({ date }));
+              nav("/book");
+            }}
+            onBookTurnaround={bookTurnaround}
+            onRemoveStay={removeExternalBooking}
+          />
+        </>
+      )}
 
       {cancelledList.length > 0 && (
         <>

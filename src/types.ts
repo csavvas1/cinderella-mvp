@@ -104,12 +104,15 @@ export interface ChatMessage {
   aiReply?: boolean;
 }
 
-// A guest conversation shown in the inbox list.
+// A conversation shown in the unified inbox list. `kind` distinguishes a guest
+// (OTA / Pro) thread from a cleaner<->customer chat thread.
 export interface ChatThread {
   id: string;
-  guest: string;
+  kind: "guest" | "cleaner";
+  guest: string;           // guest name, or cleaner name for kind==="cleaner"
   property: string;
   reservationId?: string;
+  cleanerId?: string;      // set for kind==="cleaner"
   platform: ListingPlatform;
   subject: string;         // sub-line in the list ("Day of Arrival — Welcome Email")
   dateRange: string;       // "18 Jul - 24 Jul"

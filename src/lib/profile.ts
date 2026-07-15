@@ -485,6 +485,7 @@ export interface ProfileFields {
   accountNo?: number;   // friendly display number (read-only; UUID stays the real id)
   favourites?: string[]; // saved cleaner ids
   pro?: boolean;         // paid Pro tier (channel-manager access)
+  autoMessageTemplate?: string; // template auto-sent on booking create
 }
 
 // Shape of a row from public.users (snake_case columns).
@@ -505,6 +506,7 @@ export interface UsersRow {
   account_no: number | null;
   favourites: string[] | null;
   pro: boolean | null;
+  auto_message_template: string | null;
 }
 
 // Postgres row -> local profile fields.
@@ -526,6 +528,7 @@ export function rowToProfile(row: UsersRow): ProfileFields {
     accountNo: row.account_no ?? undefined,
     favourites: row.favourites ?? undefined,
     pro: row.pro ?? false,
+    autoMessageTemplate: row.auto_message_template ?? undefined,
   };
 }
 
@@ -548,5 +551,6 @@ export function profileToRow(patch: Partial<ProfileFields>): Record<string, unkn
   if (patch.supplyWarningAckVersion !== undefined) out.supply_warning_ack_version = patch.supplyWarningAckVersion;
   if (patch.favourites !== undefined) out.favourites = patch.favourites;
   if (patch.pro !== undefined) out.pro = patch.pro;
+  if (patch.autoMessageTemplate !== undefined) out.auto_message_template = patch.autoMessageTemplate;
   return out;
 }

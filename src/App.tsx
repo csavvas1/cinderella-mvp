@@ -25,13 +25,14 @@ function captureJoinCode(): string {
 captureJoinCode();
 
 // Tab order per side — swipe navigation cycles within the current side only.
-const CUSTOMER_TABS = ["/book", "/bookings"];
+const CUSTOMER_TABS = ["/book", "/bookings", "/messages"];
 const AGENT_TABS = ["/agent/jobs", "/agent/calendar", "/agent/referrals"];
 
 // The page component shown for each swipeable tab path.
 const TAB_PAGE: Record<string, () => JSX.Element> = {
   "/book": () => <Book />,
   "/bookings": () => <Bookings />,
+  "/messages": () => <Messages />,
   "/agent/jobs": () => <Jobs />,
   "/agent/calendar": () => <Calendar />,
   "/agent/referrals": () => <Referrals />,
@@ -46,9 +47,7 @@ import AllReviews from "./screens/customer/AllReviews";
 import Confirmed from "./screens/customer/Confirmed";
 import Bookings from "./screens/customer/Bookings";
 import Account from "./screens/customer/Account";
-import Reservations from "./screens/customer/Reservations";
-import Inbox from "./screens/customer/Inbox";
-import ProGate from "./screens/customer/ProUpgrade";
+import Messages from "./screens/customer/Messages";
 
 import Jobs from "./screens/agent/Jobs";
 import JobDetail from "./screens/agent/JobDetail";
@@ -234,8 +233,6 @@ function Shell() {
                 <Route path="/cleaner/:id" element={<CleanerDetail />} />
                 <Route path="/reviews/:id" element={<AllReviews />} />
                 <Route path="/confirmed/:id" element={<Confirmed />} />
-                <Route path="/reservations" element={<ProGate title="Reservations"><Reservations /></ProGate>} />
-                <Route path="/inbox" element={<ProGate title="Guest inbox"><Inbox /></ProGate>} />
                 <Route path="/agent/job/:id" element={<JobDetail />} />
                 <Route path="*" element={<Navigate to="/book" replace />} />
               </Routes>
