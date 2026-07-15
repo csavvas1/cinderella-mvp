@@ -351,7 +351,10 @@ export default function Account() {
           <div className="row" style={{ gap: 8, minWidth: 0 }}>
             <div className="profcard__val" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, flex: 1 }}>{userEmail}</div>
             {pro
-              ? <span className="planbadge planbadge--pro">Pro</span>
+              ? <span className="planbadge planbadge--pro">
+                  <svg className="planbadge__crown" viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true"><path d="M3 8l4 4 5-7 5 7 4-4-1.5 10.5h-15L3 8Z" /></svg>
+                  Pro
+                </span>
               : <span className="planbadge">Standard</span>}
           </div>
           {userPhone

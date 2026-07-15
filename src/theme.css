@@ -2237,14 +2237,18 @@ input[type="range"]::-webkit-slider-thumb {
 
 /* plan pill next to the email on the profile card */
 .planbadge {
-  flex: none; display: inline-block; font-size: 10.5px; font-weight: 800; letter-spacing: .4px;
-  text-transform: uppercase; padding: 3px 10px; border-radius: 999px;
-  background: var(--indigo-soft); color: var(--indigo); border: 1px solid var(--indigo);
+  flex: none; display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10.5px; font-weight: 800; letter-spacing: .4px; text-transform: uppercase;
+  padding: 3px 10px; border-radius: 999px;
+  background: var(--surface); color: var(--text); border: 1px solid var(--border);
 }
+/* Pro: grand gold pill with a crown */
 .planbadge--pro {
-  background: linear-gradient(135deg, var(--indigo), var(--indigo-dark)); color: #fff; border-color: transparent;
-  box-shadow: 0 2px 8px rgba(79,70,229,.35);
+  color: #4a3708; border-color: transparent; text-transform: none; letter-spacing: .2px;
+  background: linear-gradient(135deg, #ffe08a, #f5b301);
+  box-shadow: 0 2px 8px rgba(245,179,1,.45);
 }
+.planbadge__crown { color: #7a5a00; }
 
 /* prominent Go-Pro CTA button (profile → Plan) */
 .gopro-btn {
