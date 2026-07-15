@@ -212,45 +212,44 @@ export default function Bookings() {
         </>
       )}
 
-      {/* Linked (Pro) vs Unlinked calendar toggle — only when both exist */}
-      {hasLinked && visible.length > 0 && (
-        <div className="segmini" style={{ marginBottom: 12 }}>
-          <button className={calMode === "linked" ? "active" : ""} onClick={() => setCalMode("linked")}>Linked</button>
-          <button className={calMode === "unlinked" ? "active" : ""} onClick={() => setCalMode("unlinked")}>Unlinked</button>
-        </div>
-      )}
+      {(() => {
+        const showLinked = hasLinked && (calMode === "linked" || visible.length === 0);
+        return (
+          <>
+            {/* toggle + (linked only) compact manual-booking button — same height */}
+            {((hasLinked && visible.length > 0) || showLinked) && (
+              <div className="calbar-top">
+                {hasLinked && visible.length > 0 && (
+                  <div className="segmini grow">
+                    <button className={calMode === "linked" ? "active" : ""} onClick={() => setCalMode("linked")}>Linked</button>
+                    <button className={calMode === "unlinked" ? "active" : ""} onClick={() => setCalMode("unlinked")}>Unlinked</button>
+                  </div>
+                )}
+                {showLinked && (
+                  <button className="calbar-top__add" onClick={() => setManualOpen(true)}>+ Add booking</button>
+                )}
+              </div>
+            )}
 
-      {hasLinked && (calMode === "linked" || visible.length === 0) ? (
-        <LinkedCalendar />
-      ) : (
-        <>
-          {connectedListings.length > 0 && (
-            <button className="btn sm secondary" style={{ marginBottom: 12 }} onClick={() => setManualOpen(true)}>
-              + Add a booking manually
-            </button>
-          )}
-
-          <CalendarView
-            bookings={visible}
-            cancelledBookings={cancelledList}
-            externalBookings={externalBookings}
-            legendProps={legendProps}
-            propertySummaries={propertySummaries}
-            colorForListing={colorForListing}
-            propForAddr={propForAddr}
-            onEdit={(b) => setEditFor(b)}
-            onReview={(b) => setReviewFor(b)}
-            onRefund={(b) => setRefundFor(b)}
-            onTip={(b) => setTipFor(b)}
-            onAddForDay={(date) => {
-              sessionStorage.setItem("book-preset", JSON.stringify({ date }));
-              nav("/book");
-            }}
-            onBookTurnaround={bookTurnaround}
-            onRemoveStay={removeExternalBooking}
-          />
-        </>
-      )}
+            {showLinked ? (
+              <LinkedCalendar extra={externalBookings} />
+            ) : (
+              <CalendarView
+                bookings={visible}
+                cancelledBookings={cancelledList}
+                onEdit={(b) => setEditFor(b)}
+                onReview={(b) => setReviewFor(b)}
+                onRefund={(b) => setRefundFor(b)}
+                onTip={(b) => setTipFor(b)}
+                onAddForDay={(date) => {
+                  sessionStorage.setItem("book-preset", JSON.stringify({ date }));
+                  nav("/book");
+                }}
+              />
+            )}
+          </>
+        );
+      })()}
 
       {cancelledList.length > 0 && (
         <>
@@ -744,23 +743,15 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
 
 /* ---------------- calendar ---------------- */
 function CalendarView({
-  bookings, cancelledBookings, externalBookings, legendProps, propertySummaries, colorForListing, propForAddr,
-  onEdit, onReview, onRefund, onTip, onAddForDay, onBookTurnaround, onRemoveStay,
+  bookings, cancelledBookings, onEdit, onReview, onRefund, onTip, onAddForDay,
 }: {
   bookings: Booking[];
   cancelledBookings: Booking[];
-  externalBookings: import("../../types").ExternalBooking[];
-  legendProps: { color: string; nick: string }[];
-  propertySummaries: PropertySummary[];
-  colorForListing: (id: string) => string;
-  propForAddr: (addrId: string | undefined) => { color: string; nick: string };
   onEdit: (b: Booking) => void;
   onReview: (b: Booking) => void;
   onRefund: (b: Booking) => void;
   onTip: (b: Booking) => void;
   onAddForDay: (date: string) => void;
-  onBookTurnaround: (addressId: string | undefined, date: string, externalBookingId?: string) => void;
-  onRemoveStay: (id: string) => void;
 }) {
   const [month, setMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
   const [selected, setSelected] = useState<string | null>(null);
@@ -798,89 +789,6 @@ function CalendarView({
     return map;
   }, [cancelledBookings]);
 
-  // external guest stays keyed by every date they span, tagged in/out/stay
-  const extByDate = useMemo(() => {
-    const map: Record<string, { b: typeof externalBookings[number]; kind: "in" | "out" | "stay" }[]> = {};
-    for (const b of externalBookings) {
-      const start = new Date(b.checkIn + "T00:00:00");
-      const end = new Date(b.checkOut + "T00:00:00");
-      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-        const kind = key === b.checkIn ? "in" : key === b.checkOut ? "out" : "stay";
-        (map[key] ??= []).push({ b, kind });
-      }
-    }
-    return map;
-  }, [externalBookings]);
-
-  // Lane assignment: guest stays as horizontal bars. Greedy first-fit so each
-  // stay keeps one lane across every cell it spans; overlapping stays get
-  // different lanes. Bars are thin (2px) so several fit a single square cell
-  // without crowding the day number.
-  const LANES = 5;
-  const stayLanes = useMemo(() => {
-    const pad = (n: number) => String(n).padStart(2, "0");
-    const monthStart = `${y}-${pad(m + 1)}-01`;
-    const monthEnd = `${y}-${pad(m + 1)}-${pad(daysInMonth)}`;
-    const stays = externalBookings
-      .filter((b) => b.checkOut >= monthStart && b.checkIn <= monthEnd)
-      .slice()
-      .sort((a, b) => (a.checkIn === b.checkIn ? b.checkOut.localeCompare(a.checkOut) : a.checkIn.localeCompare(b.checkIn)));
-
-    const laneEnd: string[] = [];
-    const lane: Record<string, number> = {};
-    for (const s of stays) {
-      let i = laneEnd.findIndex((end) => s.checkIn > end);
-      if (i === -1) i = laneEnd.length;
-      laneEnd[i] = s.checkOut;
-      lane[s.id] = i;
-    }
-
-    type Seg = { color: string; cap: "in" | "out" | "mid" | "solo" };
-    const byDate: Record<string, (Seg | undefined)[]> = {};
-    const overflow: Record<string, number> = {};
-    // rendered checkouts only: checkout day of a stay whose bar is actually drawn.
-    // Keeps the corner marker in sync with a visible bar-end (no phantom corners).
-    const checkoutsByDate: Record<string, { addressId?: string; color: string }[]> = {};
-    for (const s of stays) {
-      // manual stays have no listing; fall back to the property's colour
-      const color = colorForListing(s.listingId) || propForAddr(s.addressId).color;
-      const shown = lane[s.id] < LANES;
-      const start = new Date(s.checkIn + "T00:00:00");
-      const end = new Date(s.checkOut + "T00:00:00");
-      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-        const key = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-        const cap: Seg["cap"] = s.checkIn === s.checkOut ? "solo" : key === s.checkIn ? "in" : key === s.checkOut ? "out" : "mid";
-        if (shown) (byDate[key] ??= [])[lane[s.id]] = { color, cap };
-        else overflow[key] = (overflow[key] ?? 0) + 1;
-      }
-      if (shown) (checkoutsByDate[s.checkOut] ??= []).push({ addressId: s.addressId, color });
-    }
-    return { byDate, overflow, checkoutsByDate };
-  }, [externalBookings, y, m, daysInMonth]);
-
-  // Checkout markers per day, derived from the RENDERED checkouts (so a corner
-  // never appears without a visible bar-end). One marker PER property checking
-  // out that day (multiple checkouts on one day each get their own corner tab).
-  // Corner = property colour; solid = cleaning booked, hollow = not booked.
-  const checkoutState = useMemo(() => {
-    const map: Record<string, { state: "needs" | "booked"; color: string }[]> = {};
-    for (const [date, outs] of Object.entries(stayLanes.checkoutsByDate)) {
-      // dedupe by colour so two listings on the SAME property don't double-draw
-      const seen = new Set<string>();
-      for (const o of outs) {
-        if (seen.has(o.color)) continue;
-        seen.add(o.color);
-        const nick = propForAddr(o.addressId).nick;
-        const booked = bookings.some(
-          (b) => b.status !== "cancelled" && b.status !== "declined" && b.addressNickname === nick && b.date === date
-        );
-        (map[date] ??= []).push({ state: booked ? "booked" : "needs", color: o.color });
-      }
-    }
-    return map;
-  }, [stayLanes, bookings]);
-
   const nowD = new Date();
   const atCurrentMonth = y === nowD.getFullYear() && m === nowD.getMonth();
   const monthName = month.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
@@ -894,7 +802,6 @@ function CalendarView({
   const today = `${todayD.getFullYear()}-${String(todayD.getMonth() + 1).padStart(2, "0")}-${String(todayD.getDate()).padStart(2, "0")}`;
 
   const selBookings = selected ? byDate[selected] ?? [] : [];
-  const selExt = selected ? extByDate[selected] ?? [] : [];
 
   return (
     <div style={{ marginTop: 8 }}>
@@ -912,53 +819,27 @@ function CalendarView({
           if (day === null) return <div key={i} />;
           const date = iso(day);
           const dayBookings = byDate[date] ?? [];
-          const ext = extByDate[date] ?? [];
-          // guest-stay bar segments per lane (faint context, max 2)
-          const segs = stayLanes.byDate[date] ?? [];
-          // checkout markers (one per property checking out this day)
-          const checkouts = checkoutState[date] ?? [];
-          // cleaning dot: any cleaning booked this day (own home or linked). One
-          // dot, status-coloured, so cleanings show even with no guest stay.
           const cleanStatus = dayBookings.length
             ? (dayBookings.some((b) => b.status === "confirmed" || b.status === "upcoming") ? "up"
               : dayBookings.some((b) => b.status === "awaiting") ? "wait" : "done")
             : null;
-          // red dot when a cleaner-cancelled/declined booking sits on this day
           const hasCancelled = (cancelledByDate[date] ?? []).length > 0;
           const isPast = date < today;
           const cls =
             "calcell" +
-            (dayBookings.length || ext.length || hasCancelled ? " has" : "") +
+            (dayBookings.length || hasCancelled ? " has" : "") +
             (date === today ? " today" : "") +
             (isPast ? " past" : "") +
             (selected === date ? " sel" : "");
-          // a day with a cancelled booking stays tappable even if past, so the
-          // customer can open it and rebook.
           const clickable = !isPast || hasCancelled;
           return (
             <button key={i} className={cls} disabled={!clickable} onClick={() => { if (clickable) setSelected((cur) => (cur === date ? null : date)); }}>
-              {/* one corner tab per property checking out — offset left so each
-                  colour is visible when multiple check out the same day */}
-              {checkouts.map((c, ci) => (
-                <svg key={ci} className="caltab" viewBox="0 0 16 16" width="13" height="13" aria-hidden
-                  style={{ right: ci * 8 }}>
-                  <path d="M16 0 L0 0 L16 16 Z"
-                    fill={c.state === "booked" ? c.color : "none"}
-                    stroke={c.color}
-                    strokeWidth={c.state === "booked" ? 0 : 3} />
-                </svg>
-              ))}
               <span className="calhd">
                 <span className="calnum">{day}</span>
+              </span>
+              <span className="caldots">
                 {cleanStatus && <span className={"cdot " + cleanStatus} />}
                 {hasCancelled && <span className="cdot cancelled" />}
-              </span>
-              <span className="callanes">
-                {Array.from({ length: LANES }).map((_, li) => (
-                  <span key={li} className="callane">
-                    {segs[li] && <span className={"calbar cap-" + segs[li]!.cap} style={{ background: segs[li]!.color }} />}
-                  </span>
-                ))}
               </span>
             </button>
           );
@@ -973,57 +854,7 @@ function CalendarView({
           <span><span className="cdot done" /> Completed</span>
           <span><span className="cdot cancelled" /> Cancelled</span>
         </div>
-        {legendProps.length > 0 && (
-          <div className="callegend__grp">
-            <span className="callegend__lbl">Linked properties</span>
-            {legendProps.map((p, i) => (
-              <span key={i}><span className="calbarswatch" style={{ background: p.color }} /> {p.nick}</span>
-            ))}
-          </div>
-        )}
       </div>
-
-      {/* default panel (no day selected): per-property summary */}
-      {!selected && propertySummaries.length > 0 && (
-        <div style={{ marginTop: 18 }}>
-          <div className="label" style={{ marginTop: 0 }}>Your properties</div>
-          {propertySummaries.map((p) => (
-            <div key={p.addrId ?? p.nick} className="card propsum"
-              onClick={() => p.nextCheckout && setSelected(p.nextCheckout)}
-              style={{ cursor: p.nextCheckout ? "pointer" : "default" }}>
-              <div className="row" style={{ minWidth: 0, gap: 8 }}>
-                <span className="propswatch" style={{ background: p.color }} />
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <div className="row" style={{ minWidth: 0, gap: 6 }}>
-                    <b style={{ fontSize: 13.5, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.nick}</b>
-                    {p.platforms.map((pl) => <span key={pl} className={"platbadge " + pl}>{platformLabel(pl)}</span>)}
-                  </div>
-                  {p.nextCheckout ? (
-                    <div className="tiny muted" style={{ marginTop: 2 }}>
-                      Checkout {fmtDayShort(p.nextCheckout)}
-                      {p.nextCheckin ? ` · next guest ${fmtDayShort(p.nextCheckin)}` : ""}
-                    </div>
-                  ) : (
-                    <div className="tiny muted" style={{ marginTop: 2 }}>No upcoming guest stays</div>
-                  )}
-                </div>
-              </div>
-              {p.nextCheckout && (
-                <div className="propsum__foot">
-                  {p.cover ? (
-                    <span className="propsum__ok">✓ Cleaning booked · {p.cover.time}</span>
-                  ) : (
-                    <button className="cleanpill" onClick={(e) => { e.stopPropagation(); onBookTurnaround(p.addrId, p.nextCheckout!, p.nextCheckoutId); }}>
-                      Book a cleaner
-                      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
 
       {selected && (
         <>
@@ -1034,50 +865,7 @@ function CalendarView({
             <button className="btn sm" onClick={() => onAddForDay(selected)}>+ Add</button>
           </div>
 
-          {selExt.length > 0 && <div className="label" style={{ marginTop: 4 }}>Guests</div>}
-          {/* guest stays from connected platforms */}
-          {selExt.map(({ b, kind }) => {
-            const prop = propForAddr(b.addressId);
-            const kindLabel = kind === "in" ? "Check-in" : kind === "out" ? "Check-out" : "Staying";
-            const cover = kind === "out"
-              ? selBookings.find((x) => x.addressNickname === prop.nick)
-              : undefined;
-            return (
-              <div key={b.id} className="card gueststay">
-                <div className="row" style={{ minWidth: 0, gap: 8 }}>
-                  <span className="propswatch" style={{ background: prop.color }} />
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div className="between" style={{ gap: 8, minHeight: 24 }}>
-                      <div className="row" style={{ minWidth: 0, gap: 6 }}>
-                        <b style={{ fontSize: 13.5, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{prop.nick}</b>
-                        <span className={"platbadge " + b.platform}>{platformLabel(b.platform)}</span>
-                        {/* manual (non-platform) stays can be deleted here */}
-                        {b.platform === "other" && (
-                          <button className="iconbtn" style={{ width: 24, height: 24, fontSize: 13, marginLeft: 2 }}
-                            title="Delete this booking"
-                            onClick={(e) => { e.stopPropagation(); if (confirm("Delete this manual booking?")) onRemoveStay(b.id); }}>✕</button>
-                        )}
-                      </div>
-                      {kind === "out" && (cover ? (
-                        <span className="propsum__ok" style={{ fontSize: 11.5 }}>✓ Clean {cover.time}</span>
-                      ) : (
-                        <button className="cleanpill" onClick={() => onBookTurnaround(b.addressId, b.checkOut, b.id)}>
-                          Book a cleaner
-                          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-                        </button>
-                      ))}
-                    </div>
-                    <div className="row" style={{ marginTop: 3, gap: 6, minWidth: 0 }}>
-                      <span className={"kindtag " + kind}>{kindLabel}</span>
-                      <span className="tiny muted" style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.guest}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-
-          {selBookings.length === 0 && selExt.length === 0 && (
+          {selBookings.length === 0 && (
             <div className="emptyday">
               <div className="emptyday__ic">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
@@ -1090,7 +878,7 @@ function CalendarView({
             </div>
           )}
 
-          {selBookings.length > 0 && <div className="label" style={{ marginTop: selExt.length ? 12 : 4 }}>Cleanings</div>}
+          {selBookings.length > 0 && <div className="label" style={{ marginTop: 4 }}>Cleanings</div>}
           {selBookings.map((b) => (
             <div key={b.id} className="card">
               <div className="row">

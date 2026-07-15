@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import PlatformIcon from "./PlatformIcon";
 import { platformName } from "../data/ical";
 import { SEED_RESERVATIONS } from "../data/reservations";
-import type { Reservation } from "../types";
+import type { ExternalBooking, Reservation } from "../types";
 
 function pad(n: number) { return String(n).padStart(2, "0"); }
 function todayISO() { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
@@ -19,10 +19,21 @@ function daysBetween(a: string, b: string) {
 
 // Screenshot-style calendar: week rows with reservation bars spanning check-in →
 // check-out across the row. Tap a bar → detail card renders below the grid.
-export default function LinkedCalendar() {
+export default function LinkedCalendar({ extra = [] }: { extra?: ExternalBooking[] }) {
   const nav = useNavigate();
   const [month, setMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
   const [sel, setSel] = useState<Reservation | null>(null);
+
+  // merge mock reservations with any hand-added manual bookings (externalBookings)
+  const allRes: Reservation[] = useMemo(() => {
+    const manual: Reservation[] = extra.map((b) => ({
+      id: b.id, platform: b.platform, guest: b.guest, property: "Manual booking",
+      propertyPhoto: "", checkIn: b.checkIn, checkOut: b.checkOut,
+      nights: Math.max(1, Math.round((new Date(b.checkOut + "T00:00:00").getTime() - new Date(b.checkIn + "T00:00:00").getTime()) / 86400000)),
+      guests: 1, status: "booked",
+    }));
+    return [...SEED_RESERVATIONS, ...manual];
+  }, [extra]);
 
   const y = month.getFullYear();
   const m = month.getMonth();
@@ -40,12 +51,12 @@ export default function LinkedCalendar() {
 
   // reservations that intersect this month
   const monthRes = useMemo(
-    () => SEED_RESERVATIONS.filter((r) => {
+    () => allRes.filter((r) => {
       const s = new Date(r.checkIn + "T00:00:00"), e = new Date(r.checkOut + "T00:00:00");
       const first = new Date(y, m, 1), last = new Date(y, m + 1, 0);
       return e >= first && s <= last;
     }),
-    [y, m]
+    [allRes, y, m]
   );
 
   // For each week row, compute bar segments (col start + span) + lane stacking.
@@ -103,12 +114,12 @@ export default function LinkedCalendar() {
                   </div>
                 ))}
               </div>
-              {/* bar layer */}
-              <div className="lc__bars" style={{ height: lanes * 24 + 4 }}>
+              {/* bar layer — padding-top (28) clears the day-number row */}
+              <div className="lc__bars" style={{ height: 28 + lanes * 24 + 4 }}>
                 {bars.map((s, i) => (
                   <button key={i}
                     className={"lc__bar lc__bar--" + s.r.platform + (s.clipL ? " clipL" : "") + (s.clipR ? " clipR" : "")}
-                    style={{ left: `calc(${(s.col / 7) * 100}% + 2px)`, width: `calc(${(s.span / 7) * 100}% - 4px)`, top: s.lane * 24 }}
+                    style={{ left: `calc(${(s.col / 7) * 100}% + 2px)`, width: `calc(${(s.span / 7) * 100}% - 4px)`, top: 28 + s.lane * 24 }}
                     onClick={() => setSel(s.r)}>
                     <PlatformIcon platform={s.r.platform} size={13} />
                     <span className="lc__barname">{s.r.guest}</span>
@@ -127,7 +138,7 @@ export default function LinkedCalendar() {
             <b style={{ fontSize: 16 }}>Booking</b>
             <button className="iconbtn" onClick={() => setSel(null)}>✕</button>
           </div>
-          <img className="rescard__photo" src={sel.propertyPhoto} alt={sel.property} loading="lazy" />
+          {sel.propertyPhoto && <img className="rescard__photo" src={sel.propertyPhoto} alt={sel.property} loading="lazy" />}
           <b style={{ fontSize: 17, display: "block", marginTop: 12 }}>{sel.guest}</b>
           <div className="tiny muted" style={{ marginBottom: 12 }}>{sel.property}</div>
           <div className="rescard__rows">

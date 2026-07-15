@@ -19,10 +19,10 @@ function Icon({ name, filled }: { name: string; filled: boolean }) {
       return filled
         ? <svg viewBox="0 0 24 24" width="24" height="24"><rect x="3" y="4.5" width="18" height="16" rx="3" fill="currentColor" /><path d="M8 2.5v4M16 2.5v4" stroke="#fff" strokeWidth="1.9" strokeLinecap="round" /><rect x="3" y="8.5" width="18" height="1.6" fill="#fff" /></svg>
         : <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="3" /><path d="M8 2.5v4M16 2.5v4M3 9h18" /></svg>;
-    case "messages": // chat bubble
+    case "messages": // two overlapping chat bubbles
       return filled
-        ? <svg viewBox="0 0 24 24" width="24" height="24"><path d="M21 11.5a7.5 7.5 0 0 1-10.9 6.7L4 20l1.3-4.2A7.5 7.5 0 1 1 21 11.5Z" fill="currentColor" /></svg>
-        : <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a7.5 7.5 0 0 1-10.9 6.7L4 20l1.3-4.2A7.5 7.5 0 1 1 21 11.5Z" /></svg>;
+        ? <svg viewBox="0 0 24 24" width="24" height="24"><path d="M3 6.5A2.5 2.5 0 0 1 5.5 4h9A2.5 2.5 0 0 1 17 6.5v4A2.5 2.5 0 0 1 14.5 13H8l-3.5 3v-3H5.5A2.5 2.5 0 0 1 3 10.5Z" fill="currentColor" /><path d="M9 15.5v.5A2.5 2.5 0 0 0 11.5 18.5H16l3.5 3v-3h.5A2.5 2.5 0 0 0 22.5 16v-4a2.5 2.5 0 0 0-2.5-2.5H19" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        : <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6.5A2.5 2.5 0 0 1 5.5 4h9A2.5 2.5 0 0 1 17 6.5v4A2.5 2.5 0 0 1 14.5 13H8l-3.5 3v-3H5.5A2.5 2.5 0 0 1 3 10.5Z" /><path d="M9 16A2.5 2.5 0 0 0 11.5 18.5H16l3.5 3v-3h.5A2.5 2.5 0 0 0 22.5 16v-4a2.5 2.5 0 0 0-2.5-2.5H19.5" /></svg>;
     case "user": // Account
       return filled
         ? <svg viewBox="0 0 24 24" width="24" height="24"><circle cx="12" cy="8" r="4" fill="currentColor" /><path d="M4 20c0-3.9 3.6-6.5 8-6.5s8 2.6 8 6.5Z" fill="currentColor" /></svg>

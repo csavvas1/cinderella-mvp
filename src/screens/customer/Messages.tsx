@@ -43,7 +43,7 @@ export default function Messages() {
 }
 
 function ThreadList({ onOpen }: { onOpen: (id: string) => void }) {
-  const { messageThreads } = useStore();
+  const { messageThreads, pro } = useStore();
   const [q, setQ] = useState("");
   const [autoOpen, setAutoOpen] = useState(false);
   const list = useMemo(
@@ -56,7 +56,7 @@ function ThreadList({ onOpen }: { onOpen: (id: string) => void }) {
     <>
       <div className="between" style={{ marginBottom: 10 }}>
         <h1 className="h1" style={{ margin: 0 }}>Messages</h1>
-        <button className="btn sm secondary" onClick={() => setAutoOpen(true)}>+ Automation</button>
+        {pro && <button className="btn sm secondary" onClick={() => setAutoOpen(true)}>+ Automation</button>}
       </div>
       <input className="input" placeholder="Search" value={q} onChange={(e) => setQ(e.target.value)} style={{ marginBottom: 10 }} />
       {list.length === 0 && <div className="note">No messages yet.</div>}
