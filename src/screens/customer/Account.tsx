@@ -348,15 +348,15 @@ export default function Account() {
       {/* ===================== PROFILE (compact, no photo/name) ===== */}
       <div className="profcard profcard--v2" onClick={() => setEditProfile(true)}>
         <div className="grow" style={{ minWidth: 0 }}>
-          <div className="profcard__val" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{userEmail}</div>
+          <div className="row" style={{ gap: 8, minWidth: 0 }}>
+            <div className="profcard__val" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, flex: 1 }}>{userEmail}</div>
+            {pro
+              ? <span className="planbadge planbadge--pro">Pro</span>
+              : <span className="planbadge">Standard</span>}
+          </div>
           {userPhone
             ? <div className="profcard__val" style={{ marginTop: 2 }}>{userPhone}</div>
             : <div className="tiny" style={{ color: "var(--amber)", fontWeight: 700, marginTop: 3 }}>Phone required — tap to add</div>}
-          <div style={{ marginTop: 8 }}>
-            {pro
-              ? <span className="planbadge planbadge--pro">{APP_NAME} Pro</span>
-              : <span className="planbadge">Standard · tap to go Pro</span>}
-          </div>
           {accountNo && (
             <div className="acctno" style={{ marginTop: 8 }}>
               <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
