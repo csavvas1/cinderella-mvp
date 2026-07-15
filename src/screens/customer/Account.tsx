@@ -60,7 +60,7 @@ export default function Account() {
     connectedListings, addListing, removeListing,
     recordConsent, consents, hasAcceptedCurrent,
     agentProfile, setAgentProfile,
-    pushEnabled, requestPushPermission,
+    pushEnabled, requestPushPermission, disablePushNotifications,
     verification, submitVerification,
   } = useStore();
 
@@ -68,6 +68,12 @@ export default function Account() {
   const [pushErr, setPushErr] = useState("");
   async function togglePush() {
     setPushErr(""); setPushBusy(true);
+    if (pushEnabled) {
+      const res = await disablePushNotifications();
+      setPushBusy(false);
+      if (res.error) setPushErr(res.error);
+      return;
+    }
     const res = await requestPushPermission();
     setPushBusy(false);
     if (!res.granted && res.error) setPushErr(res.error);
@@ -814,7 +820,7 @@ export default function Account() {
 
       <div className="card row between" style={{ marginTop: 12, cursor: pushBusy ? "default" : "pointer", opacity: pushBusy ? 0.6 : 1 }}
         onClick={() => { if (!pushBusy) togglePush(); }}>
-        <b style={{ fontSize: 14 }}>{pushBusy ? "Enabling…" : "Push notifications"}</b>
+        <b style={{ fontSize: 14 }}>{pushBusy ? (pushEnabled ? "Disabling…" : "Enabling…") : "Push notifications"}</b>
         <div className={"switch" + (pushEnabled ? " on" : "")}><div className="switch__dot" /></div>
       </div>
       {pushErr && <div className="loginerr" style={{ marginTop: 8 }}>{pushErr}</div>}

@@ -8,7 +8,7 @@ import { makeReferralCode } from "../data/referral";
 import { priceJob } from "../data/platform";
 import { supabase } from "../lib/supabase";
 import { registerBiometric, verifyBiometric } from "../lib/webauthn";
-import { enablePush, syncExistingSubscription } from "../lib/push";
+import { enablePush, disablePush, syncExistingSubscription } from "../lib/push";
 import { rowToProfile, profileToRow, rowToAddress, addressToRow, rowToCard, cardToRow, rowToBooking, bookingToRow, rowToJob, jobToRow, rowToNotif, notifToRow, rowToListing, listingToRow, rowToExternalBooking, externalBookingToRow, rowToReview, reviewToRow, type ProfileFields, type UsersRow, type AddressRow, type CardRow, type BookingRow, type JobRow, type NotifRow, type ListingRow, type ExternalBookingRow, type ReviewRow } from "../lib/profile";
 
 export interface AgentProfile {
@@ -335,6 +335,7 @@ interface AppState {
   // browser push
   pushEnabled: boolean;
   requestPushPermission: () => Promise<{ granted: boolean; error?: string }>;
+  disablePushNotifications: () => Promise<{ error?: string }>;
 
   dark: boolean;              // resolved theme (system pref applied)
   toggleDark: () => void;     // quick flip between light/dark (sets explicit pref)
@@ -1585,6 +1586,11 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       // notifications arrive even when the app is closed
       const res = await enablePush();
       setPushEnabled(res.granted);
+      return res;
+    },
+    disablePushNotifications: async () => {
+      const res = await disablePush();
+      if (!res.error) setPushEnabled(false);
       return res;
     },
     markNotificationsRead: (audience) => {
