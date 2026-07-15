@@ -179,7 +179,6 @@ export default function DetailsModal({
                 </span>
                 <span className="gopro-btn__chev">›</span>
               </button>
-              <div className="note" style={{ marginTop: 8 }}>Demo — no real charge.</div>
             </div>
           )
         )}
