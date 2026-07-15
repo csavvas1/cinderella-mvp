@@ -484,6 +484,7 @@ export interface ProfileFields {
   supplyWarningAckVersion?: number;
   accountNo?: number;   // friendly display number (read-only; UUID stays the real id)
   favourites?: string[]; // saved cleaner ids
+  pro?: boolean;         // paid Pro tier (channel-manager access)
 }
 
 // Shape of a row from public.users (snake_case columns).
@@ -503,6 +504,7 @@ export interface UsersRow {
   supply_warning_ack_version: number | null;
   account_no: number | null;
   favourites: string[] | null;
+  pro: boolean | null;
 }
 
 // Postgres row -> local profile fields.
@@ -523,6 +525,7 @@ export function rowToProfile(row: UsersRow): ProfileFields {
     supplyWarningAckVersion: row.supply_warning_ack_version ?? undefined,
     accountNo: row.account_no ?? undefined,
     favourites: row.favourites ?? undefined,
+    pro: row.pro ?? false,
   };
 }
 
@@ -544,5 +547,6 @@ export function profileToRow(patch: Partial<ProfileFields>): Record<string, unkn
   }
   if (patch.supplyWarningAckVersion !== undefined) out.supply_warning_ack_version = patch.supplyWarningAckVersion;
   if (patch.favourites !== undefined) out.favourites = patch.favourites;
+  if (patch.pro !== undefined) out.pro = patch.pro;
   return out;
 }

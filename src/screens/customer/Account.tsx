@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useStore } from "../../context/AppStore";
 import { BrandIcon } from "../../components/PaymentPicker";
 import DetailsModal from "../../components/DetailsModal";
@@ -62,7 +63,10 @@ export default function Account() {
     agentProfile, setAgentProfile,
     pushEnabled, requestPushPermission, disablePushNotifications,
     verification, submitVerification,
+    pro, closeAccount,
   } = useStore();
+  const nav = useNavigate();
+  function openPro(path: string) { closeAccount(); nav(path); }
 
   const [pushBusy, setPushBusy] = useState(false);
   const [pushErr, setPushErr] = useState("");
@@ -705,6 +709,23 @@ export default function Account() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ===================== PRO (channel manager) ===================== */}
+      <div className="acct-sec">Pro — Channel manager {!pro && <span className="pro-pill">PRO</span>}</div>
+
+      <div className="card row between" style={{ marginTop: 12, cursor: "pointer" }} onClick={() => openPro("/reservations")}>
+        <b style={{ fontSize: 14 }}>Reservations</b>
+        <span className="dayrow__chev">›</span>
+      </div>
+      <div className="card row between" style={{ marginTop: 12, cursor: "pointer" }} onClick={() => openPro("/inbox")}>
+        <b style={{ fontSize: 14 }}>Guest inbox</b>
+        <span className="dayrow__chev">›</span>
+      </div>
+      {!pro && (
+        <div className="note" style={{ marginTop: 8 }}>
+          Upgrade to Pro to link your properties to Airbnb, Booking.com, Vrbo & more — one calendar, one inbox.
         </div>
       )}
 

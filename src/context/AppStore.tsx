@@ -61,6 +61,7 @@ interface AccountData {
   customerRep?: CustomerReputation; // this account's reputation AS a customer (rated by agents)
   referralCode?: string;        // this account's own code to share
   referredByCode?: string;      // the code this account signed up with (if any)
+  pro?: boolean;                           // paid "Pro" tier: unlocks channel-manager (reservations + inbox)
   connectedListings?: ConnectedListing[]; // channel-manager: synced platforms
   externalBookings?: ExternalBooking[];   // guest stays pulled from platforms
   notifications?: AppNotification[];       // in-app alert feed (both sides)
@@ -247,6 +248,8 @@ interface AppState {
   deleteAddress: (id: string) => void;
   setAddressCard: (addrId: string, cardId: string | undefined) => void;
 
+  pro: boolean;
+  upgradeToPro: () => void;
   connectedListings: ConnectedListing[];
   externalBookings: ExternalBooking[];
   addListing: (l: ConnectedListing, bookings: ExternalBooking[]) => void;
@@ -788,6 +791,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           supplyWarningAckVersion: profile?.supplyWarningAckVersion ?? base.supplyWarningAckVersion,
           accountNo: profile?.accountNo ?? base.accountNo,
           favourites: profile?.favourites ?? base.favourites,
+          pro: profile?.pro ?? base.pro,
           consents: consents.length ? consents : (base.consents ?? []),
           addresses: addresses ?? base.addresses,
           cards: cards ?? base.cards,
@@ -1053,6 +1057,8 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       }
     },
 
+    pro: acct.pro ?? false,
+    upgradeToPro: () => { patchAcct({ pro: true }); writeProfile({ pro: true }); },
     connectedListings: acct.connectedListings ?? [],
     externalBookings: acct.externalBookings ?? [],
     addListing: (l, bs) => {

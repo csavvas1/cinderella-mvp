@@ -53,7 +53,7 @@ export interface Card {
 export type PropertyType = "apartment" | "house";
 
 // ---- channel manager (short-let sync) ----
-export type ListingPlatform = "airbnb" | "booking" | "vrbo" | "other";
+export type ListingPlatform = "airbnb" | "booking" | "vrbo" | "google" | "expedia" | "other";
 
 export interface ConnectedListing {
   id: string;
@@ -72,6 +72,49 @@ export interface ExternalBooking {
   checkIn: string;      // ISO date
   checkOut: string;     // ISO date
   addressId?: string;
+}
+
+// ---- Pro channel-manager UI (mock; no real API yet) ----
+// Richer reservation used by the Reservations calendar + booking detail sheet.
+export interface Reservation {
+  id: string;
+  platform: ListingPlatform;
+  guest: string;
+  property: string;
+  propertyPhoto: string;   // URL / data-URI
+  checkIn: string;         // ISO date
+  checkOut: string;        // ISO date
+  nights: number;
+  guests: number;
+  status: "booked" | "cancelled" | "completed";
+  total?: number;
+  currency?: string;
+}
+
+// A single message in a guest thread (unified inbox).
+export interface ChatMessage {
+  id: string;
+  threadId: string;
+  from: "guest" | "host";
+  title?: string;          // e.g. "Booking Confirmation", "Pre-Arrival — 2 Days Before"
+  body: string;
+  at: number;              // epoch ms
+  channel: "email" | "airbnb" | "booking";
+  automated?: boolean;
+  aiReply?: boolean;
+}
+
+// A guest conversation shown in the inbox list.
+export interface ChatThread {
+  id: string;
+  guest: string;
+  property: string;
+  reservationId?: string;
+  platform: ListingPlatform;
+  subject: string;         // sub-line in the list ("Day of Arrival — Welcome Email")
+  dateRange: string;       // "18 Jul - 24 Jul"
+  lastAt: number;
+  unread: boolean;
 }
 
 export interface PropertyAddress {
