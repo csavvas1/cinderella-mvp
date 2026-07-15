@@ -98,6 +98,7 @@ function Shell() {
   function dismissAccount() {
     setAcctClosing(true);
     closeAccount();
+    setCloseHidden(false);
     setTimeout(() => setAcctClosing(false), 300);
   }
 
@@ -143,6 +144,12 @@ function Shell() {
   // arms when the content is already scrolled to the very top, so a normal
   // scroll still scrolls and only an over-pull at the top closes the sheet.
   const scrollElRef = useRef<HTMLDivElement | null>(null);
+  // hide the close arrow once the sheet is scrolled (it overlaps content); show
+  // again at the top.
+  const [closeHidden, setCloseHidden] = useState(false);
+  function onSheetScroll() {
+    setCloseHidden((scrollElRef.current?.scrollTop ?? 0) > 8);
+  }
   const scrollArmed = useRef(false);
   function onScrollTouchStart(e: React.TouchEvent) {
     // Only allow swipe-to-close on the main account view. If a sub-panel is open
@@ -252,10 +259,10 @@ function Shell() {
               onTouchStart={onDragStart} onTouchMove={onDragMove} onTouchEnd={onDragEnd}>
               <div className="acctsheet__grab" />
             </div>
-            <button className="acctsheet__close" onClick={dismissAccount} aria-label="Close account">
+            <button className={"acctsheet__close" + (closeHidden ? " hidden" : "")} onClick={dismissAccount} aria-label="Close account">
               <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
             </button>
-            <div className="acctsheet__scroll" ref={scrollElRef}
+            <div className="acctsheet__scroll" ref={scrollElRef} onScroll={onSheetScroll}
               onTouchStart={onScrollTouchStart} onTouchMove={onScrollTouchMove} onTouchEnd={onScrollTouchEnd}>
               <Account />
             </div>

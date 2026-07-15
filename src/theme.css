@@ -304,8 +304,9 @@ body {
      older phone. flex align/justify is universally supported. */
   display: flex; align-items: center; justify-content: center;
   padding: 0; line-height: 0; color: var(--muted);
-  transition: color .15s, background .15s;
+  transition: color .15s, background .15s, opacity .2s, transform .2s;
 }
+.acctsheet__close.hidden { opacity: 0; transform: translateY(-8px); pointer-events: none; }
 /* block-level SVG removes inline baseline gap that can nudge it down on old browsers */
 .acctsheet__close svg { display: block; }
 .acctsheet__close:hover { color: var(--text); }
