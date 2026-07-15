@@ -7,7 +7,6 @@ import type { ExternalBooking, Reservation } from "../types";
 
 function pad(n: number) { return String(n).padStart(2, "0"); }
 function todayISO() { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
-const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 function fmtRange(a: string, b: string) {
   const m = (s: string) => new Date(s + "T00:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" });
@@ -17,19 +16,24 @@ function daysBetween(a: string, b: string) {
   return Math.round((new Date(b + "T00:00:00").getTime() - new Date(a + "T00:00:00").getTime()) / 86400000);
 }
 
-// Screenshot-style calendar: week rows with reservation bars spanning check-in →
-// check-out across the row. Tap a bar → detail card renders below the grid.
+// Lane pitch: bars overlap slightly so a busy day doesn't blow up the row height.
+const BAR_H = 22;
+const LANE_PITCH = 14; // < BAR_H → ~35% vertical overlap
+const TOP_OFFSET = 22; // clears the day-number
+
+// Same grid/nav as the Standard (cleaning) calendar, with the Pro booking bars
+// overlaid. Tap a bar → detail card renders below the grid.
 export default function LinkedCalendar({ extra = [] }: { extra?: ExternalBooking[] }) {
   const nav = useNavigate();
   const [month, setMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
   const [sel, setSel] = useState<Reservation | null>(null);
 
-  // merge mock reservations with any hand-added manual bookings (externalBookings)
+  // merge mock reservations with any hand-added manual bookings
   const allRes: Reservation[] = useMemo(() => {
     const manual: Reservation[] = extra.map((b) => ({
       id: b.id, platform: b.platform, guest: b.guest, property: "Manual booking",
       propertyPhoto: "", checkIn: b.checkIn, checkOut: b.checkOut,
-      nights: Math.max(1, Math.round((new Date(b.checkOut + "T00:00:00").getTime() - new Date(b.checkIn + "T00:00:00").getTime()) / 86400000)),
+      nights: Math.max(1, daysBetween(b.checkIn, b.checkOut)),
       guests: 1, status: "booked",
     }));
     return [...SEED_RESERVATIONS, ...manual];
@@ -41,15 +45,15 @@ export default function LinkedCalendar({ extra = [] }: { extra?: ExternalBooking
   const daysInMonth = new Date(y, m + 1, 0).getDate();
   const monthName = month.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
   const today = todayISO();
+  const nowD = new Date();
+  const atCurrentMonth = y === nowD.getFullYear() && m === nowD.getMonth();
 
-  // build flat 42 cells then chunk into week rows of 7
   const flat: (number | null)[] = [...Array(startDow).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
   while (flat.length % 7 !== 0) flat.push(null);
   const weeks: (number | null)[][] = [];
   for (let i = 0; i < flat.length; i += 7) weeks.push(flat.slice(i, i + 7));
   const iso = (day: number) => `${y}-${pad(m + 1)}-${pad(day)}`;
 
-  // reservations that intersect this month
   const monthRes = useMemo(
     () => allRes.filter((r) => {
       const s = new Date(r.checkIn + "T00:00:00"), e = new Date(r.checkOut + "T00:00:00");
@@ -59,7 +63,6 @@ export default function LinkedCalendar({ extra = [] }: { extra?: ExternalBooking
     [allRes, y, m]
   );
 
-  // For each week row, compute bar segments (col start + span) + lane stacking.
   function weekBars(week: (number | null)[]) {
     const days = week.filter((d): d is number => d !== null);
     if (!days.length) return [];
@@ -68,7 +71,7 @@ export default function LinkedCalendar({ extra = [] }: { extra?: ExternalBooking
     type Seg = { r: Reservation; col: number; span: number; clipL: boolean; clipR: boolean; lane: number };
     const segs: Seg[] = [];
     monthRes.forEach((r) => {
-      if (r.checkOut < rowStart || r.checkIn > rowEnd) return; // no overlap this row
+      if (r.checkOut < rowStart || r.checkIn > rowEnd) return;
       const startInRow = r.checkIn < rowStart ? rowStart : r.checkIn;
       const endInRow = r.checkOut > rowEnd ? rowEnd : r.checkOut;
       const firstColDay = week.findIndex((d) => d !== null && iso(d) === startInRow);
@@ -76,7 +79,6 @@ export default function LinkedCalendar({ extra = [] }: { extra?: ExternalBooking
       const span = Math.max(1, daysBetween(startInRow, endInRow) + 1);
       segs.push({ r, col, span: Math.min(span, 7 - col), clipL: r.checkIn < rowStart, clipR: r.checkOut > rowEnd, lane: 0 });
     });
-    // greedy lane assignment so overlapping bars stack
     segs.sort((a, b) => a.col - b.col);
     const laneEnds: number[] = [];
     segs.forEach((s) => {
@@ -89,48 +91,48 @@ export default function LinkedCalendar({ extra = [] }: { extra?: ExternalBooking
   }
 
   return (
-    <>
+    <div style={{ marginTop: 8 }}>
+      {/* nav — identical to the Standard calendar */}
       <div className="between" style={{ marginBottom: 10 }}>
-        <b style={{ fontSize: 15 }}>{monthName}</b>
-        <div className="row" style={{ gap: 6 }}>
-          <button className="btn sm secondary" onClick={() => setMonth(new Date(y, m, 1))}>Today</button>
-          <button className="iconbtn" onClick={() => setMonth(new Date(y, m - 1, 1))}>‹</button>
-          <button className="iconbtn" onClick={() => setMonth(new Date(y, m + 1, 1))}>›</button>
-        </div>
+        <button className="iconbtn" disabled={atCurrentMonth} style={{ opacity: atCurrentMonth ? 0.35 : 1 }}
+          onClick={() => { if (!atCurrentMonth) setMonth(new Date(y, m - 1, 1)); }}>‹</button>
+        <b>{monthName}</b>
+        <button className="iconbtn" onClick={() => setMonth(new Date(y, m + 1, 1))}>›</button>
+      </div>
+      <div className="calgrid calhead">
+        {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => <div key={i} className="caldow">{d}</div>)}
       </div>
 
-      <div className="lc">
-        <div className="lc__dow">{WEEKDAYS.map((d) => <div key={d} className="caldow">{d}</div>)}</div>
-        {weeks.map((week, wi) => {
-          const bars = weekBars(week);
-          const lanes = bars.reduce((mx, s) => Math.max(mx, s.lane + 1), 0);
-          return (
-            <div key={wi} className="lc__week">
-              {/* day-number layer */}
-              <div className="lc__days">
-                {week.map((d, di) => (
-                  <div key={di} className={"lc__day" + (d && iso(d) === today ? " today" : "")}>
-                    {d && <span className="lc__num">{iso(d) === today ? <span className="lc__todaydot">{d}</span> : d}</span>}
-                  </div>
-                ))}
-              </div>
-              {/* bar layer — padding-top (28) clears the day-number row */}
-              <div className="lc__bars" style={{ height: 28 + lanes * 24 + 4 }}>
-                {bars.map((s, i) => (
-                  <button key={i}
-                    className={"lc__bar lc__bar--" + s.r.platform + (s.clipL ? " clipL" : "") + (s.clipR ? " clipR" : "")}
-                    style={{ left: `calc(${(s.col / 7) * 100}% + 2px)`, width: `calc(${(s.span / 7) * 100}% - 4px)`, top: 28 + s.lane * 24 }}
-                    onClick={() => setSel(s.r)}>
-                    <PlatformIcon platform={s.r.platform} size={13} />
-                    <span className="lc__barname">{s.r.guest}</span>
-                    <span className="lc__barstat">🕑{s.r.nights} 👤{s.r.guests}</span>
-                  </button>
-                ))}
-              </div>
+      {weeks.map((week, wi) => {
+        const bars = weekBars(week);
+        const lanes = bars.reduce((mx, s) => Math.max(mx, s.lane + 1), 0);
+        const barBoxH = lanes ? TOP_OFFSET + (lanes - 1) * LANE_PITCH + BAR_H + 3 : 0;
+        return (
+          <div key={wi} className="lcw">
+            <div className="calgrid lcw__cells">
+              {week.map((d, di) => (
+                <div key={di} className={"calcell lcw__cell" + (d && iso(d) === today ? " today" : "") + (d ? "" : " lcw__cell--empty")}
+                  style={{ minHeight: Math.max(52, barBoxH + 6) }}>
+                  {d && <span className="calhd"><span className="calnum">{iso(d) === today ? <span className="lcw__todaydot">{d}</span> : d}</span></span>}
+                </div>
+              ))}
             </div>
-          );
-        })}
-      </div>
+            {/* bar overlay */}
+            <div className="lcw__bars">
+              {bars.map((s, i) => (
+                <button key={i}
+                  className={"lc__bar lc__bar--" + s.r.platform + (s.clipL ? " clipL" : "") + (s.clipR ? " clipR" : "")}
+                  style={{ left: `calc(${(s.col / 7) * 100}% + 3px)`, width: `calc(${(s.span / 7) * 100}% - 6px)`, top: TOP_OFFSET + s.lane * LANE_PITCH, height: BAR_H, zIndex: 5 + s.lane }}
+                  onClick={() => setSel(s.r)}>
+                  <PlatformIcon platform={s.r.platform} size={13} />
+                  <span className="lc__barname">{s.r.property}</span>
+                  <span className="lc__barstat">🕑{s.r.nights} 👤{s.r.guests}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })}
 
       {sel && (
         <div className="rescard">
@@ -139,8 +141,8 @@ export default function LinkedCalendar({ extra = [] }: { extra?: ExternalBooking
             <button className="iconbtn" onClick={() => setSel(null)}>✕</button>
           </div>
           {sel.propertyPhoto && <img className="rescard__photo" src={sel.propertyPhoto} alt={sel.property} loading="lazy" />}
-          <b style={{ fontSize: 17, display: "block", marginTop: 12 }}>{sel.guest}</b>
-          <div className="tiny muted" style={{ marginBottom: 12 }}>{sel.property}</div>
+          <b style={{ fontSize: 17, display: "block", marginTop: 12 }}>{sel.property}</b>
+          <div className="tiny muted" style={{ marginBottom: 12 }}>Guest: {sel.guest}</div>
           <div className="rescard__rows">
             <div className="between"><span className="muted">Channel</span><span className="row" style={{ gap: 6 }}><PlatformIcon platform={sel.platform} size={16} />{platformName(sel.platform)}</span></div>
             <div className="between"><span className="muted">Status</span><b style={{ textTransform: "capitalize" }}>{sel.status}</b></div>
@@ -152,7 +154,7 @@ export default function LinkedCalendar({ extra = [] }: { extra?: ExternalBooking
           <button className="btn" style={{ marginTop: 14 }} onClick={() => nav("/messages")}>Message guest</button>
         </div>
       )}
-    </>
+    </div>
   );
 }
 

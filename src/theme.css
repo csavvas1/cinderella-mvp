@@ -2176,32 +2176,29 @@ input[type="range"]::-webkit-slider-thumb {
 
 /* toggle + compact manual-add button row (same height) */
 .calbar-top { display: flex; align-items: stretch; gap: 8px; margin-bottom: 12px; }
-.calbar-top .segmini { flex: 1; }
+.calbar-top .segmini { flex: 1; display: flex; }
+.calbar-top .segmini button { flex: 1; text-align: center; }
 .calbar-top__add {
   flex: none; border: 1px solid var(--border); background: var(--card); color: var(--indigo);
   border-radius: 10px; padding: 0 14px; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap;
 }
 .calbar-top__add:active { transform: scale(.96); }
 
-/* --- Linked calendar: tiles consistent with the unlinked calendar, keeping
-       screenshot-style spanning booking bars overlaid --- */
-.lc { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--card); }
-.lc__dow { display: grid; grid-template-columns: repeat(7, 1fr); border-bottom: 1px solid var(--border); background: var(--bg); }
-.lc__dow .caldow { text-align: center; font-size: 11px; font-weight: 800; color: var(--muted); padding: 5px 0; }
-.lc__week { border-bottom: 1px solid var(--border); position: relative; min-height: 64px; }
-.lc__week:last-child { border-bottom: none; }
-.lc__days { display: grid; grid-template-columns: repeat(7, 1fr); position: absolute; inset: 0; }
-.lc__day { border-right: 1px solid var(--border); padding: 4px 5px; }
-.lc__day:last-child { border-right: none; }
-.lc__day.today { background: var(--indigo-soft); }
-.lc__num { font-size: 12px; font-weight: 700; color: var(--muted); }
-.lc__day.today .lc__num { color: var(--text); }
-.lc__todaydot { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 999px; background: var(--text); color: var(--bg); font-weight: 800; }
-.lc__bars { position: relative; width: 100%; }
+/* --- Pro calendar: SAME grid as the Standard calendar (calgrid/calcell), with
+       booking bars overlaid per week. Each week is a relative wrapper so the
+       absolute bar layer can span days. --- */
+.lcw { position: relative; }
+.lcw__cells { gap: 5px; margin-bottom: 5px; }
+.lcw__cell { aspect-ratio: auto; }          /* height driven by inline minHeight (bar stack) */
+.lcw__cell--empty { background: transparent; border: none; }
+.lcw__todaydot { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 999px; background: var(--indigo); color: #fff; font-weight: 800; }
+/* bar overlay sits above the cells of THIS week */
+.lcw__bars { position: absolute; inset: 0; pointer-events: none; }
+.lcw__bars .lc__bar { pointer-events: auto; }
 .lc__bar {
-  position: absolute; display: flex; align-items: center; gap: 4px; height: 20px;
-  border: none; border-radius: 6px; padding: 0 6px; cursor: pointer; overflow: hidden;
-  background: var(--indigo-soft); text-align: left;
+  position: absolute; display: flex; align-items: center; gap: 4px;
+  border: 1px solid rgba(0,0,0,.05); border-radius: 6px; padding: 0 6px; cursor: pointer; overflow: hidden;
+  background: var(--indigo-soft); text-align: left; box-shadow: 0 1px 2px rgba(0,0,0,.08);
 }
 .lc__bar.clipL { border-top-left-radius: 0; border-bottom-left-radius: 0; }
 .lc__bar.clipR { border-top-right-radius: 0; border-bottom-right-radius: 0; }

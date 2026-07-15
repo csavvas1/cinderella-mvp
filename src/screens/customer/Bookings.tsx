@@ -220,9 +220,9 @@ export default function Bookings() {
             {((hasLinked && visible.length > 0) || showLinked) && (
               <div className="calbar-top">
                 {hasLinked && visible.length > 0 && (
-                  <div className="segmini grow">
-                    <button className={calMode === "linked" ? "active" : ""} onClick={() => setCalMode("linked")}>Linked</button>
-                    <button className={calMode === "unlinked" ? "active" : ""} onClick={() => setCalMode("unlinked")}>Unlinked</button>
+                  <div className="segmini">
+                    <button className={calMode === "linked" ? "active" : ""} onClick={() => setCalMode("linked")}>Pro</button>
+                    <button className={calMode === "unlinked" ? "active" : ""} onClick={() => setCalMode("unlinked")}>Standard</button>
                   </div>
                 )}
                 {showLinked && (
