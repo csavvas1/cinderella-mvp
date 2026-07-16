@@ -97,7 +97,6 @@ export default function Account() {
 
   // shared profile
   const [editProfile, setEditProfile] = useState(false);
-  const [photoCam, setPhotoCam] = useState(false);
 
   // customer: properties + payment
   const [showAdd, setShowAdd] = useState(false);
@@ -151,6 +150,19 @@ export default function Account() {
   const [idErr, setIdErr] = useState("");
   const [docType, setDocType] = useState<"id" | "passport">("id");
   const idInput = useRef<HTMLInputElement>(null);
+  const photoInput = useRef<HTMLInputElement>(null);
+  // upload a profile face photo -> Supabase Storage -> save publicUrl to profile
+  async function uploadPhoto(f: File) {
+    try {
+      const { data: sess } = await supabase.auth.getSession();
+      const uid = sess.session?.user.id ?? "anon";
+      const path = `${uid}/profile/${Date.now()}-${f.name.replace(/[^\w.]+/g, "_")}`;
+      const { error } = await supabase.storage.from("proofs").upload(path, f, { upsert: false });
+      if (error) throw error;
+      const { data: pub } = supabase.storage.from("proofs").getPublicUrl(path);
+      setAgentProfile({ ...agentProfile, photoUrl: pub.publicUrl });
+    } catch { /* ignore upload failure */ }
+  }
   const [idCam, setIdCam] = useState(false);
   const verified = verifyStatus === "verified";
 
@@ -349,7 +361,9 @@ export default function Account() {
       {/* ===================== PROFILE ===================== */}
       <div className="pcard" onClick={() => setEditProfile(true)}>
         <div className="pcard__top">
-          <button className="pcard__avatar" onClick={(e) => { e.stopPropagation(); setPhotoCam(true); }} title="Change photo">
+          <input ref={photoInput} type="file" accept="image/*" hidden
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadPhoto(f); e.target.value = ""; }} />
+          <button className="pcard__avatar" onClick={(e) => { e.stopPropagation(); photoInput.current?.click(); }} title="Change photo">
             {agentProfile.photoUrl
               ? <img src={agentProfile.photoUrl} alt="Profile" className="pcard__avatarimg" />
               : (agentProfile.displayName || userName || userEmail || "U").trim().charAt(0).toUpperCase()}
@@ -1189,6 +1203,22 @@ export default function Account() {
               </div>
             ) : (
               <>
+                <div className="label" style={{ marginTop: 0 }}>Profile photo</div>
+                <div className="vdoc" style={{ marginBottom: 12 }}>
+                  <div className="row" style={{ gap: 12, alignItems: "center" }}>
+                    <div className="vdoc__photo">
+                      {agentProfile.photoUrl
+                        ? <img src={agentProfile.photoUrl} alt="Profile" />
+                        : <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--muted)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4" /><path d="M4 20c0-3.9 3.6-6.5 8-6.5s8 2.6 8 6.5" /></svg>}
+                    </div>
+                    <div className="grow">
+                      <b style={{ fontSize: 13.5 }}>Your face photo</b>
+                      <div className="tiny muted" style={{ marginTop: 2 }}>Shown to customers browsing cleaners.</div>
+                    </div>
+                    <button className="btn sm secondary" onClick={() => photoInput.current?.click()}>{agentProfile.photoUrl ? "Change" : "Upload"}</button>
+                  </div>
+                </div>
+
                 <div className="label" style={{ marginTop: 0 }}>Document type</div>
                 <div className="seg" style={{ marginBottom: 12 }}>
                   <button className={docType === "id" ? "active" : ""} onClick={() => { if (docType !== "id") { setDocType("id"); setIdUp(false); setIdName(""); } }}>ID card</button>
@@ -1215,8 +1245,7 @@ export default function Account() {
                     {idUp && <span className="statuspill statuspill--ok">Added</span>}
                   </div>
                   <div className="row" style={{ gap: 8, marginTop: 12 }}>
-                    <button className="btn sm secondary grow" onClick={() => setIdCam(true)}>{idUp ? "Retake" : "Take photo"}</button>
-                    <button className="btn sm secondary grow" onClick={() => idInput.current?.click()}>{idUp ? "Re-upload" : "Upload"}</button>
+                    <button className="btn sm secondary grow" onClick={() => idInput.current?.click()}>{idUp ? "Re-upload document" : "Upload document"}</button>
                   </div>
                 </div>
                 <div className="label" style={{ marginTop: 14 }}>{docType === "passport" ? "Passport number" : "ID number"}</div>
@@ -1259,19 +1288,6 @@ export default function Account() {
         />
       )}
 
-      {photoCam && (
-        <CameraCapture
-          title="Your profile photo"
-          steps={["Face photo"]}
-          folder="profile"
-          onClose={() => setPhotoCam(false)}
-          onDone={(p) => {
-            const url = p[0]?.url;
-            if (url) setAgentProfile({ ...agentProfile, photoUrl: url });
-            setPhotoCam(false);
-          }}
-        />
-      )}
 
       {/* legal document list */}
       {showLegal && (
