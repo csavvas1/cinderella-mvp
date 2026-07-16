@@ -108,23 +108,30 @@ export default function LinkedCalendar({ extra = [], onRemove, onEditDates }: {
         {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => <div key={i} className="caldow">{d}</div>)}
       </div>
 
-      {weeks.map((week, wi) => {
-        const bars = weekBars(week);
-        const lanes = bars.reduce((mx, s) => Math.max(mx, s.lane + 1), 0);
-        const barBoxH = lanes ? TOP_OFFSET + (lanes - 1) * LANE_PITCH + BAR_H + 3 : 0;
-        return (
+      {(() => {
+        // uniform row height across the whole month = tallest week's bar stack,
+        // so every day square is the same size (not per-week variable).
+        const rowH = weeks.reduce((mx, wk) => {
+          const lanes = weekBars(wk).reduce((m, s) => Math.max(m, s.lane + 1), 0);
+          const h = lanes ? TOP_OFFSET + (lanes - 1) * LANE_PITCH + BAR_H + 3 : 0;
+          return Math.max(mx, h + 6);
+        }, 52);
+        return weeks.map((week, wi) => (
           <div key={wi} className="lcw">
             <div className="calgrid lcw__cells">
               {week.map((d, di) => (
-                <div key={di} className={"calcell lcw__cell" + (d && iso(d) === today ? " today" : "") + (d ? "" : " lcw__cell--empty")}
-                  style={{ minHeight: Math.max(52, barBoxH + 6) }}>
-                  {d && <span className="calhd"><span className="calnum">{iso(d) === today ? <span className="lcw__todaydot">{d}</span> : d}</span></span>}
+                <div key={di} className={"calcell lcw__cell"
+                    + (d && iso(d) === today ? " today" : "")
+                    + (d && iso(d) < today ? " past" : "")
+                    + (d ? "" : " lcw__cell--empty")}
+                  style={{ minHeight: rowH, height: rowH }}>
+                  {d && <span className="calhd"><span className="calnum">{d}</span></span>}
                 </div>
               ))}
             </div>
             {/* bar overlay */}
             <div className="lcw__bars">
-              {bars.map((s, i) => (
+              {weekBars(week).map((s, i) => (
                 <button key={i}
                   className={"lc__bar lc__bar--" + s.r.platform + (s.clipL ? " clipL" : "") + (s.clipR ? " clipR" : "")}
                   style={{ left: `calc(${(s.col / 7) * 100}% + 3px)`, width: `calc(${(s.span / 7) * 100}% - 6px)`, top: TOP_OFFSET + s.lane * LANE_PITCH, height: BAR_H, zIndex: 5 + s.lane }}
@@ -135,8 +142,8 @@ export default function LinkedCalendar({ extra = [], onRemove, onEditDates }: {
               ))}
             </div>
           </div>
-        );
-      })}
+        ));
+      })()}
 
       {sel && (
         <div className="rescard">
