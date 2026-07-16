@@ -345,31 +345,35 @@ export default function Account() {
     <div className="pad">
       <h1 className="h1">Hi {(agentProfile.displayName || userName || "there").split(" ")[0]}!</h1>
 
-      {/* ===================== PROFILE (compact, no photo/name) ===== */}
-      <div className="profcard profcard--v2" onClick={() => setEditProfile(true)}>
-        <div className="grow" style={{ minWidth: 0 }}>
-          <div className="row" style={{ gap: 8, minWidth: 0 }}>
-            <div className="profcard__val" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, flex: 1 }}>{userEmail}</div>
-            {pro
-              ? <span className="planbadge planbadge--pro">
-                  <svg className="planbadge__crown" viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true"><path d="M3 8l4 4 5-7 5 7 4-4-1.5 10.5h-15L3 8Z" /></svg>
-                  Pro
-                </span>
-              : <span className="planbadge">Standard</span>}
+      {/* ===================== PROFILE ===================== */}
+      <div className="pcard" onClick={() => setEditProfile(true)}>
+        <div className="pcard__top">
+          <div className="pcard__avatar">
+            {(agentProfile.displayName || userName || userEmail || "U").trim().charAt(0).toUpperCase()}
           </div>
-          {userPhone
-            ? <div className="profcard__val" style={{ marginTop: 2 }}>{userPhone}</div>
-            : <div className="tiny" style={{ color: "var(--amber)", fontWeight: 700, marginTop: 3 }}>Phone required — tap to add</div>}
-          {accountNo && (
-            <div className="acctno" style={{ marginTop: 8 }} title="Member number">
-              <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true">
-                <circle cx="12" cy="8" r="4" /><path d="M4 20c0-3.9 3.6-6.5 8-6.5s8 2.6 8 6.5Z" />
-              </svg>
-              <span className="acctno__num">{accountNo}</span>
-            </div>
-          )}
+          <div className="pcard__id">
+            <div className="pcard__name">{agentProfile.displayName || userName || "Your account"}</div>
+            {accountNo && <div className="pcard__member">Member #{accountNo}</div>}
+          </div>
+          {pro
+            ? <span className="planbadge planbadge--pro">
+                <svg className="planbadge__crown" viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true"><path d="M3 8l4 4 5-7 5 7 4-4-1.5 10.5h-15L3 8Z" /></svg>
+                Pro
+              </span>
+            : <span className="planbadge">Standard</span>}
         </div>
-        <span className="profcard__chev">›</span>
+        <div className="pcard__rows">
+          <div className="pcard__row">
+            <svg className="pcard__ic" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5" /><path d="m3.5 7 8.5 6 8.5-6" /></svg>
+            <span className="pcard__val">{userEmail}</span>
+          </div>
+          <div className="pcard__row">
+            <svg className="pcard__ic" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L20 13l1 4v2a1 1 0 0 1-1 1A16 16 0 0 1 4 5a1 1 0 0 1 1-1Z" /></svg>
+            {userPhone
+              ? <span className="pcard__val">{userPhone}</span>
+              : <span className="pcard__val pcard__val--warn">Add your phone number</span>}
+          </div>
+        </div>
       </div>
 
       {editProfile && (
