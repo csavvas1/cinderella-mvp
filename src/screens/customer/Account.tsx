@@ -97,6 +97,7 @@ export default function Account() {
 
   // shared profile
   const [editProfile, setEditProfile] = useState(false);
+  const [photoCam, setPhotoCam] = useState(false);
 
   // customer: properties + payment
   const [showAdd, setShowAdd] = useState(false);
@@ -348,9 +349,14 @@ export default function Account() {
       {/* ===================== PROFILE ===================== */}
       <div className="pcard" onClick={() => setEditProfile(true)}>
         <div className="pcard__top">
-          <div className="pcard__avatar">
-            {(agentProfile.displayName || userName || userEmail || "U").trim().charAt(0).toUpperCase()}
-          </div>
+          <button className="pcard__avatar" onClick={(e) => { e.stopPropagation(); setPhotoCam(true); }} title="Change photo">
+            {agentProfile.photoUrl
+              ? <img src={agentProfile.photoUrl} alt="Profile" className="pcard__avatarimg" />
+              : (agentProfile.displayName || userName || userEmail || "U").trim().charAt(0).toUpperCase()}
+            <span className="pcard__avataredit">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
+            </span>
+          </button>
           <div className="pcard__id">
             <div className="pcard__name">{agentProfile.displayName || userName || "Your account"}</div>
             {accountNo && <div className="pcard__member">Member #{accountNo}</div>}
@@ -1249,6 +1255,20 @@ export default function Account() {
           onDone={(p) => {
             const urls = p.map((x) => x.url).filter((u): u is string => !!u);
             setIdPhotos(urls); setIdUp(urls.length > 0); setIdName(""); setIdCam(false);
+          }}
+        />
+      )}
+
+      {photoCam && (
+        <CameraCapture
+          title="Your profile photo"
+          steps={["Face photo"]}
+          folder="profile"
+          onClose={() => setPhotoCam(false)}
+          onDone={(p) => {
+            const url = p[0]?.url;
+            if (url) setAgentProfile({ ...agentProfile, photoUrl: url });
+            setPhotoCam(false);
           }}
         />
       )}
