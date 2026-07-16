@@ -151,8 +151,6 @@ export default function Account() {
   const [docType, setDocType] = useState<"id" | "passport">("id");
   const idInput = useRef<HTMLInputElement>(null);
   const photoInput = useRef<HTMLInputElement>(null);
-  const photoCamInput = useRef<HTMLInputElement>(null);
-  const [photoChoose, setPhotoChoose] = useState(false);
   // upload a profile face photo -> Supabase Storage -> save publicUrl to profile
   async function uploadPhoto(f: File) {
     try {
@@ -361,13 +359,14 @@ export default function Account() {
       <h1 className="h1">Hi {(agentProfile.displayName || userName || "there").split(" ")[0]}!</h1>
 
       {/* ===================== PROFILE ===================== */}
-      <div className="pcard" onClick={() => setEditProfile(true)}>
+      <div className="pcard">
         <div className="pcard__top">
           <input ref={photoInput} type="file" accept="image/*" hidden
+            onClick={(e) => e.stopPropagation()}
             onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadPhoto(f); e.target.value = ""; }} />
-          <input ref={photoCamInput} type="file" accept="image/*" capture="user" hidden
-            onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadPhoto(f); e.target.value = ""; }} />
-          <button type="button" className="pcard__avatar" onClick={(e) => { e.stopPropagation(); setPhotoChoose(true); }} title="Change photo">
+          <button type="button" className="pcard__avatar"
+            onClick={(e) => { e.stopPropagation(); e.preventDefault(); photoInput.current?.click(); }}
+            title="Change photo">
             {agentProfile.photoUrl
               ? <img src={agentProfile.photoUrl} alt="Profile" className="pcard__avatarimg" />
               : (agentProfile.displayName || userName || userEmail || "U").trim().charAt(0).toUpperCase()}
@@ -386,10 +385,11 @@ export default function Account() {
               </span>
             : <span className="planbadge">Standard</span>}
         </div>
-        <div className="pcard__rows">
+        <div className="pcard__rows" onClick={() => setEditProfile(true)} style={{ cursor: "pointer" }}>
           <div className="pcard__row">
             <svg className="pcard__ic" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5" /><path d="m3.5 7 8.5 6 8.5-6" /></svg>
             <span className="pcard__val">{userEmail}</span>
+            <span className="pcard__chev" style={{ marginLeft: "auto" }}>›</span>
           </div>
           <div className="pcard__row">
             <svg className="pcard__ic" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L20 13l1 4v2a1 1 0 0 1-1 1A16 16 0 0 1 4 5a1 1 0 0 1 1-1Z" /></svg>
@@ -399,20 +399,6 @@ export default function Account() {
           </div>
         </div>
       </div>
-
-      {photoChoose && (
-        <div className="modal__backdrop center" onClick={() => setPhotoChoose(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="between" style={{ marginBottom: 10 }}>
-              <b style={{ fontSize: 17 }}>Profile photo</b>
-              <button className="iconbtn" onClick={() => setPhotoChoose(false)}>✕</button>
-            </div>
-            <button className="btn" onClick={() => { setPhotoChoose(false); photoCamInput.current?.click(); }}>Take a photo</button>
-            <div style={{ height: 8 }} />
-            <button className="btn secondary" onClick={() => { setPhotoChoose(false); photoInput.current?.click(); }}>Upload from library</button>
-          </div>
-        </div>
-      )}
 
       {editProfile && (
         <DetailsModal
@@ -1233,7 +1219,7 @@ export default function Account() {
                       <b style={{ fontSize: 13.5 }}>Your face photo</b>
                       <div className="tiny muted" style={{ marginTop: 2 }}>Shown to customers browsing cleaners.</div>
                     </div>
-                    <button className="btn sm secondary" onClick={() => setPhotoChoose(true)}>{agentProfile.photoUrl ? "Change" : "Add photo"}</button>
+                    <button className="btn sm secondary" onClick={() => photoInput.current?.click()}>{agentProfile.photoUrl ? "Change" : "Add photo"}</button>
                   </div>
                 </div>
 

@@ -2284,6 +2284,15 @@ input[type="range"]::-webkit-slider-thumb {
 .calmark--wait { background: var(--amber); color: #fff; }
 .calmark--done { background: var(--green); color: #fff; }
 .calmark--cancelled { background: transparent; color: var(--red); box-shadow: inset 0 0 0 2px var(--red); }
+/* today's date: coloured number + ring (matches the agent calendar). A booking
+   status mark (up/wait/done/cancelled) overrides this via its own class below. */
+.calcell.today .calmark { color: #be185d; font-weight: 900; box-shadow: inset 0 0 0 2px #be185d; }
+:root[data-theme="dark"] .calcell.today .calmark { color: #f9a8d4; box-shadow: inset 0 0 0 2px #f9a8d4; }
+.calcell.today .calmark--up, .calcell.today .calmark--wait,
+.calcell.today .calmark--done, .calcell.today .calmark--cancelled { box-shadow: none; }
+.calcell.today .calmark--up { color: #fff; }
+.calcell.today .calmark--wait { color: #fff; }
+.calcell.today .calmark--done { color: #fff; }
 /* center the mark in the standard square cell */
 .calgrid .calcell { align-items: center; justify-content: center; padding: 2px; }
 /* Pro cells keep number top-left (bars overlay), override the centering above */
