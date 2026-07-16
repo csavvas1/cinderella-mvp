@@ -54,6 +54,9 @@ export default function SwipePager({
   }, [index, count]);
 
   function onStart(e: React.TouchEvent) {
+    // Disable swipe when a sub-view/modal is on screen (e.g. booking detail,
+    // manual booking, edit). Only the bare tab view is swipeable.
+    if (document.querySelector(".modal__backdrop, .acctsheet")) { startX.current = null; return; }
     startX.current = e.touches[0].clientX;
     startY.current = e.touches[0].clientY;
     axis.current = null;
