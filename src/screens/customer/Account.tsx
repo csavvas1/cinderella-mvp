@@ -151,6 +151,8 @@ export default function Account() {
   const [docType, setDocType] = useState<"id" | "passport">("id");
   const idInput = useRef<HTMLInputElement>(null);
   const photoInput = useRef<HTMLInputElement>(null);
+  const photoCamInput = useRef<HTMLInputElement>(null);
+  const [photoChoose, setPhotoChoose] = useState(false);
   // upload a profile face photo -> Supabase Storage -> save publicUrl to profile
   async function uploadPhoto(f: File) {
     try {
@@ -363,7 +365,9 @@ export default function Account() {
         <div className="pcard__top">
           <input ref={photoInput} type="file" accept="image/*" hidden
             onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadPhoto(f); e.target.value = ""; }} />
-          <button className="pcard__avatar" onClick={(e) => { e.stopPropagation(); photoInput.current?.click(); }} title="Change photo">
+          <input ref={photoCamInput} type="file" accept="image/*" capture="user" hidden
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadPhoto(f); e.target.value = ""; }} />
+          <button type="button" className="pcard__avatar" onClick={(e) => { e.stopPropagation(); setPhotoChoose(true); }} title="Change photo">
             {agentProfile.photoUrl
               ? <img src={agentProfile.photoUrl} alt="Profile" className="pcard__avatarimg" />
               : (agentProfile.displayName || userName || userEmail || "U").trim().charAt(0).toUpperCase()}
@@ -395,6 +399,20 @@ export default function Account() {
           </div>
         </div>
       </div>
+
+      {photoChoose && (
+        <div className="modal__backdrop center" onClick={() => setPhotoChoose(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="between" style={{ marginBottom: 10 }}>
+              <b style={{ fontSize: 17 }}>Profile photo</b>
+              <button className="iconbtn" onClick={() => setPhotoChoose(false)}>✕</button>
+            </div>
+            <button className="btn" onClick={() => { setPhotoChoose(false); photoCamInput.current?.click(); }}>Take a photo</button>
+            <div style={{ height: 8 }} />
+            <button className="btn secondary" onClick={() => { setPhotoChoose(false); photoInput.current?.click(); }}>Upload from library</button>
+          </div>
+        </div>
+      )}
 
       {editProfile && (
         <DetailsModal
@@ -1215,7 +1233,7 @@ export default function Account() {
                       <b style={{ fontSize: 13.5 }}>Your face photo</b>
                       <div className="tiny muted" style={{ marginTop: 2 }}>Shown to customers browsing cleaners.</div>
                     </div>
-                    <button className="btn sm secondary" onClick={() => photoInput.current?.click()}>{agentProfile.photoUrl ? "Change" : "Upload"}</button>
+                    <button className="btn sm secondary" onClick={() => setPhotoChoose(true)}>{agentProfile.photoUrl ? "Change" : "Add photo"}</button>
                   </div>
                 </div>
 
