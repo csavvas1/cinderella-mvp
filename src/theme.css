@@ -2270,6 +2270,9 @@ input[type="range"]::-webkit-slider-thumb {
 .lc__bar--vrbo    { background: #e3edfd; }
 .lc__bar--google  { background: #eef2fb; }
 .lc__bar--expedia { background: #fff4d4; }
+/* past reservations: clearly greyed so it's obvious they've ended */
+.lc__bar--past { filter: grayscale(1); opacity: 0.45; }
+.lc__bar--past .lc__barname { color: var(--muted); }
 
 /* below-calendar reservation detail card */
 .rescard { margin-top: 16px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); padding: 14px; box-shadow: var(--shadow); }

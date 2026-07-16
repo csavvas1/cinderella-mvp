@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PlatformIcon from "./PlatformIcon";
 import { platformName } from "../data/ical";
@@ -31,6 +31,12 @@ export default function LinkedCalendar({ extra = [], onRemove, onEditDates }: {
   const nav = useNavigate();
   const [month, setMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
   const [sel, setSel] = useState<Reservation | null>(null);
+  // scroll the reservation detail into view when a bar is tapped, so it's clear
+  // that a card popped below the calendar.
+  const rescardRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (sel) requestAnimationFrame(() => rescardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }));
+  }, [sel]);
   const manualIds = useMemo(() => new Set(extra.map((b) => b.id)), [extra]);
 
   // merge mock reservations with any hand-added manual bookings
@@ -133,7 +139,7 @@ export default function LinkedCalendar({ extra = [], onRemove, onEditDates }: {
             <div className="lcw__bars">
               {weekBars(week).map((s, i) => (
                 <button key={i}
-                  className={"lc__bar lc__bar--" + s.r.platform + (s.clipL ? " clipL" : "") + (s.clipR ? " clipR" : "")}
+                  className={"lc__bar lc__bar--" + s.r.platform + (s.clipL ? " clipL" : "") + (s.clipR ? " clipR" : "") + (s.r.checkOut < today ? " lc__bar--past" : "")}
                   style={{ left: `calc(${(s.col / 7) * 100}% + 3px)`, width: `calc(${(s.span / 7) * 100}% - 6px)`, top: TOP_OFFSET + s.lane * LANE_PITCH, height: BAR_H, zIndex: 5 + s.lane }}
                   onClick={() => setSel(s.r)}>
                   <PlatformIcon platform={s.r.platform} size={11} />
@@ -146,7 +152,7 @@ export default function LinkedCalendar({ extra = [], onRemove, onEditDates }: {
       })()}
 
       {sel && (
-        <div className="rescard">
+        <div className="rescard" ref={rescardRef}>
           <div className="between" style={{ marginBottom: 8 }}>
             <b style={{ fontSize: 16 }}>Booking</b>
             <button className="iconbtn" onClick={() => setSel(null)}>✕</button>
