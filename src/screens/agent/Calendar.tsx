@@ -124,18 +124,17 @@ function JobCalendar({ jobs, daySchedule }: { jobs: Job[]; daySchedule: Record<s
             (date === today ? " today" : "") +
             (isPast ? " past" : "") +
             (selected === date ? " sel" : "");
+          // day mark colour (same as the customer/standard calendar): pending ->
+          // wait (amber), any active -> up (indigo), all completed -> done (green).
+          const mark = !count ? "" :
+            list.some((j) => j.status === "pending") ? "wait" :
+            list.some((j) => j.status === "approved" || j.status === "modified") ? "up" :
+            list.every((j) => j.status === "completed") ? "done" : "up";
           return (
             <button key={i} className={cls} disabled={isPast && count === 0}
               onClick={() => { if (!(isPast && count === 0)) setSelected(date); }}>
-              <span className="calhd">
-                <span className="calnum">{day}</span>
-              </span>
-              {count > 0 && (
-                <span className="caldots">
-                  {dots.map((d, k) => <span key={k} className={"cdot " + d} />)}
-                  {extra > 0 && <span className="cmore">+{extra}</span>}
-                </span>
-              )}
+              <span className={"calmark" + (mark ? " calmark--" + mark : "")}>{day}</span>
+              {count > 1 && <span className="cmore">+{count - 1}</span>}
             </button>
           );
         })}

@@ -245,6 +245,7 @@ export default function Bookings() {
                 bookings={visible}
                 cancelledBookings={cancelledList}
                 onEdit={(b) => setEditFor(b)}
+                onMessage={() => nav("/messages")}
                 onReview={(b) => setReviewFor(b)}
                 onRefund={(b) => setRefundFor(b)}
                 onTip={(b) => setTipFor(b)}
@@ -750,11 +751,12 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
 
 /* ---------------- calendar ---------------- */
 function CalendarView({
-  bookings, cancelledBookings, onEdit, onReview, onRefund, onTip, onAddForDay,
+  bookings, cancelledBookings, onEdit, onMessage, onReview, onRefund, onTip, onAddForDay,
 }: {
   bookings: Booking[];
   cancelledBookings: Booking[];
   onEdit: (b: Booking) => void;
+  onMessage: (b: Booking) => void;
   onReview: (b: Booking) => void;
   onRefund: (b: Booking) => void;
   onTip: (b: Booking) => void;
@@ -913,6 +915,16 @@ function CalendarView({
               {(b.status === "upcoming" || b.status === "confirmed" || b.status === "awaiting") && (
                 <div className="row" style={{ gap: 8, marginTop: 10 }}>
                   <button className="btn sm secondary grow" onClick={() => onEdit(b)}>Modify</button>
+                  {(() => {
+                    // Messaging opens from 24h before the start, until the cleaning
+                    // starts (after it's done, messaging is disabled).
+                    const startMs = new Date(`${b.date}T${b.time || "00:00"}:00`).getTime();
+                    const now = Date.now();
+                    const within24h = !isNaN(startMs) && startMs - now <= 24 * 3600 * 1000 && startMs > now;
+                    return within24h
+                      ? <button className="btn sm agent grow" onClick={() => onMessage(b)}>Message cleaner</button>
+                      : null;
+                  })()}
                 </div>
               )}
               {b.status === "completed" && (
