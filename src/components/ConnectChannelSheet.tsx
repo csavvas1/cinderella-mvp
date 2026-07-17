@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import type { PropertyAddress } from "../types";
+import { useStore } from "../context/AppStore";
 
 // ── MOCK multi-platform connect view ────────────────────────────────────────
 // Front-end only: shows how connecting listings will look + feel. No backend
@@ -46,8 +47,21 @@ export default function ConnectChannelSheet({
   onClose: () => void;
   onConnected: () => void;
 }) {
+  const { mockLinkProperties } = useStore();
   const [status, setStatus] = useState<Record<string, Status>>({});
   const apartments = 1; // this sheet connects one property; count feeds the calc
+
+  // all unique properties pulled from the connected platforms (mock)
+  function confirmAndLink() {
+    const names = new Set<string>();
+    PLATFORMS.forEach((p, i) => {
+      if (status[p.id] === "confirmed") {
+        MOCK_PROPERTIES[i % MOCK_PROPERTIES.length].forEach((n) => names.add(n));
+      }
+    });
+    mockLinkProperties([...names]);
+    onConnected();
+  }
 
   const confirmedCount = useMemo(
     () => Object.values(status).filter((s) => s === "confirmed").length,
@@ -114,7 +128,7 @@ export default function ConnectChannelSheet({
         </div>
 
         <button className="btn" style={{ marginTop: 16, opacity: confirmedCount ? 1 : 0.5 }}
-          disabled={!confirmedCount} onClick={onConnected}>
+          disabled={!confirmedCount} onClick={confirmAndLink}>
           {confirmedCount ? `Confirm · €${monthly.toFixed(2)}/mo` : "Connect a channel to continue"}
         </button>
         <p className="tiny muted" style={{ textAlign: "center", marginTop: 8 }}>

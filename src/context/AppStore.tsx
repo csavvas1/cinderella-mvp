@@ -273,6 +273,10 @@ interface AppState {
   connectPropertyToBeds24: (addressId: string) => Promise<void>;
   disconnectPropertyFromBeds24: (listingId: string) => Promise<void>;
   userId: string | null;  // Supabase uid of the signed-in user (null for demo/guest)
+  // MOCK: pretend a set of listings were pulled + linked from an OTA sign-in.
+  // Local state only (no Beds24/Stripe/DB) — used by the mock connect view so
+  // linked properties appear + the Reservations calendar unlocks for preview.
+  mockLinkProperties: (names: string[]) => void;
   addManualStay: (s: ExternalBooking) => void;         // add a booked stay by hand
   removeExternalBooking: (id: string) => void;         // remove a single stay
   joinProperty: (code: string) => Promise<{ error?: string }>; // join a shared property by code
@@ -1189,6 +1193,41 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       const { data, error } = await supabase.from("connected_listings").select("*").eq("user_id", currentKey);
       if (error) throw new Error(error.message);
       patchAcct({ connectedListings: (data ?? []).map(rowToListing) });
+    },
+    mockLinkProperties: (names) => {
+      const existingNames = new Set(acct.addresses.map((a) => a.nickname));
+      const newAddrs: PropertyAddress[] = [];
+      const newListings: ConnectedListing[] = [];
+      const newStays: ExternalBooking[] = [];
+      const today = new Date();
+      const iso = (d: Date) => d.toISOString().slice(0, 10);
+      names.forEach((name, i) => {
+        if (existingNames.has(name)) return;
+        const id = crypto.randomUUID();
+        newAddrs.push({
+          id, nickname: name, address: name, propertyType: "apartment",
+          bedrooms: 1, bathrooms: 1, kitchens: 1, commonRooms: 1,
+        });
+        newListings.push({
+          id: crypto.randomUUID(), platform: "airbnb", name,
+          icalUrl: "", addressId: id, connectedAt: Date.now(),
+          beds24PropertyId: 900000 + i, billingActive: true,
+        });
+        // a couple of sample upcoming reservations so the calendar has content
+        const ci = new Date(today); ci.setDate(today.getDate() + 2 + i * 3);
+        const co = new Date(ci); co.setDate(ci.getDate() + 3);
+        newStays.push({
+          id: crypto.randomUUID(), listingId: newListings[newListings.length - 1].id,
+          platform: "airbnb", guest: "Guest", checkIn: iso(ci), checkOut: iso(co), addressId: id,
+        });
+      });
+      if (newAddrs.length || newListings.length) {
+        patchAcct({
+          addresses: [...acct.addresses, ...newAddrs],
+          connectedListings: [...(acct.connectedListings ?? []), ...newListings],
+          externalBookings: [...(acct.externalBookings ?? []), ...newStays],
+        });
+      }
     },
     // Manually add a booked stay (not from Airbnb/Booking) — e.g. a direct guest.
     // Stored as an external booking with platform "other"; it shows on the

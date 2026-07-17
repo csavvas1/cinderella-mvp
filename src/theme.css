@@ -793,7 +793,7 @@ body {
 .addchoice__ic {
   display: inline-flex; align-items: center; justify-content: center;
   width: 44px; height: 44px; border-radius: 999px;
-  background: var(--surface-2, #f1f5f9); color: var(--text);
+  background: rgba(100,116,139,.14); color: #475569;
 }
 .addchoice__ic--brand { background: rgba(31,111,235,.12); color: #1f6feb; }
 .addchoice__t { font-size: 13.5px; font-weight: 700; }
