@@ -137,12 +137,12 @@ function Shell() {
       // close: glide the sheet out from where the thumb left it, and immediately
       // enter the closing state so the backdrop drops its blur + pointer-events —
       // the screen underneath is usable at once, no wait for the slide to finish.
-      el.style.transition = "transform .3s cubic-bezier(.32,.72,.35,1)";
+      el.style.transition = "transform .42s cubic-bezier(.22,.61,.36,1)";
       el.style.transform = "translateY(100%)";
       setSwipeClosing(true);   // fade backdrop + drop pointer-events (screen usable now)
       closeAccount();
       setCloseHidden(false);
-      setTimeout(() => { setSwipeClosing(false); el.style.transform = ""; el.style.transition = ""; }, 300);
+      setTimeout(() => { setSwipeClosing(false); el.style.transform = ""; el.style.transition = ""; }, 420);
     } else {
       // cancel / snap back to fully open — gentle settle
       el.style.transition = "transform .34s cubic-bezier(.22,.61,.36,1)";
