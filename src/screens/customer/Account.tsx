@@ -400,11 +400,17 @@ export default function Account() {
       {/* ===================== CUSTOMER ===================== */}
       <div className="acct-sec">Customer</div>
 
-      {/* PROPERTIES */}
-      <div className="between" style={{ marginTop: 16, marginBottom: 10 }}>
-        <div className="label" style={{ margin: 0 }}>My properties</div>
-        <button className="btn sm secondary" onClick={() => setAddChoice(true)}>+ Add</button>
-      </div>
+      {/* PROPERTIES — launcher into the full-screen My Properties view */}
+      <button className="acct-launch" style={{ marginTop: 16 }} onClick={() => setShowListings(true)}>
+        <span className="acct-launch__ic">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="6" y="3" width="12" height="18" rx="1.5" /><path d="M9.5 7h1M13.5 7h1M9.5 11h1M13.5 11h1" /></svg>
+        </span>
+        <span className="acct-launch__txt">
+          <span>My Properties</span>
+          <span className="acct-launch__sub">{addresses.length} {addresses.length === 1 ? "property" : "properties"} · manage & connect</span>
+        </span>
+        <span className="connect-cta__chev">›</span>
+      </button>
 
       {/* ADD CHOICE — small centered popup: link accounts (auto) or add manually */}
       {addChoice && (
@@ -443,8 +449,18 @@ export default function Account() {
         />
       )}
 
-      {/* MY LISTINGS — full-screen sub-view: properties + channel logos */}
-      {showListings && <Listings onClose={() => setShowListings(false)} />}
+      {/* MY PROPERTIES — full-screen sub-view: all properties + channel logos */}
+      {showListings && (
+        <Listings
+          onClose={() => setShowListings(false)}
+          onAdd={() => setAddChoice(true)}
+          onEdit={(a) => openEditProperty(a)}
+          onRemove={(a) => setRemoveProp(a)}
+          onShare={(a) => { setShareCopied(false); setShareProp(a); }}
+          onConnect={(a) => setConnectProp(a)}
+          onManage={(a) => setConnectProp(a)}
+        />
+      )}
 
 
       {showAdd && (
@@ -546,85 +562,6 @@ export default function Account() {
           </div>
         </div>
       )}
-
-      {addresses.map((a) => (
-        <div key={a.id} className="propcard">
-          <div className="propcard__top">
-            {/* tint the house icon (sky) whenever the property is shared — either
-                shared TO me (partner) or shared out to at least one co-worker */}
-            {/* tint the house icon (sky) whenever the property is shared; a small
-                count badge on the icon corner shows how many co-workers have access */}
-            <span className={"propcard__ic" + (a.isShared || (a.memberCount ?? 0) > 0 ? " propcard__ic--shared" : "")}
-              title={a.isShared ? "Shared with you by a partner" : ((a.memberCount ?? 0) > 0 ? `Shared with ${a.memberCount} ${a.memberCount === 1 ? "person" : "people"}` : undefined)}>
-              {a.propertyType === "house"
-                ? <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 11 12 4l8 7" /><path d="M6 10v9h12v-9" /><path d="M10 19v-5h4v5" /></svg>
-                : <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="6" y="3" width="12" height="18" rx="1.5" /><path d="M9.5 7h1M13.5 7h1M9.5 11h1M13.5 11h1M9.5 15h1M13.5 15h1" /></svg>}
-              {(a.memberCount ?? 0) > 0 && (
-                <span className="propcard__count">
-                  <svg viewBox="0 0 24 24" width="9" height="9" fill="currentColor" aria-hidden="true"><circle cx="12" cy="8" r="4" /><path d="M4 20c0-3.9 3.6-6.5 8-6.5s8 2.6 8 6.5Z" /></svg>
-                  {a.memberCount}
-                </span>
-              )}
-            </span>
-            <div className="grow" style={{ minWidth: 0 }}>
-              <b style={{ fontSize: 14 }}>{a.nickname}</b>
-              {a.nickname !== a.address && (
-                <div className="tiny muted" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.address}</div>
-              )}
-            </div>
-            {/* Share (owner only — a partner can't re-share someone else's home) */}
-            {!a.isShared && (
-              <button className="iconbtn" title="Share property" onClick={() => { setShareCopied(false); setShareProp(a); }}>
-                <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="M8.6 10.5l6.8-4M8.6 13.5l6.8 4" /></svg>
-              </button>
-            )}
-            <button className="iconbtn" title="Edit property" onClick={() => openEditProperty(a)}>
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20h4L18.5 9.5a2 2 0 0 0-3-3L5 17v3Z" /><path d="M13.5 6.5l3 3" /></svg>
-            </button>
-            <button className="iconbtn" title="Remove property" onClick={() => setRemoveProp(a)}>
-              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13M10 11v6M14 11v6" /></svg>
-            </button>
-          </div>
-          {/* Channel connect */}
-          {(() => {
-            const cmListing = connectedListings.find((l) => l.addressId === a.id && l.beds24PropertyId);
-            const busy = beds24Busy === a.id;
-            if (cmListing?.billingActive) {
-              return (
-                <div className="propcard__connect" style={{ marginTop: 10 }}>
-                  <button className="connect-cta connect-cta--on" onClick={() => setShowListings(true)}>
-                    <span className="connect-cta__ic">
-                      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
-                    </span>
-                    <span className="connect-cta__txt">
-                      <span>Channels connected</span>
-                      <span className="connect-cta__sub">Manage your listings</span>
-                    </span>
-                    <span className="connect-cta__chev">›</span>
-                  </button>
-                </div>
-              );
-            }
-            return (
-              <div className="propcard__connect" style={{ marginTop: 10 }}>
-                <button className="connect-cta" onClick={() => setConnectProp(a)}>
-                  <span className="connect-cta__ic">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1" /><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1" /></svg>
-                  </span>
-                  <span className="connect-cta__txt">
-                    <span>Go live on booking sites</span>
-                    <span className="connect-cta__sub">Airbnb, Booking.com & more</span>
-                  </span>
-                  <span className="connect-cta__chev">›</span>
-                </button>
-              </div>
-            );
-          })()}
-          {beds24Err && beds24Busy === null && (
-            <div className="tiny" style={{ color: "var(--danger, #dc2626)", marginTop: 4 }}>{beds24Err}</div>
-          )}
-        </div>
-      ))}
 
       {/* CONNECT A CHANNEL — link Airbnb / Booking.com to a property. Behind the
           scenes this syncs the calendar + registers the property with the channel
