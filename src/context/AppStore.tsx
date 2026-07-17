@@ -1462,14 +1462,14 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         prev_date: null, prev_time: null, prev_duration_hours: null,
       });
     },
-    // Outstanding-action / new-item count. Persists until each is acted on:
-    // pending clears on accept/decline; cancelled clears when the agent taps X;
-    // modified clears when acknowledged; an auto-accepted job counts as NEW until
-    // the agent opens it. Shown from either side so the agent stays aware.
+    // New-item alert count. An item counts as NEW until the agent OPENS the job
+    // (which flips seenByAgent), no matter what they tap next. The list still
+    // shows the pending/modified/cancelled action affordances — the badge purely
+    // reflects "haven't looked at this yet". Shown from either side.
     agentBadge: jobs.filter((j) =>
-      j.cleanerUid === currentKey &&
+      j.cleanerUid === currentKey && !j.seenByAgent &&
       (j.status === "pending" || j.status === "modified" ||
-      (j.status === "approved" && j.autoAccepted && !j.seenByAgent) ||
+      (j.status === "approved" && j.autoAccepted) ||
       (j.status === "cancelled" && !j.dismissedByAgent))).length,
     markJobSeen: (id) => { setJobs((p) => p.map((j) => (j.id === id ? { ...j, seenByAgent: true } : j))); dbPatchJob(id, { seen_by_agent: true }); },
     // Persist proof photos onto the job as the cleaner captures them. The cleaner

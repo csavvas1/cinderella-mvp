@@ -16,9 +16,11 @@ export default function JobDetail() {
   const before = j?.beforePhotos ?? [];
   const after = j?.afterPhotos ?? [];
   const [showCancel, setShowCancel] = useState(false);
-  // Opening an auto-accepted job clears its "new" badge on the Jobs/agent tabs.
+  // Opening ANY job clears its alert on the Jobs/agent tabs — once the agent has
+  // seen the job, the "new" badge shouldn't linger regardless of what they tap
+  // next (accepting/declining is still available, just no longer flagged as new).
   useEffect(() => {
-    if (j && j.autoAccepted && !j.seenByAgent) markJobSeen(j.id);
+    if (j && !j.seenByAgent) markJobSeen(j.id);
   }, [j?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!j) return <div className="pad">Not found.</div>;
