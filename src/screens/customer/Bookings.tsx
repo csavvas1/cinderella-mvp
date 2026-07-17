@@ -9,7 +9,7 @@ import PropertyPicker from "../../components/PropertyPicker";
 import DatePicker from "../../components/DatePicker";
 import Dropdown from "../../components/Dropdown";
 import CameraCapture, { type CapturedPhoto } from "../../components/CameraCapture";
-import LinkedCalendar, { hasLinkedReservations } from "../../components/LinkedCalendar";
+import LinkedCalendar from "../../components/LinkedCalendar";
 import { priceJob } from "../../data/platform";
 import type { Booking, Review, ListingPlatform, ExternalBooking, PropertyAddress } from "../../types";
 
@@ -48,13 +48,13 @@ function statusBadge(s: string) {
 export default function Bookings() {
   const { bookings, addresses, cancelBooking, addReview, updateBooking, updateSeries, cancelSeries,
     externalBookings, connectedListings, notify, sendEmail, openAccount, dismissBooking, addManualStay, removeExternalBooking,
-    pro } = useStore();
+    } = useStore();
   const [manualOpen, setManualOpen] = useState(false);
   const [editManual, setEditManual] = useState<import("../../types").ExternalBooking | null>(null);
   const nav = useNavigate();
-  // Linked (Pro channel-manager) vs Unlinked (cleaning) calendar. Show the toggle
-  // only when BOTH exist; otherwise show whichever applies.
-  const hasLinked = pro && hasLinkedReservations();
+  // Linked (channel-manager reservations) vs Unlinked (cleaning) calendar. Unlocks
+  // once at least one property is connected to a channel. Toggle shows when both exist.
+  const hasLinked = connectedListings.some((l) => l.billingActive) || externalBookings.length > 0;
   const [calMode, setCalMode] = useState<"linked" | "unlinked">(hasLinked ? "linked" : "unlinked");
   const [reviewFor, setReviewFor] = useState<Booking | null>(null);
   const [editFor, setEditFor] = useState<Booking | null>(null);

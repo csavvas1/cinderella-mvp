@@ -4,20 +4,15 @@ import { isBiometricAvailable, verifyBiometric } from "../lib/webauthn";
 type Editing = null | "phone" | "password";
 
 export default function DetailsModal({
-  email, phone, appName, pro, onUpgrade, onCancelPro, onClose, onSavePhone, onChangePassword,
+  email, phone, onClose, onSavePhone, onChangePassword,
 }: {
   email: string;
   phone: string;
-  appName: string;
-  pro: boolean;
-  onUpgrade: () => void;
-  onCancelPro: () => void;
   onClose: () => void;
   onSavePhone: (v: string) => void;
   onChangePassword: (newPassword: string) => Promise<{ error?: string }>;
 }) {
   const [editing, setEditing] = useState<Editing>(null);
-  const [planOpen, setPlanOpen] = useState(false); // expand Pro benefits
 
   // phone draft — saved directly (no SMS verification)
   const [phoneDraft, setPhoneDraft] = useState(phone);
@@ -142,45 +137,6 @@ export default function DetailsModal({
             </div>
             {bioErr && <div className="note amber" style={{ marginTop: 8 }}>{bioErr}</div>}
           </div>
-        )}
-
-        {/* PLAN — Standard by default; tap to see Pro benefits + switch */}
-        <div className="detailrow" style={{ cursor: "pointer" }} onClick={() => setPlanOpen((o) => !o)}>
-          <div className="grow" style={{ minWidth: 0 }}>
-            <div className="detailrow__lbl">Plan</div>
-            <div className="detailrow__val">{pro ? "Pro" : "Standard"}</div>
-          </div>
-          {pro
-            ? <span className="statuspill statuspill--ok">Active</span>
-            : <span className="detailrow__edit">Go Pro ›</span>}
-        </div>
-
-        {planOpen && (
-          pro ? (
-            <div className="card">
-              <div className="tiny muted" style={{ marginBottom: 8 }}>€12.99/mo · renews monthly. Cancelling keeps Pro until the period ends.</div>
-              <button className="btn danger sm" onClick={onCancelPro}>Cancel subscription</button>
-            </div>
-          ) : (
-            <div className="card">
-              <b style={{ fontSize: 14 }}>Go Pro</b>
-              <p className="sub" style={{ margin: "4px 0 8px", fontSize: 12.5 }}>Turn {appName} into your whole short-let control room:</p>
-              {[
-                ["All calendars in one place", "Airbnb, Booking.com, Vrbo, Google & Expedia — synced, no double bookings."],
-                ["Unified guest inbox", "Reply to every guest from one screen."],
-                ["Automatic messages", "Welcome / check-in / thank-you notes sent for you."],
-              ].map(([t, d]) => (
-                <div className="actfeat" key={t}><div><b style={{ fontSize: 13 }}>{t}</b><div className="tiny muted">{d}</div></div></div>
-              ))}
-              <button className="gopro-btn" onClick={onUpgrade}>
-                <span className="gopro-btn__txt">
-                  <span className="gopro-btn__main">Upgrade to Pro</span>
-                  <span className="gopro-btn__sub">€12.99/mo · cancel anytime</span>
-                </span>
-                <span className="gopro-btn__chev">›</span>
-              </button>
-            </div>
-          )
         )}
 
       </div>

@@ -17,3 +17,4 @@ dist-ssr/
 .vscode/
 .idea/
 package-lock.json
+supabase/.temp/

@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PlatformIcon from "./PlatformIcon";
 import { platformName } from "../data/ical";
-import { SEED_RESERVATIONS } from "../data/reservations";
 import type { ExternalBooking, Reservation } from "../types";
 
 function pad(n: number) { return String(n).padStart(2, "0"); }
@@ -39,15 +38,14 @@ export default function LinkedCalendar({ extra = [], onRemove, onEditDates }: {
   }, [sel]);
   const manualIds = useMemo(() => new Set(extra.map((b) => b.id)), [extra]);
 
-  // merge mock reservations with any hand-added manual bookings
+  // real reservations synced from connected channels (external_bookings)
   const allRes: Reservation[] = useMemo(() => {
-    const manual: Reservation[] = extra.map((b) => ({
-      id: b.id, platform: b.platform, guest: b.guest, property: "Manual booking",
+    return extra.map((b) => ({
+      id: b.id, platform: b.platform, guest: b.guest, property: "Reservation",
       propertyPhoto: "", checkIn: b.checkIn, checkOut: b.checkOut,
       nights: Math.max(1, daysBetween(b.checkIn, b.checkOut)),
       guests: 1, status: "booked",
     }));
-    return [...SEED_RESERVATIONS, ...manual];
   }, [extra]);
 
   const y = month.getFullYear();
@@ -182,4 +180,3 @@ export default function LinkedCalendar({ extra = [], onRemove, onEditDates }: {
   );
 }
 
-export function hasLinkedReservations() { return SEED_RESERVATIONS.length > 0; }

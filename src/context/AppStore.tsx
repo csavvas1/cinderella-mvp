@@ -272,6 +272,7 @@ interface AppState {
   // billing / stop it. Returns nothing; throws on failure so the UI can toast.
   connectPropertyToBeds24: (addressId: string) => Promise<void>;
   disconnectPropertyFromBeds24: (listingId: string) => Promise<void>;
+  userId: string | null;  // Supabase uid of the signed-in user (null for demo/guest)
   addManualStay: (s: ExternalBooking) => void;         // add a booked stay by hand
   removeExternalBooking: (id: string) => void;         // remove a single stay
   joinProperty: (code: string) => Promise<{ error?: string }>; // join a shared property by code
@@ -1173,6 +1174,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         orphanNotifs.forEach((n) => dbInsertNotif(n));
       }
     },
+    userId: isRealUser ? currentKey : null,
     connectPropertyToBeds24: async (addressId) => {
       if (!isRealUser || !currentKey) throw new Error("Sign in to connect a property.");
       await beds24Connect(currentKey, addressId);

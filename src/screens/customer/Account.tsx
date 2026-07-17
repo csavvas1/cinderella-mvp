@@ -2,11 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import { useStore } from "../../context/AppStore";
 import { BrandIcon } from "../../components/PaymentPicker";
 import DetailsModal from "../../components/DetailsModal";
+import ConnectChannelSheet from "../../components/ConnectChannelSheet";
 import Dropdown from "../../components/Dropdown";
 import TimeSelect from "../../components/TimeSelect";
 import CameraCapture, { type CapturedPhoto } from "../../components/CameraCapture";
 import { APP_NAME, APP_VERSION } from "../../data/brand";
-import { syncListing } from "../../data/ical";
 import { marketStats } from "../../data/cleaners";
 import { cardExpiryStatus } from "../../data/platform";
 import { isBiometricAvailable } from "../../lib/webauthn";
@@ -17,7 +17,7 @@ import { CY_CITIES } from "../../data/addressPresets";
 import LegalDocModal from "../../components/LegalDocModal";
 import ConsentGate from "../../components/ConsentGate";
 import { CLEANER_DOC_IDS, LEGAL_DOCS } from "../../data/legal";
-import type { Booking, Card, PropertyAddress, ListingPlatform } from "../../types";
+import type { Booking, Card, PropertyAddress } from "../../types";
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const YEARS = ["2026", "2025", "2024"];
@@ -57,8 +57,7 @@ export default function Account() {
     agentActivated, activateAgent, deactivateAgent, bookings, updateBooking, notify,
     launchSide, setLaunchSide, setRole, changePassword,
     biometricEnabled, biometricEmail, enableBiometric, disableBiometric, lastAccount,
-    connectedListings, addListing, removeListing,
-    connectPropertyToBeds24, disconnectPropertyFromBeds24,
+    connectedListings, disconnectPropertyFromBeds24,
     recordConsent, consents, hasAcceptedCurrent,
     agentProfile, setAgentProfile,
     pushEnabled, requestPushPermission, disablePushNotifications,
@@ -108,12 +107,6 @@ export default function Account() {
   const [beds24Busy, setBeds24Busy] = useState<string | null>(null);
   const [beds24Err, setBeds24Err] = useState<string | null>(null);
 
-  const handleConnectBeds24 = async (addressId: string) => {
-    setBeds24Err(null); setBeds24Busy(addressId);
-    try { await connectPropertyToBeds24(addressId); }
-    catch (e) { setBeds24Err((e as Error).message); }
-    finally { setBeds24Busy(null); }
-  };
   const handleDisconnectBeds24 = async (listingId: string, addressId: string) => {
     setBeds24Err(null); setBeds24Busy(addressId);
     try { await disconnectPropertyFromBeds24(listingId); }
@@ -188,10 +181,8 @@ export default function Account() {
 
   const [form, setForm] = useState<{ nickname: string; address: string; propertyType: "apartment" | "house"; apartmentNumber: string; floor: string; bedrooms: number; bathrooms: number; kitchens: number; commonRooms: number }>({ nickname: "", address: "", propertyType: "apartment", apartmentNumber: "", floor: "", bedrooms: 1, bathrooms: 1, kitchens: 1, commonRooms: 1 });
   const [addrFocus, setAddrFocus] = useState(false);
-  // A property can be listed on BOTH platforms at once, so each gets its own
-  // iCal link (not a single platform toggle).
-  const [airbnbUrl, setAirbnbUrl] = useState("");
-  const [bookingUrl, setBookingUrl] = useState("");
+  // Connect sheet: which property is being connected (null = closed)
+  const [connectProp, setConnectProp] = useState<PropertyAddress | null>(null);
 
   // live address autocomplete via OpenStreetMap Nominatim (free, no key)
   const [suggestions, setSuggestions] = useState<{ label: string; lat: number; lng: number }[]>([]);
@@ -257,7 +248,6 @@ export default function Account() {
 
   function resetForm() {
     setForm({ nickname: "", address: "", propertyType: "apartment", apartmentNumber: "", floor: "", bedrooms: 1, bathrooms: 1, kitchens: 1, commonRooms: 1 });
-    setAirbnbUrl(""); setBookingUrl("");
     setPin(undefined); setMapCenter(undefined);
   }
 
@@ -267,9 +257,6 @@ export default function Account() {
       address: a.address, propertyType: a.propertyType, apartmentNumber: a.apartmentNumber ?? "", floor: a.floor ?? "",
       bedrooms: a.bedrooms, bathrooms: a.bathrooms, kitchens: a.kitchens, commonRooms: a.commonRooms,
     });
-    const forProp = connectedListings.filter((l) => l.addressId === a.id);
-    setAirbnbUrl(forProp.find((l) => l.platform === "airbnb")?.icalUrl ?? "");
-    setBookingUrl(forProp.find((l) => l.platform === "booking")?.icalUrl ?? "");
     // restore the saved pin (if any) so editing shows the marker in place
     if (a.lat != null && a.lng != null) { setPin({ lat: a.lat, lng: a.lng }); setMapCenter({ lat: a.lat, lng: a.lng }); }
     else { setPin(undefined); setMapCenter(undefined); }
@@ -289,23 +276,9 @@ export default function Account() {
       lng: pin?.lng,
     };
     if (editId) updateAddress(a); else addAddress(a);
-    // Sync each platform independently so a property can be linked to Airbnb AND
-    // Booking at the same time (add / update / remove per platform).
-    syncPlatform("airbnb", airbnbUrl.trim(), a.id);
-    syncPlatform("booking", bookingUrl.trim(), a.id);
+    // Adding a property is free; channel connection happens from the property card.
     setShowAdd(false); setEditId(null);
     resetForm();
-  }
-
-  async function syncPlatform(platform: ListingPlatform, url: string, addressId: string) {
-    const already = connectedListings.find((l) => l.addressId === addressId && l.platform === platform);
-    if (url && url !== already?.icalUrl) {
-      if (already) removeListing(already.id);
-      const { listing, bookings: bs } = await syncListing(platform, url, addressId);
-      addListing(listing, bs);
-    } else if (!url && already) {
-      removeListing(already.id);
-    }
   }
 
   function addCardViaJCC() {
@@ -420,9 +393,6 @@ export default function Account() {
       {editProfile && (
         <DetailsModal
           email={userEmail} phone={userPhone}
-          appName={APP_NAME} pro={pro}
-          onUpgrade={upgradeToPro}
-          onCancelPro={cancelPro}
           onClose={() => setEditProfile(false)}
           onSavePhone={setUserPhone}
           onChangePassword={changePassword}
@@ -526,55 +496,13 @@ export default function Account() {
               ))}
             </div>
 
-            <div className="label" style={{ marginTop: 14 }}>Sync calendars (optional)</div>
-            <p className="sub" style={{ margin: "0 0 8px", fontSize: 12 }}>
-              Link this property on both platforms — connect Airbnb, Booking.com, or both.
-            </p>
-
-            {/* Airbnb */}
-            <div className="label" style={{ margin: "6px 0 4px" }}>Airbnb</div>
-            <input className="input" value={airbnbUrl} placeholder="Airbnb calendar link (iCal) — optional" onChange={(e) => setAirbnbUrl(e.target.value)} />
-            <div className="note" style={{ marginTop: 8 }}>
-              <b style={{ fontSize: 12.5 }}>How to find it on Airbnb</b>
-              <ol style={{ margin: "6px 0 0", paddingLeft: 18, lineHeight: 1.5 }}>
-                {["Open Airbnb on the website (airbnb.com).", "Menu → Listings → pick the property.", "Availability → Connect calendars → Export calendar.", "Copy the .ics link and paste it above."]
-                  .map((s, i) => <li key={i} style={{ fontSize: 12 }}>{s}</li>)}
-              </ol>
+            <div className="note" style={{ marginTop: 14 }}>
+              <b style={{ fontSize: 12.5 }}>Adding a property is free</b>
+              <p style={{ fontSize: 12, margin: "6px 0 0" }}>
+                Once saved, tap <b>Connect</b> on the property to link Airbnb / Booking.com and
+                auto-schedule a cleaning after every guest checkout.
+              </p>
             </div>
-
-            {/* Booking.com */}
-            <div className="label" style={{ margin: "12px 0 4px" }}>Booking.com</div>
-            <input className="input" value={bookingUrl} placeholder="Booking.com calendar link (iCal) — optional" onChange={(e) => setBookingUrl(e.target.value)} />
-            <div className="note" style={{ marginTop: 8 }}>
-              <b style={{ fontSize: 12.5 }}>How to find it on Booking.com</b>
-              <ol style={{ margin: "6px 0 0", paddingLeft: 18, lineHeight: 1.5 }}>
-                {["Sign in to the Booking.com host site (admin.booking.com).", "Open the property → Calendar → Sync calendars.", "Under Export, copy the .ics link.", "Paste it above."]
-                  .map((s, i) => <li key={i} style={{ fontSize: 12 }}>{s}</li>)}
-              </ol>
-            </div>
-
-            {/* Combined export feed: paste THIS url into Booking.com & Airbnb's
-                "Import calendar" so a booking on one platform (or a manual/own
-                booking) blocks the date on the other. Only available once the
-                property is saved (it needs its id + token). */}
-            {(() => {
-              const saved = editId ? addresses.find((a) => a.id === editId) : null;
-              if (!saved?.exportToken) return null;
-              const exportUrl = `${String(import.meta.env.VITE_SUPABASE_URL || "").replace(/\/+$/, "")}/functions/v1/ical-export?property=${saved.id}&token=${saved.exportToken}`;
-              return (
-                <div className="note" style={{ marginTop: 14 }}>
-                  <b style={{ fontSize: 12.5 }}>Block dates across platforms</b>
-                  <p style={{ fontSize: 12, margin: "6px 0 8px" }}>
-                    Paste this calendar link into Airbnb's and Booking.com's <b>Import calendar</b>. A booking on one (or a manual booking here) then blocks the date on the other.
-                  </p>
-                  <input className="input" readOnly value={exportUrl} onFocus={(e) => e.currentTarget.select()} style={{ fontSize: 11 }} />
-                  <button className="btn sm secondary" style={{ marginTop: 8 }}
-                    onClick={() => { navigator.clipboard?.writeText(exportUrl); }}>
-                    Copy link
-                  </button>
-                </div>
-              );
-            })()}
 
             <div style={{ height: 14 }} />
             {(() => {
@@ -628,16 +556,17 @@ export default function Account() {
               <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13M10 11v6M14 11v6" /></svg>
             </button>
           </div>
-          {/* Beds24 channel-manager: connect this property so guest checkouts
-              auto-trigger a cleaning. Adding a property is free; connecting bills
-              €14.99/mo per property. */}
+          {/* Channel connect: link Airbnb/Booking so guest checkouts auto-schedule
+              a cleaning. Adding a property is free; connecting bills €14.99/mo. */}
           {(() => {
             const cmListing = connectedListings.find((l) => l.addressId === a.id && l.beds24PropertyId);
             const busy = beds24Busy === a.id;
             if (cmListing?.billingActive) {
               return (
-                <div className="between" style={{ marginTop: 8, gap: 8 }}>
-                  <span className="tiny" style={{ color: "var(--ok, #16a34a)" }}>● Channel manager connected · €14.99/mo</span>
+                <div className="between propcard__connect" style={{ marginTop: 10, gap: 8 }}>
+                  <span className="tiny" style={{ color: "var(--ok, #16a34a)", fontWeight: 600 }}>
+                    ✓ Connected · €14.99/mo · auto-clean on checkout
+                  </span>
                   <button className="btn btn--ghost tiny" disabled={busy}
                     onClick={() => handleDisconnectBeds24(cmListing.id, a.id)}>
                     {busy ? "Disconnecting…" : "Disconnect"}
@@ -646,11 +575,10 @@ export default function Account() {
               );
             }
             return (
-              <div className="between" style={{ marginTop: 8, gap: 8 }}>
+              <div className="between propcard__connect" style={{ marginTop: 10, gap: 8 }}>
                 <span className="tiny muted">Auto-clean after guest checkouts</span>
-                <button className="btn tiny" disabled={busy}
-                  onClick={() => handleConnectBeds24(a.id)}>
-                  {busy ? "Connecting…" : "Connect · €14.99/mo"}
+                <button className="btn sm" disabled={busy} onClick={() => setConnectProp(a)}>
+                  {busy ? "Connecting…" : "Connect a channel"}
                 </button>
               </div>
             );
@@ -660,6 +588,17 @@ export default function Account() {
           )}
         </div>
       ))}
+
+      {/* CONNECT A CHANNEL — link Airbnb / Booking.com to a property. Behind the
+          scenes this syncs the calendar + registers the property with the channel
+          manager and starts billing. */}
+      {connectProp && (
+        <ConnectChannelSheet
+          property={connectProp}
+          onClose={() => setConnectProp(null)}
+          onConnected={() => setConnectProp(null)}
+        />
+      )}
 
       {/* SHARE A PROPERTY — send a co-worker an invite link. They open it, sign
           in, and the property is auto-added to their profile (see Login ?join). */}
