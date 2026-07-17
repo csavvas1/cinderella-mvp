@@ -3,6 +3,7 @@ import { useStore } from "../../context/AppStore";
 import { BrandIcon } from "../../components/PaymentPicker";
 import DetailsModal from "../../components/DetailsModal";
 import ConnectChannelSheet from "../../components/ConnectChannelSheet";
+import Listings from "./Listings";
 import Dropdown from "../../components/Dropdown";
 import TimeSelect from "../../components/TimeSelect";
 import CameraCapture, { type CapturedPhoto } from "../../components/CameraCapture";
@@ -101,6 +102,7 @@ export default function Account() {
   const [showAdd, setShowAdd] = useState(false);
   const [addChoice, setAddChoice] = useState(false);       // manual vs connect chooser
   const [connectNew, setConnectNew] = useState(false);     // connect-accounts view (no property yet)
+  const [showListings, setShowListings] = useState(false); // full-screen My Listings view
   const [editId, setEditId] = useState<string | null>(null);
   const [showAddCard, setShowAddCard] = useState(false);
   const [cardForm, setCardForm] = useState({ nickname: "", number: "" });
@@ -437,9 +439,12 @@ export default function Account() {
         <ConnectChannelSheet
           property={{ id: "new", nickname: "your listings", address: "", propertyType: "apartment", bedrooms: 1, bathrooms: 1, kitchens: 1, commonRooms: 1 } as PropertyAddress}
           onClose={() => setConnectNew(false)}
-          onConnected={() => setConnectNew(false)}
+          onConnected={() => { setConnectNew(false); setShowListings(true); }}
         />
       )}
+
+      {/* MY LISTINGS — full-screen sub-view: properties + channel logos */}
+      {showListings && <Listings onClose={() => setShowListings(false)} />}
 
 
       {showAdd && (
@@ -587,7 +592,7 @@ export default function Account() {
             if (cmListing?.billingActive) {
               return (
                 <div className="propcard__connect" style={{ marginTop: 10 }}>
-                  <button className="connect-cta connect-cta--on" onClick={() => setConnectProp(a)}>
+                  <button className="connect-cta connect-cta--on" onClick={() => setShowListings(true)}>
                     <span className="connect-cta__ic">
                       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
                     </span>
@@ -596,10 +601,6 @@ export default function Account() {
                       <span className="connect-cta__sub">Manage your listings</span>
                     </span>
                     <span className="connect-cta__chev">›</span>
-                  </button>
-                  <button className="btn btn--ghost tiny" style={{ marginTop: 6 }} disabled={busy}
-                    onClick={() => handleDisconnectBeds24(cmListing.id, a.id)}>
-                    {busy ? "Disconnecting…" : "Disconnect"}
                   </button>
                 </div>
               );
@@ -632,7 +633,7 @@ export default function Account() {
         <ConnectChannelSheet
           property={connectProp}
           onClose={() => setConnectProp(null)}
-          onConnected={() => setConnectProp(null)}
+          onConnected={() => { setConnectProp(null); setShowListings(true); }}
         />
       )}
 

@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import type { AppNotification, Booking, Card, ChatMessage, ChatThread, ConnectedListing, ConsentRecord, CustomerReputation, ExternalBooking, Job, NotifAudience, PropertyAddress, Review, Role } from "../types";
+import type { AppNotification, Booking, Card, ChatMessage, ChatThread, ConnectedListing, ConsentRecord, CustomerReputation, ExternalBooking, Job, ListingPlatform, NotifAudience, PropertyAddress, Review, Role } from "../types";
 import { CUSTOMER_DOC_IDS, CLEANER_DOC_IDS, getLegalDoc, SUPPLY_TERMS_VERSION } from "../data/legal";
 import { SEED_ADDRESSES, SEED_BOOKINGS, SEED_CARDS, SEED_JOBS, SEED_LISTINGS, SEED_EXTERNAL_BOOKINGS } from "../data/seed";
 import { CLEANERS, agentRowToCleaner, type PublicAgentRow } from "../data/cleaners";
@@ -277,6 +277,9 @@ interface AppState {
   // Local state only (no Beds24/Stripe/DB) — used by the mock connect view so
   // linked properties appear + the Reservations calendar unlocks for preview.
   mockLinkProperties: (names: string[]) => void;
+  mockUnlinkProperty: (addressId: string) => void;   // remove all channels for a property (mock)
+  mockAddChannel: (addressId: string, platform: ListingPlatform) => void;
+  mockRemoveChannel: (listingId: string) => void;
   addManualStay: (s: ExternalBooking) => void;         // add a booked stay by hand
   removeExternalBooking: (id: string) => void;         // remove a single stay
   joinProperty: (code: string) => Promise<{ error?: string }>; // join a shared property by code
@@ -1188,11 +1191,47 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       patchAcct({ connectedListings: (data ?? []).map(rowToListing) });
     },
     disconnectPropertyFromBeds24: async (listingId) => {
+      const listing = (acct.connectedListings ?? []).find((l) => l.id === listingId);
+      // MOCK listings (fake beds24 id >= 900000) have no DB/edge-fn row — disconnect
+      // locally only, so no "listing not found" error.
+      const isMock = !listing || (listing.beds24PropertyId ?? 0) >= 900000;
+      if (isMock) {
+        patchAcct({
+          connectedListings: (acct.connectedListings ?? []).filter((l) => l.id !== listingId),
+          externalBookings: (acct.externalBookings ?? []).filter((b) => b.listingId !== listingId),
+        });
+        return;
+      }
       if (!isRealUser || !currentKey) throw new Error("Sign in to manage a property.");
       await beds24Disconnect(currentKey, listingId);
       const { data, error } = await supabase.from("connected_listings").select("*").eq("user_id", currentKey);
       if (error) throw new Error(error.message);
       patchAcct({ connectedListings: (data ?? []).map(rowToListing) });
+    },
+    mockUnlinkProperty: (addressId) => {
+      const listingIds = new Set((acct.connectedListings ?? []).filter((l) => l.addressId === addressId).map((l) => l.id));
+      patchAcct({
+        connectedListings: (acct.connectedListings ?? []).filter((l) => l.addressId !== addressId),
+        externalBookings: (acct.externalBookings ?? []).filter((b) => !(b.listingId && listingIds.has(b.listingId)) && b.addressId !== addressId),
+      });
+    },
+    mockAddChannel: (addressId, platform) => {
+      // don't duplicate a channel already on this property
+      if ((acct.connectedListings ?? []).some((l) => l.addressId === addressId && l.platform === platform)) return;
+      const addr = acct.addresses.find((a) => a.id === addressId);
+      patchAcct({
+        connectedListings: [...(acct.connectedListings ?? []), {
+          id: crypto.randomUUID(), platform, name: addr?.nickname ?? "Listing",
+          icalUrl: "", addressId, connectedAt: Date.now(),
+          beds24PropertyId: 900000, billingActive: true,
+        }],
+      });
+    },
+    mockRemoveChannel: (listingId) => {
+      patchAcct({
+        connectedListings: (acct.connectedListings ?? []).filter((l) => l.id !== listingId),
+        externalBookings: (acct.externalBookings ?? []).filter((b) => b.listingId !== listingId),
+      });
     },
     mockLinkProperties: (names) => {
       const existingNames = new Set(acct.addresses.map((a) => a.nickname));
