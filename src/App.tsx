@@ -257,7 +257,7 @@ function Shell() {
             {/* grab handle — drag it down to dismiss (tracks the thumb 1:1) */}
             <div className="acctsheet__grabzone"
               onTouchStart={onDragStart} onTouchMove={onDragMove} onTouchEnd={onDragEnd}>
-              <div className="acctsheet__grab" />
+              <div className={"acctsheet__grab" + (closeHidden ? " hidden" : "")} />
             </div>
             <button className={"acctsheet__close" + (closeHidden ? " hidden" : "")} onClick={dismissAccount} aria-label="Close account">
               <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>

@@ -350,7 +350,9 @@ body {
 .acctsheet__grab {
   width: 40px; height: 5px; border-radius: 999px; background: var(--border);
   margin-top: 8px;
+  transition: opacity .2s, transform .2s;
 }
+.acctsheet__grab.hidden { opacity: 0; transform: translateY(-8px); }
 /* while being dragged, drop the entrance animation so the finger controls it */
 .acctsheet { will-change: transform; }
 .acctsheet__close {
