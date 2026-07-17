@@ -95,6 +95,11 @@ function Shell() {
   // OFF immediately so the island starts rising in sync with the sheet dropping
   // (otherwise the island only animates after the sheet has fully gone).
   const [acctClosing, setAcctClosing] = useState(false);
+  // swipe-close drives the sheet's slide-out via an inline transform (continuing
+  // from the thumb position), so the sheet must NOT also get the CSS .closing
+  // animation (they'd fight). This flag lets the BACKDROP fade + go non-blocking
+  // while the sheet slides out under inline control.
+  const [swipeClosing, setSwipeClosing] = useState(false);
   function dismissAccount() {
     setAcctClosing(true);
     closeAccount();
@@ -129,10 +134,15 @@ function Shell() {
     const dy = dragCur.current;
     dragCur.current = 0;
     if (dy > 120) {
-      // close: slower, softer glide out (ease-out) so it feels natural, then unmount
-      el.style.transition = "transform .42s cubic-bezier(.22,.61,.36,1)";
+      // close: glide the sheet out from where the thumb left it, and immediately
+      // enter the closing state so the backdrop drops its blur + pointer-events —
+      // the screen underneath is usable at once, no wait for the slide to finish.
+      el.style.transition = "transform .3s cubic-bezier(.32,.72,.35,1)";
       el.style.transform = "translateY(100%)";
-      setTimeout(() => { closeAccount(); }, 400);
+      setSwipeClosing(true);   // fade backdrop + drop pointer-events (screen usable now)
+      closeAccount();
+      setCloseHidden(false);
+      setTimeout(() => { setSwipeClosing(false); el.style.transform = ""; el.style.transition = ""; }, 300);
     } else {
       // cancel / snap back to fully open — gentle settle
       el.style.transition = "transform .34s cubic-bezier(.22,.61,.36,1)";
@@ -251,8 +261,8 @@ function Shell() {
 
       {/* Account is a Wolt-style slide-up sheet over the current page, not a
           route — the page you were on stays mounted behind it. */}
-      {(accountOpen || acctClosing) && (
-        <div className={"acctsheet__backdrop" + (acctClosing ? " closing" : "")} onClick={dismissAccount}>
+      {(accountOpen || acctClosing || swipeClosing) && (
+        <div className={"acctsheet__backdrop" + (acctClosing || swipeClosing ? " closing" : "")} onClick={dismissAccount}>
           <div ref={sheetRef} className={"acctsheet" + (acctClosing ? " closing" : "")} onClick={(e) => e.stopPropagation()}>
             {/* grab handle — drag it down to dismiss (tracks the thumb 1:1) */}
             <div className="acctsheet__grabzone"

@@ -328,7 +328,9 @@ body {
   animation: acctfade .14s ease;
 }
 @keyframes acctfade { from { opacity: 0; } to { opacity: 1; } }
-.acctsheet__backdrop.closing { animation: acctfadeout .3s ease forwards; }
+/* once closing, stop intercepting taps/blur so the screen underneath is usable
+   instantly while the sheet finishes its slide-out */
+.acctsheet__backdrop.closing { animation: acctfadeout .3s ease forwards; pointer-events: none; }
 @keyframes acctfadeout { from { opacity: 1; } to { opacity: 0; } }
 /* seamless in/out: same easing curve both directions, no abrupt cut */
 .acctsheet.closing { animation: acctslidedown .3s cubic-bezier(.32,.72,.35,1) forwards; }
