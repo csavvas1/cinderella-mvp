@@ -26,14 +26,18 @@ export interface ListingRow {
   user_id: string;
   platform: ListingPlatform;
   name: string;
-  ical_url: string;
+  ical_url: string | null;
   address_id: string | null;
   connected_at: string;
+  beds24_property_id?: number | null;
+  billing_active?: boolean | null;
 }
 export function rowToListing(r: ListingRow): ConnectedListing {
   return {
-    id: r.id, platform: r.platform, name: r.name, icalUrl: r.ical_url,
+    id: r.id, platform: r.platform, name: r.name, icalUrl: r.ical_url ?? "",
     addressId: r.address_id ?? undefined, connectedAt: new Date(r.connected_at).getTime(),
+    beds24PropertyId: r.beds24_property_id ?? null,
+    billingActive: r.billing_active ?? false,
   };
 }
 export function listingToRow(l: ConnectedListing): Record<string, unknown> {

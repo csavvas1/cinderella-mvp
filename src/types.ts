@@ -62,6 +62,9 @@ export interface ConnectedListing {
   icalUrl: string;
   addressId?: string;   // linked saved PropertyAddress
   connectedAt: number;
+  // Beds24 channel-manager (absent for legacy iCal-only listings)
+  beds24PropertyId?: number | null;
+  billingActive?: boolean;
 }
 
 export interface ExternalBooking {

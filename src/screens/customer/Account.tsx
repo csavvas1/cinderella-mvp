@@ -58,6 +58,7 @@ export default function Account() {
     launchSide, setLaunchSide, setRole, changePassword,
     biometricEnabled, biometricEmail, enableBiometric, disableBiometric, lastAccount,
     connectedListings, addListing, removeListing,
+    connectPropertyToBeds24, disconnectPropertyFromBeds24,
     recordConsent, consents, hasAcceptedCurrent,
     agentProfile, setAgentProfile,
     pushEnabled, requestPushPermission, disablePushNotifications,
@@ -103,6 +104,22 @@ export default function Account() {
   const [editId, setEditId] = useState<string | null>(null);
   const [showAddCard, setShowAddCard] = useState(false);
   const [cardForm, setCardForm] = useState({ nickname: "", number: "" });
+  // Beds24 channel-manager connect/disconnect: which property is busy + last error
+  const [beds24Busy, setBeds24Busy] = useState<string | null>(null);
+  const [beds24Err, setBeds24Err] = useState<string | null>(null);
+
+  const handleConnectBeds24 = async (addressId: string) => {
+    setBeds24Err(null); setBeds24Busy(addressId);
+    try { await connectPropertyToBeds24(addressId); }
+    catch (e) { setBeds24Err((e as Error).message); }
+    finally { setBeds24Busy(null); }
+  };
+  const handleDisconnectBeds24 = async (listingId: string, addressId: string) => {
+    setBeds24Err(null); setBeds24Busy(addressId);
+    try { await disconnectPropertyFromBeds24(listingId); }
+    catch (e) { setBeds24Err((e as Error).message); }
+    finally { setBeds24Busy(null); }
+  };
   const [removeProp, setRemoveProp] = useState<PropertyAddress | null>(null);
   const [showExp, setShowExp] = useState(false);
   const _pm = prevMonthDefaults();
@@ -611,6 +628,36 @@ export default function Account() {
               <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13M10 11v6M14 11v6" /></svg>
             </button>
           </div>
+          {/* Beds24 channel-manager: connect this property so guest checkouts
+              auto-trigger a cleaning. Adding a property is free; connecting bills
+              €14.99/mo per property. */}
+          {(() => {
+            const cmListing = connectedListings.find((l) => l.addressId === a.id && l.beds24PropertyId);
+            const busy = beds24Busy === a.id;
+            if (cmListing?.billingActive) {
+              return (
+                <div className="between" style={{ marginTop: 8, gap: 8 }}>
+                  <span className="tiny" style={{ color: "var(--ok, #16a34a)" }}>● Channel manager connected · €14.99/mo</span>
+                  <button className="btn btn--ghost tiny" disabled={busy}
+                    onClick={() => handleDisconnectBeds24(cmListing.id, a.id)}>
+                    {busy ? "Disconnecting…" : "Disconnect"}
+                  </button>
+                </div>
+              );
+            }
+            return (
+              <div className="between" style={{ marginTop: 8, gap: 8 }}>
+                <span className="tiny muted">Auto-clean after guest checkouts</span>
+                <button className="btn tiny" disabled={busy}
+                  onClick={() => handleConnectBeds24(a.id)}>
+                  {busy ? "Connecting…" : "Connect · €14.99/mo"}
+                </button>
+              </div>
+            );
+          })()}
+          {beds24Err && beds24Busy === null && (
+            <div className="tiny" style={{ color: "var(--danger, #dc2626)", marginTop: 4 }}>{beds24Err}</div>
+          )}
         </div>
       ))}
 

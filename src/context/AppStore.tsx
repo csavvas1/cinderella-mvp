@@ -8,6 +8,7 @@ import type { Cleaner } from "../types";
 import { makeReferralCode } from "../data/referral";
 import { priceJob } from "../data/platform";
 import { supabase } from "../lib/supabase";
+import { connectProperty as beds24Connect, disconnectProperty as beds24Disconnect } from "../data/beds24";
 import { registerBiometric, verifyBiometric } from "../lib/webauthn";
 import { enablePush, disablePush, syncExistingSubscription } from "../lib/push";
 import { rowToProfile, profileToRow, rowToAddress, addressToRow, rowToCard, cardToRow, rowToBooking, bookingToRow, rowToJob, jobToRow, rowToNotif, notifToRow, rowToListing, listingToRow, rowToExternalBooking, externalBookingToRow, rowToReview, reviewToRow, type ProfileFields, type UsersRow, type AddressRow, type CardRow, type BookingRow, type JobRow, type NotifRow, type ListingRow, type ExternalBookingRow, type ReviewRow } from "../lib/profile";
@@ -267,6 +268,10 @@ interface AppState {
   externalBookings: ExternalBooking[];
   addListing: (l: ConnectedListing, bookings: ExternalBooking[]) => void;
   removeListing: (id: string) => void;
+  // Beds24 channel-manager: push a saved property to Beds24 + start per-property
+  // billing / stop it. Returns nothing; throws on failure so the UI can toast.
+  connectPropertyToBeds24: (addressId: string) => Promise<void>;
+  disconnectPropertyFromBeds24: (listingId: string) => Promise<void>;
   addManualStay: (s: ExternalBooking) => void;         // add a booked stay by hand
   removeExternalBooking: (id: string) => void;         // remove a single stay
   joinProperty: (code: string) => Promise<{ error?: string }>; // join a shared property by code
@@ -1167,6 +1172,21 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         supabase.from("connected_listings").delete().eq("id", id).eq("user_id", currentKey).then(logErr("listing delete"));
         orphanNotifs.forEach((n) => dbInsertNotif(n));
       }
+    },
+    connectPropertyToBeds24: async (addressId) => {
+      if (!isRealUser || !currentKey) throw new Error("Sign in to connect a property.");
+      await beds24Connect(currentKey, addressId);
+      // reload listings from DB so beds24PropertyId + billingActive reflect
+      const { data, error } = await supabase.from("connected_listings").select("*").eq("user_id", currentKey);
+      if (error) throw new Error(error.message);
+      patchAcct({ connectedListings: (data ?? []).map(rowToListing) });
+    },
+    disconnectPropertyFromBeds24: async (listingId) => {
+      if (!isRealUser || !currentKey) throw new Error("Sign in to manage a property.");
+      await beds24Disconnect(currentKey, listingId);
+      const { data, error } = await supabase.from("connected_listings").select("*").eq("user_id", currentKey);
+      if (error) throw new Error(error.message);
+      patchAcct({ connectedListings: (data ?? []).map(rowToListing) });
     },
     // Manually add a booked stay (not from Airbnb/Booking) — e.g. a direct guest.
     // Stored as an external booking with platform "other"; it shows on the

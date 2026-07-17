@@ -43,3 +43,25 @@ verify_jwt = false
 # Delivers a Web Push to a user's saved subscriptions. Verifies the caller's JWT
 # itself; platform gate off for the CORS preflight.
 verify_jwt = false
+
+[functions.stripe-checkout]
+# Starts a subscription for the caller. Platform gate off for the CORS preflight.
+verify_jwt = false
+
+[functions.stripe-webhook]
+# Stripe -> us. Stripe can't send a Supabase JWT; the function verifies the
+# Stripe signature instead. Platform gate MUST be off.
+verify_jwt = false
+
+[functions.connect-property]
+# Pushes a saved property to Beds24 + starts per-property billing. Platform gate
+# off for the CORS preflight.
+verify_jwt = false
+
+[functions.disconnect-property]
+# Sets a Beds24 property dormant + stops billing. Platform gate off for preflight.
+verify_jwt = false
+
+[functions.beds24-poll]
+# Scheduled cron; no user JWT. Platform gate off.
+verify_jwt = false
