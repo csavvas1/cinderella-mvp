@@ -62,7 +62,6 @@ export default function Account() {
     agentProfile, setAgentProfile,
     pushEnabled, requestPushPermission, disablePushNotifications,
     verification, submitVerification,
-    pro, upgradeToPro, cancelPro,
   } = useStore();
 
   const [pushBusy, setPushBusy] = useState(false);
@@ -100,6 +99,8 @@ export default function Account() {
 
   // customer: properties + payment
   const [showAdd, setShowAdd] = useState(false);
+  const [addChoice, setAddChoice] = useState(false);       // manual vs connect chooser
+  const [connectNew, setConnectNew] = useState(false);     // connect-accounts view (no property yet)
   const [editId, setEditId] = useState<string | null>(null);
   const [showAddCard, setShowAddCard] = useState(false);
   const [cardForm, setCardForm] = useState({ nickname: "", number: "" });
@@ -368,12 +369,6 @@ export default function Account() {
             <div className="pcard__name">{agentProfile.displayName || userName || "Your account"}</div>
             {accountNo && <div className="pcard__member">Member #{accountNo}</div>}
           </div>
-          {pro
-            ? <span className="planbadge planbadge--pro">
-                <svg className="planbadge__crown" viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true"><path d="M3 8l4 4 5-7 5 7 4-4-1.5 10.5h-15L3 8Z" /></svg>
-                Pro
-              </span>
-            : <span className="planbadge">Standard</span>}
         </div>
         <div className="pcard__rows" onClick={() => setEditProfile(true)} style={{ cursor: "pointer" }}>
           <div className="pcard__row">
@@ -406,8 +401,43 @@ export default function Account() {
       {/* PROPERTIES */}
       <div className="between" style={{ marginTop: 16, marginBottom: 10 }}>
         <div className="label" style={{ margin: 0 }}>My properties</div>
-        <button className="btn sm secondary" onClick={() => { setEditId(null); resetForm(); setShowAdd(true); }}>+ Add</button>
+        <button className="btn sm secondary" onClick={() => setAddChoice(true)}>+ Add</button>
       </div>
+
+      {/* ADD CHOICE — link accounts (auto) or add a property manually */}
+      {addChoice && (
+        <div className="modal__backdrop" onClick={() => setAddChoice(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="between" style={{ marginBottom: 10 }}>
+              <b style={{ fontSize: 17 }}>Add a property</b>
+              <button className="iconbtn" onClick={() => setAddChoice(false)}>✕</button>
+            </div>
+            <button className="connect-cta" style={{ marginBottom: 10 }}
+              onClick={() => { setAddChoice(false); setConnectNew(true); }}>
+              <span className="connect-cta__ic">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1" /><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1" /></svg>
+              </span>
+              <span className="connect-cta__txt">
+                <span>Connect your accounts</span>
+                <span className="connect-cta__sub">Import from Airbnb, Booking.com & more</span>
+              </span>
+              <span className="connect-cta__chev">›</span>
+            </button>
+            <button className="btn secondary" onClick={() => { setAddChoice(false); setEditId(null); resetForm(); setShowAdd(true); }}>
+              Add a property manually
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* CONNECT ACCOUNTS (no property yet) — reuses the multi-platform view */}
+      {connectNew && (
+        <ConnectChannelSheet
+          property={{ id: "new", nickname: "your listings", address: "", propertyType: "apartment", bedrooms: 1, bathrooms: 1, kitchens: 1, commonRooms: 1 } as PropertyAddress}
+          onClose={() => setConnectNew(false)}
+          onConnected={() => setConnectNew(false)}
+        />
+      )}
 
 
       {showAdd && (
@@ -496,14 +526,6 @@ export default function Account() {
               ))}
             </div>
 
-            <div className="note" style={{ marginTop: 14 }}>
-              <b style={{ fontSize: 12.5 }}>Adding a property is free</b>
-              <p style={{ fontSize: 12, margin: "6px 0 0" }}>
-                Once saved, tap <b>Connect</b> on the property to link Airbnb / Booking.com and
-                auto-schedule a cleaning after every guest checkout.
-              </p>
-            </div>
-
             <div style={{ height: 14 }} />
             {(() => {
               const apt = form.propertyType === "apartment";
@@ -556,18 +578,24 @@ export default function Account() {
               <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13M10 11v6M14 11v6" /></svg>
             </button>
           </div>
-          {/* Channel connect: link Airbnb/Booking so guest checkouts auto-schedule
-              a cleaning. Adding a property is free; connecting bills €14.99/mo. */}
+          {/* Channel connect */}
           {(() => {
             const cmListing = connectedListings.find((l) => l.addressId === a.id && l.beds24PropertyId);
             const busy = beds24Busy === a.id;
             if (cmListing?.billingActive) {
               return (
-                <div className="between propcard__connect" style={{ marginTop: 10, gap: 8 }}>
-                  <span className="tiny" style={{ color: "var(--ok, #16a34a)", fontWeight: 600 }}>
-                    ✓ Connected · €14.99/mo · auto-clean on checkout
-                  </span>
-                  <button className="btn btn--ghost tiny" disabled={busy}
+                <div className="propcard__connect" style={{ marginTop: 10 }}>
+                  <button className="connect-cta connect-cta--on" onClick={() => setConnectProp(a)}>
+                    <span className="connect-cta__ic">
+                      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+                    </span>
+                    <span className="connect-cta__txt">
+                      <span>Channels connected</span>
+                      <span className="connect-cta__sub">Manage your listings</span>
+                    </span>
+                    <span className="connect-cta__chev">›</span>
+                  </button>
+                  <button className="btn btn--ghost tiny" style={{ marginTop: 6 }} disabled={busy}
                     onClick={() => handleDisconnectBeds24(cmListing.id, a.id)}>
                     {busy ? "Disconnecting…" : "Disconnect"}
                   </button>
@@ -575,10 +603,16 @@ export default function Account() {
               );
             }
             return (
-              <div className="between propcard__connect" style={{ marginTop: 10, gap: 8 }}>
-                <span className="tiny muted">Auto-clean after guest checkouts</span>
-                <button className="btn sm" disabled={busy} onClick={() => setConnectProp(a)}>
-                  {busy ? "Connecting…" : "Connect a channel"}
+              <div className="propcard__connect" style={{ marginTop: 10 }}>
+                <button className="connect-cta" onClick={() => setConnectProp(a)}>
+                  <span className="connect-cta__ic">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1" /><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1" /></svg>
+                  </span>
+                  <span className="connect-cta__txt">
+                    <span>Go live on booking sites</span>
+                    <span className="connect-cta__sub">Airbnb, Booking.com & more</span>
+                  </span>
+                  <span className="connect-cta__chev">›</span>
                 </button>
               </div>
             );

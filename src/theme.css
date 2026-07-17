@@ -758,6 +758,56 @@ body {
 }
 .propcard__count svg { display: block; margin-bottom: .5px; opacity: .95; }
 
+/* per-property channel-connect row on the card */
+.propcard__connect { border-top: 1px solid var(--line); padding-top: 10px; }
+
+/* nicer, pro "connect listings" CTA button */
+.connect-cta {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 11px 14px; border: none; border-radius: 12px; cursor: pointer;
+  background: linear-gradient(135deg, #1f6feb 0%, #0ea5e9 100%);
+  color: #fff; font-weight: 600; font-size: 13.5px;
+  box-shadow: 0 4px 14px rgba(14,165,233,.28);
+  transition: transform .08s ease, box-shadow .15s ease;
+}
+.connect-cta:active { transform: scale(.98); }
+.connect-cta__ic { display: inline-flex; }
+.connect-cta__txt { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.2; }
+.connect-cta__sub { font-size: 11px; font-weight: 500; opacity: .9; }
+.connect-cta__chev { margin-left: auto; font-size: 18px; opacity: .9; }
+.connect-cta--on {
+  background: var(--ok-soft, #ecfdf5); color: var(--ok, #16a34a);
+  box-shadow: none; border: 1px solid var(--ok, #16a34a);
+}
+
+/* multi-platform connect grid (inside the connect sheet) */
+.chan-grid { display: flex; flex-direction: column; gap: 8px; margin: 8px 0 4px; }
+.chan-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px;
+  background: var(--surface, #fff);
+}
+.chan-row--on { border-color: var(--ok, #16a34a); background: var(--ok-soft, #ecfdf5); }
+.chan-dot { width: 10px; height: 10px; border-radius: 999px; flex: none; }
+.chan-name { font-size: 13.5px; font-weight: 600; flex: 1; }
+.chan-btn {
+  border: 1px solid var(--line); background: var(--surface, #fff);
+  border-radius: 999px; padding: 6px 14px; font-size: 12.5px; font-weight: 600;
+  cursor: pointer; color: var(--text);
+}
+.chan-btn:disabled { opacity: .6; cursor: default; }
+.chan-btn--cta { background: #1f6feb; color: #fff; border-color: #1f6feb; }
+.chan-btn--on { background: transparent; color: var(--ok, #16a34a); border-color: var(--ok, #16a34a); }
+
+/* live cost box */
+.chan-cost {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 14px; padding: 12px 14px; border-radius: 14px;
+  background: var(--brand-soft, #eff6ff);
+}
+.chan-cost__val { font-size: 22px; font-weight: 800; letter-spacing: -.5px; }
+.chan-cost__val .tiny { font-weight: 500; margin-left: 2px; }
+
 /* empty jobs state (agent) */
 .emptyjobs {
   display: flex; flex-direction: column; align-items: center; text-align: center;
