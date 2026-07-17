@@ -1803,10 +1803,19 @@ input[type="range"]::-webkit-slider-thumb {
 .modal.tall { min-height: 82%; max-height: 92%; }
 
 /* centered info modal variant */
-.modal__backdrop.center { align-items: center; padding: 0 22px; }
+.modal__backdrop.center {
+  align-items: center; padding: 0 22px;
+  background: rgba(10, 11, 16, 0.62);
+  backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+}
 .modal__backdrop.center .modal {
-  width: 100%; max-width: 340px; border-radius: 18px;
-  padding: 18px; box-shadow: var(--shadow-lg); animation: fade .15s ease;
+  width: 100%; max-width: 360px; border-radius: 18px;
+  padding: 20px; box-shadow: 0 24px 60px rgba(0,0,0,.45);
+  animation: popin .2s cubic-bezier(.2,.9,.3,1.2);
+}
+@keyframes popin {
+  from { transform: scale(.9); opacity: 0; }
+  to   { transform: scale(1);  opacity: 1; }
 }
 
 /* ---------- calendar ---------- */
