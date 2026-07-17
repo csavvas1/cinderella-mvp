@@ -54,7 +54,8 @@ export default function Bookings() {
   const nav = useNavigate();
   // Linked (channel-manager reservations) vs Unlinked (cleaning) calendar. Unlocks
   // once at least one property is connected to a channel. Toggle shows when both exist.
-  const hasLinked = connectedListings.some((l) => l.billingActive) || externalBookings.length > 0;
+  // Reservations calendar only when a property is linked via the channel manager API.
+  const hasLinked = connectedListings.some((l) => l.billingActive && l.beds24PropertyId);
   const [calMode, setCalMode] = useState<"linked" | "unlinked">(hasLinked ? "linked" : "unlinked");
   const [reviewFor, setReviewFor] = useState<Booking | null>(null);
   const [editFor, setEditFor] = useState<Booking | null>(null);
@@ -225,8 +226,8 @@ export default function Bookings() {
             {/* toggle (own row, fixed size) */}
             {hasLinked && visible.length > 0 && (
               <div className="segmini segmini--full" style={{ marginBottom: 10 }}>
-                <button className={calMode === "linked" ? "active" : ""} onClick={() => setCalMode("linked")}>Pro</button>
-                <button className={calMode === "unlinked" ? "active" : ""} onClick={() => setCalMode("unlinked")}>Standard</button>
+                <button className={calMode === "linked" ? "active" : ""} onClick={() => setCalMode("linked")}>Reservations</button>
+                <button className={calMode === "unlinked" ? "active" : ""} onClick={() => setCalMode("unlinked")}>Cleanings</button>
               </div>
             )}
             {/* manual-booking button below the toggle (Pro only) */}

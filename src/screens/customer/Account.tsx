@@ -404,28 +404,30 @@ export default function Account() {
         <button className="btn sm secondary" onClick={() => setAddChoice(true)}>+ Add</button>
       </div>
 
-      {/* ADD CHOICE — link accounts (auto) or add a property manually */}
+      {/* ADD CHOICE — small centered popup: link accounts (auto) or add manually */}
       {addChoice && (
-        <div className="modal__backdrop" onClick={() => setAddChoice(false)}>
+        <div className="modal__backdrop center" onClick={() => setAddChoice(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="between" style={{ marginBottom: 10 }}>
-              <b style={{ fontSize: 17 }}>Add a property</b>
+            <div className="between" style={{ marginBottom: 12 }}>
+              <b style={{ fontSize: 16 }}>Add a property</b>
               <button className="iconbtn" onClick={() => setAddChoice(false)}>✕</button>
             </div>
-            <button className="connect-cta" style={{ marginBottom: 10 }}
-              onClick={() => { setAddChoice(false); setConnectNew(true); }}>
-              <span className="connect-cta__ic">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1" /><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1" /></svg>
-              </span>
-              <span className="connect-cta__txt">
-                <span>Connect your accounts</span>
-                <span className="connect-cta__sub">Import from Airbnb, Booking.com & more</span>
-              </span>
-              <span className="connect-cta__chev">›</span>
-            </button>
-            <button className="btn secondary" onClick={() => { setAddChoice(false); setEditId(null); resetForm(); setShowAdd(true); }}>
-              Add a property manually
-            </button>
+            <div className="addchoice">
+              <button className="addchoice__opt" onClick={() => { setAddChoice(false); setConnectNew(true); }}>
+                <span className="addchoice__ic addchoice__ic--brand">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1" /><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1" /></svg>
+                </span>
+                <span className="addchoice__t">Connect accounts</span>
+                <span className="addchoice__s">Import from Airbnb & more</span>
+              </button>
+              <button className="addchoice__opt" onClick={() => { setAddChoice(false); setEditId(null); resetForm(); setShowAdd(true); }}>
+                <span className="addchoice__ic">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
+                </span>
+                <span className="addchoice__t">Add manually</span>
+                <span className="addchoice__s">Enter property details</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

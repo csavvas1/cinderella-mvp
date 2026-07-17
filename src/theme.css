@@ -780,6 +780,25 @@ body {
   box-shadow: none; border: 1px solid var(--ok, #16a34a);
 }
 
+/* add-property choice popup: two matching cards */
+.addchoice { display: flex; gap: 10px; }
+.addchoice__opt {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 16px 10px; border: 1px solid var(--line); border-radius: 14px;
+  background: var(--surface, #fff); cursor: pointer; text-align: center;
+  transition: transform .08s ease, border-color .15s ease;
+}
+.addchoice__opt:active { transform: scale(.97); }
+.addchoice__opt:hover { border-color: #1f6feb; }
+.addchoice__ic {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px; border-radius: 999px;
+  background: var(--surface-2, #f1f5f9); color: var(--text);
+}
+.addchoice__ic--brand { background: rgba(31,111,235,.12); color: #1f6feb; }
+.addchoice__t { font-size: 13.5px; font-weight: 700; }
+.addchoice__s { font-size: 11px; color: var(--muted); line-height: 1.3; }
+
 /* multi-platform connect grid (inside the connect sheet) */
 .chan-grid { display: flex; flex-direction: column; gap: 8px; margin: 8px 0 4px; }
 .chan-row {
@@ -798,6 +817,14 @@ body {
 .chan-btn:disabled { opacity: .6; cursor: default; }
 .chan-btn--cta { background: #1f6feb; color: #fff; border-color: #1f6feb; }
 .chan-btn--on { background: transparent; color: var(--ok, #16a34a); border-color: var(--ok, #16a34a); }
+
+/* pulled properties under a connected platform */
+.chan-props { padding: 6px 0 2px 22px; display: flex; flex-direction: column; gap: 5px; }
+.chan-prop {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 12.5px; color: var(--ok, #16a34a); font-weight: 500;
+}
+.chan-prop svg { flex: none; }
 
 /* live cost box */
 .chan-cost {

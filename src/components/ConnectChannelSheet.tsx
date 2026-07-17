@@ -31,6 +31,14 @@ const PLATFORMS: { id: string; name: string; color: string }[] = [
   { id: "hostelworld",  name: "Hostelworld",      color: "#f36f21" },
 ];
 
+// MOCK: the properties an account "pulls" once a platform is signed in, so the
+// client sees their listings linked. Replaced by real API data under Partner.
+const MOCK_PROPERTIES: string[][] = [
+  ["Seaside Apartment", "City Centre Studio", "Marina Loft"],
+  ["Seaside Apartment", "Old Town Maisonette"],
+  ["Marina Loft"],
+];
+
 export default function ConnectChannelSheet({
   property, onClose, onConnected,
 }: {
@@ -64,52 +72,48 @@ export default function ConnectChannelSheet({
   return (
     <div className="modal__backdrop" onClick={onClose}>
       <div className="modal tall" onClick={(e) => e.stopPropagation()}>
-        <div className="between" style={{ marginBottom: 4 }}>
+        <div className="between" style={{ marginBottom: 10 }}>
           <b style={{ fontSize: 17 }}>Connect your listings</b>
           <button className="iconbtn" onClick={onClose}>✕</button>
         </div>
-        <p className="sub" style={{ marginTop: 0, fontSize: 12.5 }}>
-          Link <b>{property.nickname}</b> to the sites you list on. Sign in to each — your
-          reservations sync automatically, no copy-pasting.
-        </p>
 
         <div className="chan-grid">
-          {PLATFORMS.map((p) => {
+          {PLATFORMS.map((p, i) => {
             const st = status[p.id] ?? "idle";
             return (
-              <div key={p.id} className={"chan-row" + (st === "confirmed" ? " chan-row--on" : "")}>
-                <span className="chan-dot" style={{ background: p.color }} />
-                <span className="chan-name">{p.name}</span>
-                {st === "confirmed" ? (
-                  <button className="chan-btn chan-btn--on" onClick={() => disconnect(p.id)}>
-                    ✓ Connected
-                  </button>
-                ) : st === "connecting" ? (
-                  <button className="chan-btn" disabled>Connecting…</button>
-                ) : (
-                  <button className="chan-btn chan-btn--cta" onClick={() => connect(p.id)}>
-                    Sign in
-                  </button>
+              <div key={p.id}>
+                <div className={"chan-row" + (st === "confirmed" ? " chan-row--on" : "")}>
+                  <span className="chan-dot" style={{ background: p.color }} />
+                  <span className="chan-name">{p.name}</span>
+                  {st === "confirmed" ? (
+                    <button className="chan-btn chan-btn--on" onClick={() => disconnect(p.id)}>
+                      ✓ Connected
+                    </button>
+                  ) : st === "connecting" ? (
+                    <button className="chan-btn" disabled>Connecting…</button>
+                  ) : (
+                    <button className="chan-btn chan-btn--cta" onClick={() => connect(p.id)}>
+                      Sign in
+                    </button>
+                  )}
+                </div>
+                {/* pulled properties — so the client sees each listing linked */}
+                {st === "confirmed" && (
+                  <div className="chan-props">
+                    {MOCK_PROPERTIES[i % MOCK_PROPERTIES.length].map((name) => (
+                      <div key={name} className="chan-prop">
+                        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+                        <span>{name}</span>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             );
           })}
         </div>
 
-        {/* live cost */}
-        <div className="chan-cost">
-          <div>
-            <div className="tiny muted">Your monthly rate</div>
-            <div className="chan-cost__val">€{monthly.toFixed(2)}<span className="tiny muted">/mo</span></div>
-          </div>
-          <div className="tiny muted" style={{ textAlign: "right", maxWidth: 150 }}>
-            {confirmedCount > 0
-              ? `${confirmedCount} channel${confirmedCount === 1 ? "" : "s"} connected`
-              : "Adjusts as you connect channels"}
-          </div>
-        </div>
-
-        <button className="btn" style={{ marginTop: 12, opacity: confirmedCount ? 1 : 0.5 }}
+        <button className="btn" style={{ marginTop: 16, opacity: confirmedCount ? 1 : 0.5 }}
           disabled={!confirmedCount} onClick={onConnected}>
           {confirmedCount ? `Confirm · €${monthly.toFixed(2)}/mo` : "Connect a channel to continue"}
         </button>
