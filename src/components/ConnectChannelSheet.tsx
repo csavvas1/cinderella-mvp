@@ -52,15 +52,18 @@ export default function ConnectChannelSheet({
   const [status, setStatus] = useState<Record<string, Status>>({});
   const apartments = 1; // this sheet connects one property; count feeds the calc
 
-  // all unique properties pulled from the connected platforms (mock)
+  // Map each pulled property -> the set of platforms it's confirmed on, so the
+  // linked view can show every connected platform's logo (not just Airbnb).
   function confirmAndLink() {
-    const names = new Set<string>();
+    const byName: Record<string, string[]> = {};
     PLATFORMS.forEach((p, i) => {
       if (status[p.id] === "confirmed") {
-        MOCK_PROPERTIES[i % MOCK_PROPERTIES.length].forEach((n) => names.add(n));
+        MOCK_PROPERTIES[i % MOCK_PROPERTIES.length].forEach((n) => {
+          (byName[n] ??= []).push(p.id);
+        });
       }
     });
-    mockLinkProperties([...names]);
+    mockLinkProperties(byName);
     onConnected();
   }
 

@@ -202,8 +202,14 @@ export default function Account() {
     return `${window.location.origin}/?join=${code}`;
   }
   async function doShare(a: PropertyAddress) {
-    if (!a.shareCode) return;
-    const url = shareLink(a.shareCode);
+    // Ensure a share code exists (mock/linked properties may not have one yet) so
+    // the native share sheet can always fire.
+    let code = a.shareCode;
+    if (!code) {
+      code = crypto.randomUUID().slice(0, 8);
+      updateAddress({ ...a, shareCode: code });
+    }
+    const url = shareLink(code);
     const text = `Help me co-manage "${a.nickname}" on Cinderella. Open this link to get access to its calendar and cleaning schedule: ${url}`;
     if (navigator.share) {
       try { await navigator.share({ title: "Co-manage a property", text, url }); return; } catch { /* cancelled → fall through to copy */ }
@@ -510,7 +516,7 @@ export default function Account() {
         <Listings
           onClose={() => setShowListings(false)}
           onRemove={(a) => setRemoveProp(a)}
-          onShare={(a) => { setShareCopied(false); setShareProp(a); }}
+          onShare={(a) => doShare(a)}
         />
       )}
 

@@ -53,7 +53,7 @@ export interface Card {
 export type PropertyType = "apartment" | "house";
 
 // ---- channel manager (short-let sync) ----
-export type ListingPlatform = "airbnb" | "booking" | "vrbo" | "google" | "expedia" | "other";
+export type ListingPlatform = "airbnb" | "booking" | "vrbo" | "google" | "expedia" | "tripadvisor" | "agoda" | "hostelworld" | "other";
 
 export interface ConnectedListing {
   id: string;

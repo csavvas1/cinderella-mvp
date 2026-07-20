@@ -276,7 +276,7 @@ interface AppState {
   // MOCK: pretend a set of listings were pulled + linked from an OTA sign-in.
   // Local state only (no Beds24/Stripe/DB) — used by the mock connect view so
   // linked properties appear + the Reservations calendar unlocks for preview.
-  mockLinkProperties: (names: string[]) => void;
+  mockLinkProperties: (byName: Record<string, string[]>) => void;
   mockUnlinkProperty: (addressId: string) => void;   // remove all channels for a property (mock)
   mockAddChannel: (addressId: string, platform: ListingPlatform) => void;
   mockRemoveChannel: (listingId: string) => void;
@@ -1233,31 +1233,37 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         externalBookings: (acct.externalBookings ?? []).filter((b) => b.listingId !== listingId),
       });
     },
-    mockLinkProperties: (names) => {
+    mockLinkProperties: (byName) => {
       const existingNames = new Set(acct.addresses.map((a) => a.nickname));
       const newAddrs: PropertyAddress[] = [];
       const newListings: ConnectedListing[] = [];
       const newStays: ExternalBooking[] = [];
       const today = new Date();
       const iso = (d: Date) => d.toISOString().slice(0, 10);
-      names.forEach((name, i) => {
+      let seq = 0;
+      Object.entries(byName).forEach(([name, platforms], i) => {
         if (existingNames.has(name)) return;
         const id = crypto.randomUUID();
         newAddrs.push({
           id, nickname: name, address: name, propertyType: "apartment",
           bedrooms: 1, bathrooms: 1, kitchens: 1, commonRooms: 1,
         });
-        newListings.push({
-          id: crypto.randomUUID(), platform: "airbnb", name,
-          icalUrl: "", addressId: id, connectedAt: Date.now(),
-          beds24PropertyId: 900000 + i, billingActive: true,
+        // one connected listing per platform this property is live on, so the
+        // linked view shows every platform's official logo
+        const plats = platforms.length ? platforms : ["airbnb"];
+        plats.forEach((platform) => {
+          newListings.push({
+            id: crypto.randomUUID(), platform: platform as ConnectedListing["platform"], name,
+            icalUrl: "", addressId: id, connectedAt: Date.now(),
+            beds24PropertyId: 900000 + seq++, billingActive: true,
+          });
         });
         // a couple of sample upcoming reservations so the calendar has content
         const ci = new Date(today); ci.setDate(today.getDate() + 2 + i * 3);
         const co = new Date(ci); co.setDate(ci.getDate() + 3);
         newStays.push({
           id: crypto.randomUUID(), listingId: newListings[newListings.length - 1].id,
-          platform: "airbnb", guest: "Guest", checkIn: iso(ci), checkOut: iso(co), addressId: id,
+          platform: plats[0] as ExternalBooking["platform"], guest: "Guest", checkIn: iso(ci), checkOut: iso(co), addressId: id,
         });
       });
       if (newAddrs.length || newListings.length) {

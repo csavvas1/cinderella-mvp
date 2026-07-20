@@ -12,7 +12,8 @@ import { supabase } from "../lib/supabase";
 
 const PLATFORM_NAME: Record<ListingPlatform, string> = {
   airbnb: "Airbnb", booking: "Booking.com", vrbo: "Vrbo",
-  google: "Google", expedia: "Expedia", other: "Listing",
+  google: "Google", expedia: "Expedia", tripadvisor: "TripAdvisor",
+  agoda: "Agoda", hostelworld: "Hostelworld", other: "Listing",
 };
 
 export function platformName(p: ListingPlatform): string {
