@@ -1,22 +1,25 @@
 import { useStore } from "../../context/AppStore";
 import PlatformIcon from "../../components/PlatformIcon";
-import type { PropertyAddress } from "../../types";
+import type { PropertyAddress, ListingPlatform } from "../../types";
+
+const PLATFORM_LABEL: Record<ListingPlatform, string> = {
+  airbnb: "Airbnb", booking: "Booking.com", vrbo: "Vrbo",
+  google: "Google", expedia: "Expedia", other: "Other",
+};
 
 // Full-screen "Linked Properties" view (opaque sub-view inside the account sheet).
 // Shows ONLY properties connected to a booking channel, one card per property with
-// the logos of the channels it's linked to. Manage (add/remove a channel), edit,
-// share and remove are driven from here via handlers passed in from Account
-// (which still owns the property state + modals). Adding a new property and the
-// unlinked list both live on the Account tab, not here.
+// the name + a labelled row per platform it's live on, each with its own Remove
+// (disconnect that channel). No edit — all detail is pulled from the channel API.
+// Remove-property (bin) and share are driven via handlers from Account. Adding a
+// property and the unlinked list live on the Account tab, not here.
 
 export default function Listings({
-  onClose, onEdit, onRemove, onShare, onManage,
+  onClose, onRemove, onShare,
 }: {
   onClose: () => void;
-  onEdit: (a: PropertyAddress) => void;
   onRemove: (a: PropertyAddress) => void;
   onShare: (a: PropertyAddress) => void;
-  onManage: (a: PropertyAddress) => void;
 }) {
   const { addresses, connectedListings, mockRemoveChannel } = useStore();
 
@@ -64,27 +67,22 @@ export default function Listings({
                       <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="M8.6 10.5l6.8-4M8.6 13.5l6.8 4" /></svg>
                     </button>
                   )}
-                  <button className="iconbtn" title="Edit" onClick={() => onEdit(a)}>
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20h4L18.5 9.5a2 2 0 0 0-3-3L5 17v3Z" /><path d="M13.5 6.5l3 3" /></svg>
-                  </button>
-                  <button className="iconbtn" title="Remove" onClick={() => onRemove(a)}>
+                  <button className="iconbtn" title="Remove property" onClick={() => onRemove(a)}>
                     <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13M10 11v6M14 11v6" /></svg>
                   </button>
                 </div>
 
-                {/* connected channels → logos + Add-another */}
+                {/* connected channels — one labelled row each with its own remove.
+                    All property detail is pulled from the channel API, so there's
+                    no edit here; just the name + which platforms it's live on. */}
                 <div className="propcard__connect" style={{ marginTop: 10 }}>
-                  <div className="between" style={{ gap: 8 }}>
-                    <div className="listcard__chans" style={{ margin: 0 }}>
-                      {chans.map((l) => (
-                        <span key={l.id} className="listchan">
-                          <PlatformIcon platform={l.platform} size={22} />
-                          <span className="listchan__x" onClick={() => mockRemoveChannel(l.id)} title="Remove">✕</span>
-                        </span>
-                      ))}
+                  {chans.map((l) => (
+                    <div key={l.id} className="linkedchan">
+                      <PlatformIcon platform={l.platform} size={22} />
+                      <span className="linkedchan__name">{PLATFORM_LABEL[l.platform] ?? l.platform}</span>
+                      <button className="btn btn--ghost tiny linkedchan__rm" onClick={() => mockRemoveChannel(l.id)}>Remove</button>
                     </div>
-                    <button className="btn btn--ghost tiny" onClick={() => onManage(a)}>+ Add</button>
-                  </div>
+                  ))}
                 </div>
               </div>
             );

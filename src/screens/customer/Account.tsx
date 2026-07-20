@@ -509,10 +509,8 @@ export default function Account() {
       {showListings && (
         <Listings
           onClose={() => setShowListings(false)}
-          onEdit={(a) => openEditProperty(a)}
           onRemove={(a) => setRemoveProp(a)}
           onShare={(a) => { setShareCopied(false); setShareProp(a); }}
-          onManage={(a) => setConnectProp(a)}
         />
       )}
 
