@@ -774,7 +774,7 @@ body {
   background: rgba(31,111,235,.1); color: #1f6feb; flex: none;
 }
 .acct-launch__txt { display: flex; flex-direction: column; line-height: 1.25; flex: 1; }
-.acct-launch__txt > span:first-child { font-size: 14px; font-weight: 700; }
+.acct-launch__txt > span:first-child { font-size: 14px; font-weight: 700; color: var(--text); }
 .acct-launch__sub { font-size: 11.5px; color: var(--muted); }
 
 /* nicer, pro "connect listings" CTA button */
@@ -812,7 +812,7 @@ body {
   background: rgba(100,116,139,.14); color: #475569;
 }
 .addchoice__ic--brand { background: rgba(31,111,235,.12); color: #1f6feb; }
-.addchoice__t { font-size: 13.5px; font-weight: 700; }
+.addchoice__t { font-size: 13.5px; font-weight: 700; color: var(--text); }
 .addchoice__s { font-size: 11px; color: var(--muted); line-height: 1.3; }
 
 /* multi-platform connect grid (inside the connect sheet) */
@@ -1807,7 +1807,7 @@ input[type="range"]::-webkit-slider-thumb {
   animation: fade .15s ease;
 }
 .modal {
-  width: 100%; background: var(--bg); border-top-left-radius: 24px; border-top-right-radius: 24px;
+  width: 100%; background: var(--bg); color: var(--text); border-top-left-radius: 24px; border-top-right-radius: 24px;
   padding: 18px 18px calc(24px + env(safe-area-inset-bottom));
   box-shadow: 0 -10px 40px rgba(0,0,0,.3); animation: slideup .22s ease;
   max-height: 86%; overflow-y: auto;
