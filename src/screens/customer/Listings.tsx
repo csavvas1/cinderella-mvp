@@ -1,11 +1,6 @@
 import { useStore } from "../../context/AppStore";
 import PlatformIcon from "../../components/PlatformIcon";
-import type { PropertyAddress, ListingPlatform } from "../../types";
-
-const PLATFORM_LABEL: Record<ListingPlatform, string> = {
-  airbnb: "Airbnb", booking: "Booking.com", vrbo: "Vrbo",
-  google: "Google", expedia: "Expedia", other: "Other",
-};
+import type { PropertyAddress } from "../../types";
 
 // Full-screen "Linked Properties" view (opaque sub-view inside the account sheet).
 // Shows ONLY properties connected to a booking channel, one card per property with
@@ -21,7 +16,7 @@ export default function Listings({
   onRemove: (a: PropertyAddress) => void;
   onShare: (a: PropertyAddress) => void;
 }) {
-  const { addresses, connectedListings, mockRemoveChannel } = useStore();
+  const { addresses, connectedListings } = useStore();
 
   const channelsFor = (addrId: string) =>
     connectedListings.filter((l) => l.addressId === addrId && l.beds24PropertyId);
@@ -58,9 +53,10 @@ export default function Listings({
                   </span>
                   <div className="grow" style={{ minWidth: 0 }}>
                     <b style={{ fontSize: 14 }}>{a.nickname}</b>
-                    {a.nickname !== a.address && (
-                      <div className="tiny muted" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.address}</div>
-                    )}
+                    {/* platform logos only, no text, right under the name */}
+                    <div className="linkedchan__logos">
+                      {chans.map((l) => <PlatformIcon key={l.id} platform={l.platform} size={20} />)}
+                    </div>
                   </div>
                   {!a.isShared && (
                     <button className="iconbtn" title="Share" onClick={() => onShare(a)}>
@@ -70,19 +66,6 @@ export default function Listings({
                   <button className="iconbtn" title="Remove property" onClick={() => onRemove(a)}>
                     <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13M10 11v6M14 11v6" /></svg>
                   </button>
-                </div>
-
-                {/* connected channels — one labelled row each with its own remove.
-                    All property detail is pulled from the channel API, so there's
-                    no edit here; just the name + which platforms it's live on. */}
-                <div className="propcard__connect" style={{ marginTop: 10 }}>
-                  {chans.map((l) => (
-                    <div key={l.id} className="linkedchan">
-                      <PlatformIcon platform={l.platform} size={22} />
-                      <span className="linkedchan__name">{PLATFORM_LABEL[l.platform] ?? l.platform}</span>
-                      <button className="btn btn--ghost tiny linkedchan__rm" onClick={() => mockRemoveChannel(l.id)}>Remove</button>
-                    </div>
-                  ))}
                 </div>
               </div>
             );
