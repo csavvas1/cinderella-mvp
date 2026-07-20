@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import type { PropertyAddress } from "../types";
 import { useStore } from "../context/AppStore";
+import PlatformIcon from "./PlatformIcon";
 
 // ── MOCK multi-platform connect view ────────────────────────────────────────
 // Front-end only: shows how connecting listings will look + feel. No backend
@@ -97,7 +98,7 @@ export default function ConnectChannelSheet({
             return (
               <div key={p.id}>
                 <div className={"chan-row" + (st === "confirmed" ? " chan-row--on" : "")}>
-                  <span className="chan-dot" style={{ background: p.color }} />
+                  <PlatformIcon platform={p.id} size={26} />
                   <span className="chan-name">{p.name}</span>
                   {st === "confirmed" ? (
                     <button className="chan-btn chan-btn--on" onClick={() => disconnect(p.id)}>
