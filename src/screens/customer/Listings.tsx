@@ -2,26 +2,29 @@ import { useStore } from "../../context/AppStore";
 import PlatformIcon from "../../components/PlatformIcon";
 import type { PropertyAddress } from "../../types";
 
-// Full-screen "My Properties" view (opaque sub-view inside the account sheet).
-// Shows ALL properties — connected ones display the logos of the channels they're
-// linked to. Add / edit / delete / connect are all driven from here via handlers
-// passed in from Account (which still owns the property state + modals).
+// Full-screen "Linked Properties" view (opaque sub-view inside the account sheet).
+// Shows ONLY properties connected to a booking channel, one card per property with
+// the logos of the channels it's linked to. Manage (add/remove a channel), edit,
+// share and remove are driven from here via handlers passed in from Account
+// (which still owns the property state + modals). Adding a new property and the
+// unlinked list both live on the Account tab, not here.
 
 export default function Listings({
-  onClose, onAdd, onEdit, onRemove, onShare, onConnect, onManage,
+  onClose, onEdit, onRemove, onShare, onManage,
 }: {
   onClose: () => void;
-  onAdd: () => void;
   onEdit: (a: PropertyAddress) => void;
   onRemove: (a: PropertyAddress) => void;
   onShare: (a: PropertyAddress) => void;
-  onConnect: (a: PropertyAddress) => void;
   onManage: (a: PropertyAddress) => void;
 }) {
   const { addresses, connectedListings, mockRemoveChannel } = useStore();
 
   const channelsFor = (addrId: string) =>
     connectedListings.filter((l) => l.addressId === addrId && l.beds24PropertyId);
+
+  // only properties with at least one connected channel
+  const linked = addresses.filter((a) => channelsFor(a.id).length > 0);
 
   return (
     <div className="modal__backdrop" onClick={onClose}>
@@ -30,20 +33,18 @@ export default function Listings({
           <button className="iconbtn" onClick={onClose} aria-label="Back">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
           </button>
-          <b style={{ fontSize: 17 }}>My Properties</b>
-          <button className="btn sm secondary" onClick={onAdd}>+ Add</button>
+          <b style={{ fontSize: 17 }}>Linked properties</b>
+          <span style={{ width: 34 }} />
         </div>
 
-        {addresses.length === 0 ? (
+        {linked.length === 0 ? (
           <div className="emptyjobs" style={{ padding: "44px 20px" }}>
-            <b style={{ fontSize: 14 }}>No properties yet</b>
-            <p className="tiny muted" style={{ marginTop: 6 }}>Add a property or connect your booking accounts to get started.</p>
-            <button className="btn" style={{ marginTop: 14 }} onClick={onAdd}>+ Add a property</button>
+            <b style={{ fontSize: 14 }}>No linked properties</b>
+            <p className="tiny muted" style={{ marginTop: 6 }}>Connect a property to a booking site from your properties list to see it here.</p>
           </div>
         ) : (
-          addresses.map((a) => {
+          linked.map((a) => {
             const chans = channelsFor(a.id);
-            const connected = chans.length > 0;
             return (
               <div key={a.id} className="propcard">
                 <div className="propcard__top">
@@ -71,32 +72,19 @@ export default function Listings({
                   </button>
                 </div>
 
-                {/* connected channels → logos, or a connect CTA */}
+                {/* connected channels → logos + Add-another */}
                 <div className="propcard__connect" style={{ marginTop: 10 }}>
-                  {connected ? (
-                    <div className="between" style={{ gap: 8 }}>
-                      <div className="listcard__chans" style={{ margin: 0 }}>
-                        {chans.map((l) => (
-                          <span key={l.id} className="listchan">
-                            <PlatformIcon platform={l.platform} size={22} />
-                            <span className="listchan__x" onClick={() => mockRemoveChannel(l.id)} title="Remove">✕</span>
-                          </span>
-                        ))}
-                      </div>
-                      <button className="btn btn--ghost tiny" onClick={() => onManage(a)}>+ Add</button>
+                  <div className="between" style={{ gap: 8 }}>
+                    <div className="listcard__chans" style={{ margin: 0 }}>
+                      {chans.map((l) => (
+                        <span key={l.id} className="listchan">
+                          <PlatformIcon platform={l.platform} size={22} />
+                          <span className="listchan__x" onClick={() => mockRemoveChannel(l.id)} title="Remove">✕</span>
+                        </span>
+                      ))}
                     </div>
-                  ) : (
-                    <button className="connect-cta" onClick={() => onConnect(a)}>
-                      <span className="connect-cta__ic">
-                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1" /><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1" /></svg>
-                      </span>
-                      <span className="connect-cta__txt">
-                        <span>Go live on booking sites</span>
-                        <span className="connect-cta__sub">Airbnb, Booking.com & more</span>
-                      </span>
-                      <span className="connect-cta__chev">›</span>
-                    </button>
-                  )}
+                    <button className="btn btn--ghost tiny" onClick={() => onManage(a)}>+ Add</button>
+                  </div>
                 </div>
               </div>
             );
