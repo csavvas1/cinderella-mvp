@@ -2,7 +2,9 @@ import { createContext, useContext, useEffect, useRef, useState, type ReactNode 
 import type { AppNotification, Booking, Card, ChatMessage, ChatThread, ConnectedListing, ConsentRecord, CustomerReputation, ExternalBooking, Job, ListingPlatform, NotifAudience, PropertyAddress, Review, Role } from "../types";
 import { CUSTOMER_DOC_IDS, CLEANER_DOC_IDS, getLegalDoc, SUPPLY_TERMS_VERSION } from "../data/legal";
 import { SEED_ADDRESSES, SEED_BOOKINGS, SEED_CARDS, SEED_JOBS, SEED_LISTINGS, SEED_EXTERNAL_BOOKINGS } from "../data/seed";
-import { CLEANERS, agentRowToCleaner, type PublicAgentRow } from "../data/cleaners";
+import { CLEANERS, agentRowToCleaner, autoAcceptDecision, type PublicAgentRow } from "../data/cleaners";
+import { dispatchDecision, dispatchTimeFor, DEFAULT_LATE_HOURS } from "../data/dispatch";
+import { notifyUser } from "../lib/notify";
 import { SEED_THREADS, SEED_MESSAGES, DEFAULT_AUTO_TEMPLATE, renderTemplate } from "../data/messages";
 import type { Cleaner } from "../types";
 import { makeReferralCode } from "../data/referral";
@@ -250,6 +252,14 @@ interface AppState {
   addresses: PropertyAddress[];
   addAddress: (a: PropertyAddress) => void;
   updateAddress: (a: PropertyAddress) => void;
+  // auto-dispatch
+  setDispatchConfig: (addressId: string, cfg: {
+    autoDispatch?: boolean; dispatchCleanerIds?: string[];
+    dispatchTime?: string; dispatchHours?: number;
+  }) => void;
+  setBookingLate: (bookingId: string, late: boolean, hours?: number) => void;
+  assignDispatchCleaner: (bookingId: string, cleanerId: string) => void;
+  reconcileDispatch: () => void;
   deleteAddress: (id: string) => void;
   setAddressCard: (addrId: string, cardId: string | undefined) => void;
 
@@ -699,6 +709,116 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     });
   }
 
+  // ---- auto-dispatch: turn OTA guest checkouts into cleaning jobs ----
+  // Full cleaner pool for dispatch (real agents + mock directory), deduped.
+  const dispatchPool: Cleaner[] = (() => {
+    const byId = new Map<string, Cleaner>();
+    [...realCleaners, ...CLEANERS].forEach((c) => { if (!byId.has(c.id)) byId.set(c.id, c); });
+    return [...byId.values()];
+  })();
+  const isRealCleaner = (id: string) => realCleaners.some((c) => c.id === id);
+
+  // Build a Booking + Job pair for a dispatched cleaning, mirroring
+  // CleanerDetail.confirm. Returns the pair (caller persists + notifies).
+  function buildDispatchJob(
+    booking: ExternalBooking, prop: PropertyAddress, cleaner: Cleaner,
+    date: string, time: string, hours: number,
+  ) {
+    const bid = crypto.randomUUID();
+    const jid = crypto.randomUUID();
+    const wknd = (() => { const d = new Date(date + "T00:00:00").getDay(); return d === 0 || d === 6; })();
+    const rate = wknd ? cleaner.rateWeekend : cleaner.rateWeekday;
+    const basePay = +(rate * hours).toFixed(2);
+    const { commission, cleanerPay, customerTotal } = priceJob(basePay);
+    const slots = jobs.map((j) => ({
+      cleanerId: j.cleanerId!, date: j.date, time: j.time, durationHours: j.durationHours, status: j.status, id: j.id,
+    }));
+    const dec = autoAcceptDecision(cleaner.id, date, time, hours, slots, Date.now(), acct.customerRep?.rating, acct.customerRep?.reviewsCount ?? 0, cleaner);
+    const auto = dec.decision === "auto";
+    const real = isRealCleaner(cleaner.id);
+    const booking2: Booking = {
+      id: bid, cleanerId: cleaner.id, cleanerName: cleaner.name, cleanerPhoto: cleaner.photo,
+      addressNickname: prop.nickname, address: prop.address, addressId: prop.id,
+      date, time, durationHours: hours, ratePerHour: rate, total: customerTotal,
+      commission, cleanerPay, scope: "whole",
+      status: auto ? "confirmed" : "awaiting", jobId: jid,
+      externalBookingId: booking.id, createdAt: Date.now(),
+      ...(auto ? { confirmedAt: Date.now() } : {}),
+      recurring: false, recurrence: "none",
+    };
+    const job: Job = {
+      id: jid, customerName: prop.nickname || "Short-let", type: "Short-let",
+      propertyType: prop.propertyType, apartmentNumber: prop.apartmentNumber, floor: prop.floor,
+      address: prop.address, date, time, durationHours: hours, ratePerHour: rate, cleanerPay,
+      bedrooms: prop.bedrooms, bathrooms: prop.bathrooms, kitchens: prop.kitchens, commonRooms: prop.commonRooms,
+      distanceFromHomeKm: 0, distanceFromPrevKm: null, lat: prop.lat, lng: prop.lng,
+      status: auto ? "approved" : "pending", cleanerId: cleaner.id,
+      cleanerUid: real ? cleaner.id : undefined, bookingId: bid,
+      externalBookingId: booking.id, autoAccepted: auto, alertedAt: Date.now(),
+      ...(auto ? { respondedAt: Date.now(), response: "accepted" as const } : {}),
+    };
+    return { booking2, job, real, auto };
+  }
+
+  function reconcileDispatch() {
+    const bookings = acct.externalBookings ?? [];
+    const addrs = acct.addresses;
+    const newBookings2: Booking[] = [];
+    const newJobs: Job[] = [];
+    const patchedExt = bookings.map((b) => ({ ...b }));
+    let changed = false;
+    const alerts: { audience: "customer" | "agent"; kind: "booking_new" | "booking_modified"; jobId?: string; title: string; body: string; targetUid?: string }[] = [];
+
+    patchedExt.forEach((b) => {
+      const prop = addrs.find((a) => a.id === b.addressId);
+      const res = dispatchDecision(b, prop, dispatchPool, jobs, Date.now());
+      if (res.kind === "assign" && prop) {
+        const cleaner = dispatchPool.find((c) => c.id === res.cleanerId)!;
+        const { booking2, job, real, auto } = buildDispatchJob(b, prop, cleaner, res.date, res.time, res.hours);
+        newBookings2.push(booking2); newJobs.push(job);
+        b.dispatchedJobId = job.id; changed = true;
+        alerts.push({
+          audience: "agent", kind: "booking_new", jobId: job.id,
+          title: auto ? "New cleaning" : "New cleaning request",
+          body: `${prop.nickname} · guest checkout ${res.date} ${res.time}.`,
+          targetUid: real ? cleaner.id : undefined,
+        });
+        alerts.push({
+          audience: "customer", kind: "booking_new",
+          title: "Cleaning booked", body: `${cleaner.name} · ${prop.nickname} · ${res.date} ${res.time}.`,
+        });
+      } else if (res.kind === "needsOwner" && prop) {
+        b.dispatchedJobId = "PENDING_OWNER"; changed = true;
+        alerts.push({
+          audience: "customer", kind: "booking_new",
+          title: "Pick a cleaner", body: `No favourite is free for ${prop.nickname} — checkout ${res.date}. Tap to pick.`,
+        });
+      }
+    });
+
+    // cancel jobs whose stay vanished (booking removed while job still open)
+    const liveExtIds = new Set(patchedExt.map((b) => b.id));
+    const cancelledJobIds: string[] = [];
+    jobs.forEach((j) => {
+      if (j.externalBookingId && (j.status === "pending" || j.status === "approved") && !liveExtIds.has(j.externalBookingId)) {
+        cancelledJobIds.push(j.id);
+      }
+    });
+    if (cancelledJobIds.length) {
+      setJobs((p) => p.map((j) => cancelledJobIds.includes(j.id) ? { ...j, status: "cancelled" as const, cancelledAt: Date.now() } : j));
+      changed = true;
+    }
+
+    if (!changed && !newJobs.length) return;
+    if (newBookings2.length) { patchAcct({ bookings: [...newBookings2, ...acct.bookings], externalBookings: patchedExt }); dbInsertBookings(newBookings2); }
+    else { patchAcct({ externalBookings: patchedExt }); }
+    if (newJobs.length) { setJobs((p) => [...newJobs, ...p]); dbInsertJobs(newJobs); }
+    alerts.forEach((a) => {
+      if (a.targetUid) void notifyUser(a.targetUid, { id: crypto.randomUUID(), audience: a.audience, kind: a.kind, jobId: a.jobId, title: a.title, body: a.body, read: false, createdAt: Date.now() });
+      else pushNotif({ id: crypto.randomUUID(), audience: a.audience, kind: a.kind, jobId: a.jobId, title: a.title, body: a.body, read: false, createdAt: Date.now() });
+    });
+  }
+
   useEffect(() => {
     const snapshot: Persisted = { accounts, currentKey, currentEmail, loggedIn, role, jobs, themePref, biometricEnabled, biometricEmail, lastAccount };
     localStorage.setItem(KEY, JSON.stringify(snapshot));
@@ -718,6 +838,10 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     document.documentElement.dataset.theme = dark ? "dark" : "light";
   }, [dark]);
+
+  // Auto-dispatch: reconcile whenever the set of guest stays changes (mock links,
+  // manual stays, or a real poll later), so new checkouts get cleaning jobs.
+  useEffect(() => { reconcileDispatch(); }, [acct.externalBookings?.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // One-time cleanup: prune orphaned connected listings + synced guest stays
   // left behind by property deletes that happened before delete-cascade existed.
@@ -1073,6 +1197,49 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         });
       }
     },
+    // ---- auto-dispatch actions ----
+    setDispatchConfig: (addressId, cfg) => {
+      const a = acct.addresses.find((x) => x.id === addressId);
+      if (!a) return;
+      const updated = { ...a, ...cfg };
+      // local-only patch (dispatch config isn't in the addresses DB mapper yet)
+      patchAcct({ addresses: acct.addresses.map((x) => x.id === addressId ? updated : x) });
+      // pick up existing checkouts after enabling / reconfiguring
+      setTimeout(() => reconcileDispatch(), 0);
+    },
+    setBookingLate: (bookingId, late, hours) => {
+      const exts = (acct.externalBookings ?? []).map((b) =>
+        b.id === bookingId ? { ...b, lateCheckout: late, lateHours: hours ?? b.lateHours ?? DEFAULT_LATE_HOURS } : b);
+      patchAcct({ externalBookings: exts });
+      const b = exts.find((x) => x.id === bookingId);
+      if (b?.dispatchedJobId && b.dispatchedJobId !== "PENDING_OWNER") {
+        const prop = acct.addresses.find((a) => a.id === b.addressId);
+        if (prop) {
+          const newTime = dispatchTimeFor(prop, b);
+          setJobs((p) => p.map((j) => j.id === b.dispatchedJobId ? { ...j, time: newTime } : j));
+          const job = jobs.find((j) => j.id === b.dispatchedJobId);
+          if (job?.cleanerUid) void notifyUser(job.cleanerUid, { id: crypto.randomUUID(), audience: "agent", kind: "booking_modified", jobId: job.id, title: "Checkout time changed", body: `${prop.nickname} cleaning now ${newTime}.`, read: false, createdAt: Date.now() });
+          else pushNotif({ id: crypto.randomUUID(), audience: "agent", kind: "booking_modified", jobId: b.dispatchedJobId, title: "Checkout time changed", body: `${prop.nickname} cleaning now ${newTime}.`, read: false, createdAt: Date.now() });
+        }
+      }
+    },
+    assignDispatchCleaner: (bookingId, cleanerId) => {
+      const b = (acct.externalBookings ?? []).find((x) => x.id === bookingId);
+      const prop = b ? acct.addresses.find((a) => a.id === b.addressId) : undefined;
+      const cleaner = dispatchPool.find((c) => c.id === cleanerId);
+      if (!b || !prop || !cleaner) return;
+      const time = dispatchTimeFor(prop, b);
+      const hours = prop.dispatchHours || 2;
+      const { booking2, job, real, auto } = buildDispatchJob(b, prop, cleaner, b.checkOut, time, hours);
+      patchAcct({
+        bookings: [booking2, ...acct.bookings],
+        externalBookings: (acct.externalBookings ?? []).map((x) => x.id === bookingId ? { ...x, dispatchedJobId: job.id } : x),
+      });
+      dbInsertBookings([booking2]); setJobs((p) => [job, ...p]); dbInsertJobs([job]);
+      if (real) void notifyUser(cleaner.id, { id: crypto.randomUUID(), audience: "agent", kind: "booking_new", jobId: job.id, title: auto ? "New cleaning" : "New cleaning request", body: `${prop.nickname} · ${b.checkOut} ${time}.`, read: false, createdAt: Date.now() });
+      else pushNotif({ id: crypto.randomUUID(), audience: "agent", kind: "booking_new", jobId: job.id, title: "New cleaning", body: `${prop.nickname} · ${b.checkOut} ${time}.`, read: false, createdAt: Date.now() });
+    },
+    reconcileDispatch,
     deleteAddress: (id) => {
       const addr = acct.addresses.find((a) => a.id === id);
       // bookings tied to this property that are about to be cancelled
