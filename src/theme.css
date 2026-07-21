@@ -861,6 +861,29 @@ body {
 /* linked-property: platform logos only, right under the name */
 .linkedchan__logos { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 
+/* auto-dispatch setup on a linked-property card */
+.dispatch { border-top: 1px solid var(--line); margin-top: 10px; padding-top: 8px; }
+.dispatch__head { display: flex; align-items: center; gap: 8px; width: 100%; background: none; border: none; padding: 4px 0; cursor: pointer; color: var(--text); text-align: left; }
+.dispatch__dot { width: 8px; height: 8px; border-radius: 999px; background: var(--muted); flex: none; }
+.dispatch__dot.on { background: var(--green, #16a34a); }
+.dispatch__summary { flex: 1; font-size: 12.5px; font-weight: 600; }
+.dispatch__chev { color: var(--muted); font-size: 12px; }
+.dispatch__body { padding: 6px 0 2px; }
+.dispatch__row { display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
+.dispatch__cl { display: flex; align-items: center; gap: 6px; font-size: 13px; padding: 4px 0; }
+.dispatch__rank { width: 18px; height: 18px; border-radius: 999px; background: rgba(31,111,235,.12); color: #1f6feb; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+.dispatch__up { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line); }
+.dispatch__late { display: inline-flex; align-items: center; gap: 4px; }
+.dispatch__lh { width: 54px; padding: 4px 6px; }
+/* cleaner picker rows */
+.dpick { display: flex; align-items: center; gap: 10px; width: 100%; background: none; border: none; border-bottom: 1px solid var(--line); padding: 10px 0; cursor: pointer; color: var(--text); text-align: left; }
+.dpick__av { width: 34px; height: 34px; border-radius: 999px; background: var(--surface); display: inline-flex; align-items: center; justify-content: center; font-weight: 700; overflow: hidden; flex: none; }
+.dpick__avimg { width: 100%; height: 100%; object-fit: cover; }
+.dpick__main { display: flex; flex-direction: column; flex: 1; }
+.dpick__check { width: 24px; height: 24px; border-radius: 999px; border: 1px solid var(--line); display: inline-flex; align-items: center; justify-content: center; color: var(--muted); }
+.dpick__check.on { background: #1f6feb; color: #fff; border-color: #1f6feb; }
+.switch.sm { transform: scale(.85); }
+
 /* pulled properties under a connected platform */
 .chan-props { padding: 6px 0 2px 22px; display: flex; flex-direction: column; gap: 5px; max-height: 96px; overflow-y: auto; }
 .chan-prop {
