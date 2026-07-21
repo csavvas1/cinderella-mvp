@@ -75,6 +75,10 @@ export interface ExternalBooking {
   checkIn: string;      // ISO date
   checkOut: string;     // ISO date
   addressId?: string;
+  // ---- auto-dispatch ----
+  lateCheckout?: boolean;    // owner flagged this stay as a late checkout
+  lateHours?: number;        // hours added to dispatchTime when late (default 3)
+  dispatchedJobId?: string;  // idempotency: job id once created, or "PENDING_OWNER"
 }
 
 // ---- Pro channel-manager UI (mock; no real API yet) ----
@@ -141,6 +145,11 @@ export interface PropertyAddress {
   shareCode?: string;   // invite code to share this property with a partner
   isShared?: boolean;   // true when this property was shared TO me (I'm a partner, not owner)
   memberCount?: number; // how many partners (besides the owner) have access to this property
+  // ---- auto-dispatch (short-let checkout -> auto cleaning job) ----
+  autoDispatch?: boolean;         // master toggle for this property
+  dispatchCleanerIds?: string[];  // priority order; index 0 = first choice
+  dispatchTime?: string;          // default cleaning start, e.g. "11:00"
+  dispatchHours?: number;         // default cleaning duration (hours)
 }
 
 export type Recurrence = "none" | "weekly" | "biweekly";
@@ -226,6 +235,7 @@ export interface Job {
   cleanerUid?: string;   // the real agent account this job is assigned to (null for mock cleaners)
   customerUid?: string;  // the booker's account id (target for agent->customer alerts)
   bookingId?: string;
+  externalBookingId?: string;  // the guest stay that generated this cleaning job
   autoAccepted?: boolean;
   // an auto-accepted job lands already "approved" (no accept needed) but is still
   // NEW to the agent — badges until they open it. Cleared when they view the job.
