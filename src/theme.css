@@ -1396,6 +1396,7 @@ input[type="range"]::-webkit-slider-thumb {
 .favdot { width: 8px; height: 8px; border-radius: 999px; flex-shrink: 0; }
 .favdot--free { background: var(--green); box-shadow: 0 0 0 3px #dcfce7; }
 .favdot--busy { background: #b8bcc9; box-shadow: 0 0 0 3px var(--surface); }
+.clcard--sel { border-color: #1f6feb; box-shadow: 0 0 0 2px rgba(31,111,235,.25); }
 .clcard--busy { cursor: default; opacity: .72; }
 .clcard--busy:hover { box-shadow: var(--shadow); border-color: var(--border); }
 .clcard--busy:active { transform: none; }
