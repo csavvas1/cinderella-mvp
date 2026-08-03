@@ -205,11 +205,11 @@ export default function Login() {
       style={{
         display: "flex", flexDirection: "column", justifyContent: "space-between",
         padding: "56px 26px 36px",
-        background: "radial-gradient(700px 400px at 50% 0%, rgba(79,70,229,0.18), transparent 60%), var(--bg)",
+        background: "linear-gradient(160deg, #4f46e5 0%, #6d5ff0 42%, #8b7ff5 100%)",
       }}
     >
-      <div style={{ textAlign: "center", marginTop: 18, display: "flex", justifyContent: "center" }}>
-        <WordmarkGreek height={showQuick ? 56 : 76} />
+      <div style={{ textAlign: "center", marginTop: 24, display: "flex", justifyContent: "center" }}>
+        <WordmarkGreek height={showQuick ? 60 : 84} />
       </div>
 
       {showQuick ? (
