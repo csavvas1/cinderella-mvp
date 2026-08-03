@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useStore } from "../context/AppStore";
-import { CLEANERS, cleanerBadges, marketStats } from "../data/cleaners";
+import { cleanerBadges, marketStats } from "../data/cleaners";
 import Avatar from "./Avatar";
 import type { Cleaner } from "../types";
 
@@ -33,9 +33,9 @@ export default function DispatchCleanerPicker({
   const [sort, setSort] = useState<Sort>("rating");
 
   const pool = useMemo(() => {
-    const byId = new Map<string, Cleaner>();
-    [...cleaners, ...CLEANERS].forEach((c) => { if (!byId.has(c.id)) byId.set(c.id, c); });
-    let list = [...byId.values()];
+    // real signed-up agents only (no mock directory) — the pilot never lists or
+    // assigns a fake cleaner.
+    let list = [...cleaners];
     if (city) list = list.filter((c) => c.serviceCities?.includes(city) || c.city === city);
     return list;
   }, [cleaners, city]);
@@ -92,7 +92,7 @@ export default function DispatchCleanerPicker({
 
         {ranked.length === 0 ? (
           <div className="empty" style={{ padding: "32px 16px" }}>
-            {sort === "favourites" ? "No favourites yet. Tap the heart on any cleaner to save them." : "No cleaners in this area yet."}
+            {sort === "favourites" ? "No favourites yet. Tap the heart on any cleaner to save them." : "No cleaners in your area yet — we're onboarding more."}
           </div>
         ) : (
           ranked.map((c) => {

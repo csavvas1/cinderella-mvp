@@ -710,12 +710,8 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   }
 
   // ---- auto-dispatch: turn OTA guest checkouts into cleaning jobs ----
-  // Full cleaner pool for dispatch (real agents + mock directory), deduped.
-  const dispatchPool: Cleaner[] = (() => {
-    const byId = new Map<string, Cleaner>();
-    [...realCleaners, ...CLEANERS].forEach((c) => { if (!byId.has(c.id)) byId.set(c.id, c); });
-    return [...byId.values()];
-  })();
+  // Real signed-up agents only — auto-dispatch never assigns a mock cleaner.
+  const dispatchPool: Cleaner[] = [...realCleaners];
   const isRealCleaner = (id: string) => realCleaners.some((c) => c.id === id);
 
   // Build a Booking + Job pair for a dispatched cleaning, mirroring
