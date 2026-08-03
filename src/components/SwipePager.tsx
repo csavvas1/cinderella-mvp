@@ -34,14 +34,13 @@ export default function SwipePager({
   const width = useRef(0);
   const dragging = useRef(false);
 
-  // Base transform positions the track so the CURRENT page fills the viewport.
-  // The track holds [prev?, current, next?]; we always render current, plus any
-  // existing neighbours, and offset by how many slots precede the current one.
+  // The current page is in normal flow at the track origin; prev/next are
+  // absolutely parked at ∓100%. So the track rests at translateX(0) and a drag
+  // just offsets from 0 — no per-slot base offset needed.
   const hasPrev = index > 0;
   const hasNext = index < count - 1;
-  const slotOfCurrent = hasPrev ? 1 : 0; // current is 2nd slot when a prev exists
 
-  function baseX() { return -slotOfCurrent * width.current; }
+  function baseX() { return 0; }
 
   // keep the track parked on the current page whenever index changes / on mount
   useEffect(() => {
@@ -104,13 +103,15 @@ export default function SwipePager({
   }
 
   // commitDir: -1 = committing to NEXT, +1 = committing to PREV, 0 = cancel.
-  function settle(toSlot: number, commitIndex: number | null, commitDir: number) {
+  // targetX is the track's final translateX: -width slides the NEXT page in from
+  // the right, +width slides the PREV page in from the left, 0 cancels.
+  function settle(targetX: number, commitIndex: number | null, commitDir: number) {
     const el = trackRef.current;
     if (!el) return;
     // Instagram-style settle: a touch slower with a soft ease-out so the page
     // glides into place rather than snapping.
     el.style.transition = "transform .25s cubic-bezier(.25,.46,.2,1)";
-    el.style.transform = `translateX(${-toSlot * width.current}px)`;
+    el.style.transform = `translateX(${targetX}px)`;
     if (commitIndex != null) {
       // Drive the colour ALL the way to the target in sync with the page slide
       // (not back to 0), so the tab colour completes together with the swipe.
@@ -133,11 +134,11 @@ export default function SwipePager({
     dragging.current = false;
     const threshold = width.current * 0.2; // easier to commit a swipe (was 0.3)
     if (dx <= -threshold && hasNext) {
-      settle(slotOfCurrent + 1, index + 1, -1);   // -> NEXT
+      settle(-width.current, index + 1, -1);   // -> NEXT (slide in from right)
     } else if (dx >= threshold && hasPrev) {
-      settle(slotOfCurrent - 1, index - 1, 1);    // -> PREV
+      settle(width.current, index - 1, 1);     // -> PREV (slide in from left)
     } else {
-      settle(slotOfCurrent, null, 0);             // cancel
+      settle(0, null, 0);                      // cancel
     }
   }
 
@@ -151,9 +152,16 @@ export default function SwipePager({
     <div className="swipe" ref={viewportRef}
       onTouchStart={onStart} onTouchMove={onMove} onTouchEnd={onEnd} onTouchCancel={onEnd}>
       <div className="swipe__track" ref={trackRef}>
-        {slots.map((i) => (
-          <div className="swipe__page" key={i}>{renderPage(i)}</div>
-        ))}
+        {slots.map((i) => {
+          // Only the CURRENT page sits in normal flow, so the track's height
+          // follows it. Neighbours are absolutely positioned just off-screen
+          // (left/right of the current page) so they still slide in on a drag
+          // without inflating the track to the tallest page's height — which was
+          // making short pages (e.g. Book) scroll to match the taller calendar.
+          const rel = i - index; // -1 prev, 0 current, +1 next
+          const cls = "swipe__page" + (rel === 0 ? "" : rel < 0 ? " swipe__page--prev" : " swipe__page--next");
+          return <div className={cls} key={i}>{renderPage(i)}</div>;
+        })}
       </div>
     </div>
   );
