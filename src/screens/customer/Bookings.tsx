@@ -243,6 +243,7 @@ export default function Bookings() {
               <LinkedCalendar
                 extra={externalBookings}
                 addresses={addresses}
+                listings={connectedListings}
                 onRemove={(id) => removeExternalBooking(id)}
                 onEditDates={(id) => { const b = externalBookings.find((x) => x.id === id); if (b) setEditManual(b); }}
                 onSetLate={(id, late, hours) => setBookingLate(id, late, hours)}

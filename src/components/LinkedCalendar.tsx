@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PlatformIcon from "./PlatformIcon";
 import { platformName } from "../data/ical";
-import type { ExternalBooking, PropertyAddress, Reservation } from "../types";
+import type { ConnectedListing, ExternalBooking, PropertyAddress, Reservation } from "../types";
 
 // shift a base "HH:MM" by a SIGNED hour offset (negative = earlier).
 function shiftTime(base: string, offsetHours: number): string {
@@ -29,9 +29,10 @@ const TOP_OFFSET = 24; // clears the day-number
 
 // Same grid/nav as the Standard (cleaning) calendar, with the Pro booking bars
 // overlaid. Tap a bar → detail card renders below the grid.
-export default function LinkedCalendar({ extra = [], addresses = [], onRemove, onEditDates, onSetLate, onPickCleaner, defaultLateHours = 3 }: {
+export default function LinkedCalendar({ extra = [], addresses = [], listings = [], onRemove, onEditDates, onSetLate, onPickCleaner, defaultLateHours = 3 }: {
   extra?: ExternalBooking[];
   addresses?: PropertyAddress[];
+  listings?: ConnectedListing[];
   onRemove?: (id: string) => void;
   onEditDates?: (id: string) => void;
   onSetLate?: (bookingId: string, late: boolean, hours?: number) => void;
@@ -49,10 +50,18 @@ export default function LinkedCalendar({ extra = [], addresses = [], onRemove, o
   }, [sel]);
   const manualIds = useMemo(() => new Set(extra.map((b) => b.id)), [extra]);
 
+  // resolve a stay's property: direct addressId, else via its listing's address
+  // (synced OTA stays often carry only listingId).
+  const propForBooking = (b: ExternalBooking): PropertyAddress | undefined => {
+    if (b.addressId) { const p = addresses.find((a) => a.id === b.addressId); if (p) return p; }
+    const l = listings.find((x) => x.id === b.listingId);
+    return l?.addressId ? addresses.find((a) => a.id === l.addressId) : undefined;
+  };
+
   // real reservations synced from connected channels (external_bookings)
   const allRes: Reservation[] = useMemo(() => {
     return extra.map((b) => {
-      const prop = addresses.find((a) => a.id === b.addressId);
+      const prop = propForBooking(b);
       return {
         id: b.id, platform: b.platform, guest: b.guest,
         property: prop?.nickname || "Reservation",
@@ -61,7 +70,7 @@ export default function LinkedCalendar({ extra = [], addresses = [], onRemove, o
         guests: 1, status: "booked",
       };
     });
-  }, [extra, addresses]);
+  }, [extra, addresses, listings]);
 
   const y = month.getFullYear();
   const m = month.getMonth();
@@ -182,11 +191,12 @@ export default function LinkedCalendar({ extra = [], addresses = [], onRemove, o
             {sel.total != null && <div className="between"><span className="muted">Total</span><b>€{sel.total}</b></div>}
           </div>
           {(() => {
-            // late-checkout / owner-pick controls, only for stays on an
-            // auto-cleaning property (otherwise there's no cleaning to shift).
+            // late / early checkout controls for the tapped stay. Shown for any
+            // stay we can resolve to a property; when auto-cleaning is off it
+            // only sets the intended time (no job to shift yet).
             const bk = extra.find((b) => b.id === sel.id);
-            const prop = bk ? addresses.find((a) => a.id === bk.addressId) : undefined;
-            if (!bk || !prop?.autoDispatch) return null;
+            const prop = bk ? propForBooking(bk) : undefined;
+            if (!bk || !prop) return null;
             const needs = bk.dispatchedJobId === "PENDING_OWNER";
             const base = prop.dispatchTime || "11:00";
             // signed offset: >0 late, <0 early, absent/0 = on time
@@ -208,10 +218,16 @@ export default function LinkedCalendar({ extra = [], addresses = [], onRemove, o
             };
             return (
               <div className="lc__clean">
+                <div className="lc__cleanhd">Checkout</div>
                 <div className="between">
                   <span className="muted tiny">Cleaning starts</span>
                   <b>{needs ? "Needs a cleaner" : cleanAt}</b>
                 </div>
+                {!prop.autoDispatch && (
+                  <p className="tiny muted" style={{ marginTop: 6 }}>
+                    Auto-cleaning is off for {prop.nickname}. Turn it on in Account → Linked properties to book automatically.
+                  </p>
+                )}
                 {needs ? (
                   <button className="btn agent" style={{ marginTop: 10 }} onClick={() => { onPickCleaner?.(sel.id); setSel(null); }}>
                     Pick a cleaner
