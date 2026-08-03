@@ -708,8 +708,12 @@ function EditModal({ booking, onClose, onSave }: {
             </select>
           )}
 
-          <div className="label" style={{ marginTop: 12 }}>Pay with</div>
-          <PaymentPicker cards={cards} value={cardId} onChange={setCardId} />
+          {monetisationEnabled() && (
+            <>
+              <div className="label" style={{ marginTop: 12 }}>Pay with</div>
+              <PaymentPicker cards={cards} value={cardId} onChange={setCardId} />
+            </>
+          )}
 
           <div style={{ height: 14 }} />
           {(() => {

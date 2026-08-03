@@ -9,7 +9,7 @@ import TimeSelect from "../../components/TimeSelect";
 import CameraCapture, { type CapturedPhoto } from "../../components/CameraCapture";
 import { APP_NAME, APP_VERSION } from "../../data/brand";
 import { marketStats } from "../../data/cleaners";
-import { cardExpiryStatus } from "../../data/platform";
+import { cardExpiryStatus, monetisationEnabled } from "../../data/platform";
 import { isBiometricAvailable } from "../../lib/webauthn";
 import { downloadStatementPdf, monthNumber } from "../../lib/statements";
 import { supabase } from "../../lib/supabase";
@@ -718,13 +718,15 @@ export default function Account() {
         );
       })()}
 
-      {/* PAYMENT */}
+      {/* PAYMENT — hidden during the free launch (no in-app charges) */}
+      {monetisationEnabled() && (
       <div className="between" style={{ marginTop: 18 }}>
         <div className="label" style={{ margin: 0 }}>Payment methods</div>
         <button className="btn sm secondary" onClick={() => setShowAddCard(true)}>+ Add</button>
       </div>
+      )}
 
-      {showAddCard && (
+      {monetisationEnabled() && showAddCard && (
         <div className="modal__backdrop" onClick={() => setShowAddCard(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="between" style={{ marginBottom: 12 }}>
@@ -740,7 +742,7 @@ export default function Account() {
         </div>
       )}
 
-      {cards.map((c) => (
+      {monetisationEnabled() && cards.map((c) => (
         <div key={c.id} className="card row between">
           <div className="row">
             <BrandIcon brand={c.brand} />
@@ -753,11 +755,13 @@ export default function Account() {
         </div>
       ))}
 
-      {/* EXPENSE STATEMENTS */}
+      {/* EXPENSE STATEMENTS — only relevant once payments exist */}
+      {monetisationEnabled() && (
       <div className="card row between" style={{ marginTop: 12, cursor: "pointer" }} onClick={() => setShowExp(true)}>
         <b style={{ fontSize: 14 }}>Expense statements</b>
         <span className="dayrow__chev">›</span>
       </div>
+      )}
 
       {showExp && (
         <div className="modal__backdrop" onClick={() => setShowExp(false)}>
