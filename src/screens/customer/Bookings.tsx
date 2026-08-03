@@ -11,7 +11,7 @@ import Dropdown from "../../components/Dropdown";
 import CameraCapture, { type CapturedPhoto } from "../../components/CameraCapture";
 import LinkedCalendar from "../../components/LinkedCalendar";
 import DispatchCleanerPicker from "../../components/DispatchCleanerPicker";
-import { priceJob } from "../../data/platform";
+import { priceJob, monetisationEnabled } from "../../data/platform";
 import type { Booking, Review, ListingPlatform, ExternalBooking, PropertyAddress } from "../../types";
 
 const PLATFORMS: { v: ListingPlatform; t: string }[] = [
@@ -442,8 +442,12 @@ function CancelledTicketModal({ booking, onClose, onRebook, onRemove }: {
         <div className="between" style={{ marginTop: 6 }}><span className="muted tiny">Time</span><b>{b.time} · {b.durationHours}h</b></div>
         <div className="divider" />
         <div className="between"><span className="muted tiny">Cleaning</span><b>€{base.toFixed(2)}</b></div>
-        <div className="between" style={{ marginTop: 6 }}><span className="muted tiny">Service fee</span><b>€{fee.toFixed(2)}</b></div>
-        <div className="between" style={{ marginTop: 6 }}><b>Total</b><span className="price">€{total.toFixed(2)}</span></div>
+        {monetisationEnabled() && (
+          <>
+            <div className="between" style={{ marginTop: 6 }}><span className="muted tiny">Service fee</span><b>€{fee.toFixed(2)}</b></div>
+            <div className="between" style={{ marginTop: 6 }}><b>Total</b><span className="price">€{total.toFixed(2)}</span></div>
+          </>
+        )}
         {stamp && <div className="jobrow__cancelmeta" style={{ marginTop: 10 }}>{label} on {stamp}</div>}
       </div>
       <button className="btn agent" onClick={onRebook}>Rebook · find another cleaner</button>
@@ -719,7 +723,9 @@ function EditModal({ booking, onClose, onSave }: {
               <>
                 <div className="card" style={{ marginBottom: 12 }}>
                   <div className="between"><span className="muted tiny">Cleaning ({rate} × {duration}h)</span><b>€{subtotal.toFixed(2)}</b></div>
-                  <div className="between" style={{ marginTop: 6 }}><span className="muted tiny">Service fee</span><b>€{priced.commission.toFixed(2)}</b></div>
+                  {monetisationEnabled() && (
+                    <div className="between" style={{ marginTop: 6 }}><span className="muted tiny">Service fee</span><b>€{priced.commission.toFixed(2)}</b></div>
+                  )}
                   <div className="divider" />
                   <div className="between"><b>Total</b><span className="price">€{newTotal.toFixed(2)}</span></div>
                 </div>
@@ -922,8 +928,14 @@ function CalendarView({
                     return (
                       <>
                         <div className="tiny muted">{b.time} · {b.durationHours}h</div>
-                        <div className="tiny muted">Cleaning €{base.toFixed(2)} + service fee €{fee.toFixed(2)}</div>
-                        <div className="tiny" style={{ fontWeight: 700 }}>Total €{total.toFixed(2)}</div>
+                        {monetisationEnabled() ? (
+                          <>
+                            <div className="tiny muted">Cleaning €{base.toFixed(2)} + service fee €{fee.toFixed(2)}</div>
+                            <div className="tiny" style={{ fontWeight: 700 }}>Total €{total.toFixed(2)}</div>
+                          </>
+                        ) : (
+                          <div className="tiny" style={{ fontWeight: 700 }}>€{base.toFixed(2)}</div>
+                        )}
                       </>
                     );
                   })()}

@@ -1,6 +1,6 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { useStore } from "../../context/AppStore";
-import { priceJob } from "../../data/platform";
+import { priceJob, monetisationEnabled } from "../../data/platform";
 
 export default function Confirmed() {
   const { id } = useParams();
@@ -34,9 +34,13 @@ export default function Confirmed() {
             return (
               <div style={{ marginTop: 12 }}>
                 <div className="between"><span className="muted tiny">Cleaning ({b.ratePerHour} × {b.durationHours}h)</span><b>€{base.toFixed(2)}</b></div>
-                <div className="between" style={{ marginTop: 6 }}><span className="muted tiny">Service fee</span><b>€{fee.toFixed(2)}</b></div>
-                <div className="divider" />
-                <div className="between"><b>Total</b><span className="price">€{total.toFixed(2)}</span></div>
+                {monetisationEnabled() && (
+                  <>
+                    <div className="between" style={{ marginTop: 6 }}><span className="muted tiny">Service fee</span><b>€{fee.toFixed(2)}</b></div>
+                    <div className="divider" />
+                    <div className="between"><b>Total</b><span className="price">€{total.toFixed(2)}</span></div>
+                  </>
+                )}
               </div>
             );
           })()}

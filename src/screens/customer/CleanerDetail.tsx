@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { CLEANERS, autoAcceptDecision, isWeekend, occurrenceDates, cleanerBadges } from "../../data/cleaners";
-import { priceJob, cleanerCancelRate } from "../../data/platform";
+import { priceJob, cleanerCancelRate, monetisationEnabled } from "../../data/platform";
 import { useStore } from "../../context/AppStore";
 import { notifyUser } from "../../lib/notify";
 import BackButton from "../../components/BackButton";
@@ -257,26 +257,38 @@ export default function CleanerDetail() {
           <>
             <div className="between"><span className="muted tiny">Weekday clean ({cleaner.rateWeekday} × {hours}h)</span><b>€{(cleaner.rateWeekday * hours).toFixed(2)}</b></div>
             <div className="between" style={{ marginTop: 6 }}><span className="muted tiny">Weekend clean ({cleaner.rateWeekend} × {hours}h)</span><b>€{(cleaner.rateWeekend * hours).toFixed(2)}</b></div>
-            <div className="between" style={{ marginTop: 6 }}>
-              <span className="muted tiny">Service fee · per clean</span>
-              <b>+ shown at checkout</b>
-            </div>
+            {monetisationEnabled() && (
+              <div className="between" style={{ marginTop: 6 }}>
+                <span className="muted tiny">Service fee · per clean</span>
+                <b>+ shown at checkout</b>
+              </div>
+            )}
           </>
         ) : (
           <>
             <div className="between"><span className="muted tiny">Cleaning ({rate} × {hours}h)</span><b>€{subtotal.toFixed(2)}</b></div>
-            <div className="between" style={{ marginTop: 6 }}>
-              <span className="muted tiny">Service fee</span>
-              <b>€{priced.commission.toFixed(2)}</b>
-            </div>
+            {monetisationEnabled() && (
+              <div className="between" style={{ marginTop: 6 }}>
+                <span className="muted tiny">Service fee</span>
+                <b>€{priced.commission.toFixed(2)}</b>
+              </div>
+            )}
             <div className="divider" />
             <div className="between"><b>Total</b><span className="price">€{total.toFixed(2)}</span></div>
           </>
         )}
       </div>
 
-      <div className="label">Pay with</div>
-      <PaymentPicker cards={cards} value={cardId} onChange={setCardId} />
+      {monetisationEnabled() ? (
+        <>
+          <div className="label">Pay with</div>
+          <PaymentPicker cards={cards} value={cardId} onChange={setCardId} />
+        </>
+      ) : (
+        <p className="tiny muted" style={{ margin: "4px 2px 0" }}>
+          You arrange payment directly with your cleaner. No payment is taken in the app.
+        </p>
+      )}
 
       {canBook ? (
         <>

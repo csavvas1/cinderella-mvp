@@ -48,6 +48,14 @@ export interface BookingConfig {
 
 export interface PlatformConfig {
   version: number;            // bump on every change (audit / cache-busting)
+  // Master monetisation switch. FALSE = free launch: the app only connects
+  // customers to cleaners. No payment is collected in the booking flow (prices
+  // shown are what the customer pays the cleaner directly, no platform fee) and
+  // no property subscription / channel billing is surfaced. TRUE = full billing
+  // (platform commission on bookings + per-property subscription). All the
+  // payment/subscription code stays intact either way — this only gates the UI
+  // and the fee math, so flipping it on later needs no new build.
+  monetisationEnabled: boolean;
   // Commission tiers per account kind. Evaluated high-threshold-first; the
   // first tier whose criterion is met wins. Always include a 0-hour base tier.
   commissionTiers: Record<AccountKind, CommissionTier[]>;
@@ -58,6 +66,9 @@ export interface PlatformConfig {
 // ---- DEFAULT (ships in the bundle; replaced by backend config when live) ----
 export const DEFAULT_CONFIG: PlatformConfig = {
   version: 1,
+  // free launch: connect-only, no money collected in-app. Flip to true (or push
+  // a backend config) when going paid.
+  monetisationEnabled: false,
   commissionTiers: {
     residential: [
       { id: "res-vol", label: "High volume", minMonthlyHours: 140, rate: 0.12 },
@@ -96,6 +107,13 @@ export function getConfig(): PlatformConfig {
 // here means the admin-panel/backend path doesn't touch any screen.
 export function setConfig(cfg: PlatformConfig): void {
   activeConfig = cfg;
+}
+
+// Master monetisation switch (see PlatformConfig.monetisationEnabled). When
+// false the app is connect-only: no platform fee on bookings, no subscription /
+// channel billing surfaced. UI reads this to hide payment + subscription bits.
+export function monetisationEnabled(): boolean {
+  return getConfig().monetisationEnabled;
 }
 
 // ---- card expiry monitoring -------------------------------------------------
@@ -154,9 +172,14 @@ export function priceJob(
   accountKind: AccountKind = "residential",
   monthlyHours = 0
 ) {
+  const cleanerPay = +basePay.toFixed(2);
+  // free launch: no platform fee — the customer pays the cleaner directly, so
+  // commission is 0 and the total equals the cleaner's pay.
+  if (!getConfig().monetisationEnabled) {
+    return { basePay: cleanerPay, cleanerPay, commission: 0, customerTotal: cleanerPay, rate: 0 };
+  }
   const rate = commissionRate(accountKind, monthlyHours);
   const commission = +(basePay * rate).toFixed(2);
-  const cleanerPay = +basePay.toFixed(2);
   const customerTotal = +(basePay + commission).toFixed(2);
   return { basePay: cleanerPay, cleanerPay, commission, customerTotal, rate };
 }

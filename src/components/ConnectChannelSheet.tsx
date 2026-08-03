@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import type { PropertyAddress } from "../types";
 import { useStore } from "../context/AppStore";
+import { monetisationEnabled } from "../data/platform";
 import PlatformIcon from "./PlatformIcon";
 
 // ── MOCK multi-platform connect view ────────────────────────────────────────
@@ -133,10 +134,16 @@ export default function ConnectChannelSheet({
 
         <button className="btn" style={{ marginTop: 16, opacity: confirmedCount ? 1 : 0.5 }}
           disabled={!confirmedCount} onClick={confirmAndLink}>
-          {confirmedCount ? `Confirm · €${monthly.toFixed(2)}/mo` : "Connect a channel to continue"}
+          {!confirmedCount
+            ? "Connect a channel to continue"
+            : monetisationEnabled()
+              ? `Confirm · €${monthly.toFixed(2)}/mo`
+              : "Confirm connection"}
         </button>
         <p className="tiny muted" style={{ textAlign: "center", marginTop: 8 }}>
-          Cancel anytime. Billing stops when you disconnect.
+          {monetisationEnabled()
+            ? "Cancel anytime. Billing stops when you disconnect."
+            : "Free while we're in early access. Disconnect anytime."}
         </p>
       </div>
     </div>
