@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useStore } from "../../context/AppStore";
+import { CLEANERS } from "../../data/cleaners";
 import PlatformIcon from "../../components/PlatformIcon";
 import TimeSelect from "../../components/TimeSelect";
 import DispatchCleanerPicker from "../../components/DispatchCleanerPicker";
@@ -35,7 +36,10 @@ export default function Listings({
   const channelsFor = (addrId: string) =>
     connectedListings.filter((l) => l.addressId === addrId && l.beds24PropertyId);
 
-  const cleanerName = (id: string) => cleaners.find((c) => c.id === id)?.name ?? "Cleaner";
+  // resolve against real agents + the mock directory (store.cleaners holds real
+  // agents only), so a priority cleaner always shows their real name.
+  const cleanerName = (id: string) =>
+    cleaners.find((c) => c.id === id)?.name ?? CLEANERS.find((c) => c.id === id)?.name ?? "Cleaner";
 
   // only properties with at least one connected channel
   const linked = addresses.filter((a) => channelsFor(a.id).length > 0);
@@ -151,9 +155,6 @@ export default function Listings({
                         </div>
                       </div>
                     </div>
-                    <p className="tiny muted" style={{ marginTop: 8 }}>
-                      We book the cleaner to arrive at this time on the guest's checkout day. Running late on a specific stay? Set that from the Reservations calendar.
-                    </p>
                   </div>
                 )}
               </div>

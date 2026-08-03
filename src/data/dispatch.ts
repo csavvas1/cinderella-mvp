@@ -8,10 +8,12 @@ export const DEFAULT_LATE_HOURS = 3;
 export function dispatchTimeFor(property: PropertyAddress, booking: ExternalBooking): string {
   const base = property.dispatchTime || "11:00";
   if (!booking.lateCheckout) return base;
+  // lateHours is a SIGNED offset in hours: positive = late checkout (cleaning
+  // later), negative = early checkout (cleaning earlier).
   const offset = booking.lateHours ?? DEFAULT_LATE_HOURS;
   const [h, m] = base.split(":").map(Number);
-  const total = h * 60 + m + Math.round(offset * 60);
-  const hh = Math.min(23, Math.floor(total / 60));
+  const total = Math.max(0, Math.min(23 * 60 + 59, h * 60 + m + Math.round(offset * 60)));
+  const hh = Math.floor(total / 60);
   const mm = total % 60;
   return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
 }

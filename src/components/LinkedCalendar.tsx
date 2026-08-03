@@ -4,11 +4,11 @@ import PlatformIcon from "./PlatformIcon";
 import { platformName } from "../data/ical";
 import type { ExternalBooking, PropertyAddress, Reservation } from "../types";
 
-// shift a base "HH:MM" by lateHours → the actual cleaning start when late
-function shiftTime(base: string, lateHours: number): string {
+// shift a base "HH:MM" by a SIGNED hour offset (negative = earlier).
+function shiftTime(base: string, offsetHours: number): string {
   const [h, m] = base.split(":").map(Number);
-  const t = h * 60 + m + Math.round(lateHours * 60);
-  return `${String(Math.min(23, Math.floor(t / 60))).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
+  const t = Math.max(0, Math.min(23 * 60 + 59, h * 60 + m + Math.round(offsetHours * 60)));
+  return `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
 }
 
 function pad(n: number) { return String(n).padStart(2, "0"); }
@@ -51,13 +51,17 @@ export default function LinkedCalendar({ extra = [], addresses = [], onRemove, o
 
   // real reservations synced from connected channels (external_bookings)
   const allRes: Reservation[] = useMemo(() => {
-    return extra.map((b) => ({
-      id: b.id, platform: b.platform, guest: b.guest, property: "Reservation",
-      propertyPhoto: "", checkIn: b.checkIn, checkOut: b.checkOut,
-      nights: Math.max(1, daysBetween(b.checkIn, b.checkOut)),
-      guests: 1, status: "booked",
-    }));
-  }, [extra]);
+    return extra.map((b) => {
+      const prop = addresses.find((a) => a.id === b.addressId);
+      return {
+        id: b.id, platform: b.platform, guest: b.guest,
+        property: prop?.nickname || "Reservation",
+        propertyPhoto: prop?.photoUrl || "", checkIn: b.checkIn, checkOut: b.checkOut,
+        nights: Math.max(1, daysBetween(b.checkIn, b.checkOut)),
+        guests: 1, status: "booked",
+      };
+    });
+  }, [extra, addresses]);
 
   const y = month.getFullYear();
   const m = month.getMonth();
@@ -185,12 +189,27 @@ export default function LinkedCalendar({ extra = [], addresses = [], onRemove, o
             if (!bk || !prop?.autoDispatch) return null;
             const needs = bk.dispatchedJobId === "PENDING_OWNER";
             const base = prop.dispatchTime || "11:00";
-            const lateHrs = bk.lateHours ?? defaultLateHours;
-            const cleanAt = bk.lateCheckout ? shiftTime(base, lateHrs) : base;
+            // signed offset: >0 late, <0 early, absent/0 = on time
+            const rawOffset = bk.lateCheckout ? (bk.lateHours ?? defaultLateHours) : 0;
+            const mode: "early" | "on" | "late" = rawOffset > 0 ? "late" : rawOffset < 0 ? "early" : "on";
+            const mag = Math.abs(rawOffset) || defaultLateHours; // step magnitude, min 1
+            const cleanAt = shiftTime(base, rawOffset);
+            const setMode = (m: "early" | "on" | "late") => {
+              if (m === "on") { onSetLate?.(sel.id, false); return; }
+              const h = m === "late" ? Math.abs(mag) : -Math.abs(mag);
+              onSetLate?.(sel.id, true, h);
+            };
+            const bump = (deltaMag: number) => {
+              // deltaMag adjusts the MAGNITUDE (+1 bigger shift, -1 smaller);
+              // direction (early/late) is kept from the current mode.
+              const nextMag = Math.max(0, Math.min(12, Math.abs(rawOffset) + deltaMag));
+              if (nextMag === 0) { onSetLate?.(sel.id, false); return; }
+              onSetLate?.(sel.id, true, mode === "early" ? -nextMag : nextMag);
+            };
             return (
               <div className="lc__clean">
                 <div className="between">
-                  <span className="muted tiny">Cleaning</span>
+                  <span className="muted tiny">Cleaning starts</span>
                   <b>{needs ? "Needs a cleaner" : cleanAt}</b>
                 </div>
                 {needs ? (
@@ -199,26 +218,21 @@ export default function LinkedCalendar({ extra = [], addresses = [], onRemove, o
                   </button>
                 ) : (
                   <>
-                    <label className="dispatch__row" style={{ marginTop: 8 }}>
-                      <span>Late checkout</span>
-                      <span className={"switch" + (bk.lateCheckout ? " on" : "")}
-                        onClick={() => onSetLate?.(sel.id, !bk.lateCheckout)}>
-                        <span className="switch__dot" />
-                      </span>
-                    </label>
-                    {bk.lateCheckout && (
-                      <div className="row between" style={{ gap: 10, marginTop: 8, alignItems: "center" }}>
-                        <span className="muted tiny">Extra hours after {base}</span>
+                    <div className="seg3" style={{ marginTop: 10 }}>
+                      <button className={mode === "early" ? "active" : ""} onClick={() => setMode("early")}>Early</button>
+                      <button className={mode === "on" ? "active" : ""} onClick={() => setMode("on")}>On time</button>
+                      <button className={mode === "late" ? "active" : ""} onClick={() => setMode("late")}>Late</button>
+                    </div>
+                    {mode !== "on" && (
+                      <div className="row between" style={{ gap: 10, marginTop: 10, alignItems: "center" }}>
+                        <span className="muted tiny">{mode === "late" ? "Hours later than" : "Hours earlier than"} {base}</span>
                         <div className="stepper" style={{ width: "auto" }}>
-                          <button className="stepper__btn" onClick={() => onSetLate?.(sel.id, true, Math.max(1, lateHrs - 1))}>−</button>
-                          <span className="stepper__val">+{lateHrs}h</span>
-                          <button className="stepper__btn" onClick={() => onSetLate?.(sel.id, true, Math.min(12, lateHrs + 1))}>+</button>
+                          <button className="stepper__btn" onClick={() => bump(-1)}>−</button>
+                          <span className="stepper__val">{Math.abs(rawOffset)}h</span>
+                          <button className="stepper__btn" onClick={() => bump(1)}>+</button>
                         </div>
                       </div>
                     )}
-                    <p className="tiny muted" style={{ marginTop: 8 }}>
-                      Guest leaving late? Push the cleaner's arrival back for this stay only. Now booked for {cleanAt}.
-                    </p>
                   </>
                 )}
               </div>

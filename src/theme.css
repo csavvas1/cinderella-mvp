@@ -2555,3 +2555,11 @@ input[type="range"]::-webkit-slider-thumb {
   margin-top: 14px; padding: 12px; border: 1px solid var(--line);
   border-radius: var(--radius-sm); background: var(--bg-page);
 }
+
+/* ---- 3-way early / on-time / late segment (reservation detail) ---- */
+.seg3 { display: flex; width: 100%; background: var(--surface); border-radius: 10px; padding: 3px; gap: 3px; }
+.seg3 button {
+  flex: 1; border: none; background: none; cursor: pointer; color: var(--muted);
+  font-size: 12.5px; font-weight: 800; padding: 9px 6px; border-radius: 8px; text-align: center;
+}
+.seg3 button.active { background: var(--card); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
