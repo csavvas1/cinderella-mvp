@@ -421,6 +421,7 @@ export interface AddressRow {
   user_id: string;
   nickname: string;
   address: string;
+  photo_url: string | null;
   property_type: "apartment" | "house";
   apartment_number: string | null;
   floor: string | null;
@@ -440,6 +441,7 @@ export function rowToAddress(r: AddressRow): PropertyAddress {
     id: r.id,
     nickname: r.nickname,
     address: r.address,
+    photoUrl: r.photo_url ?? undefined,
     propertyType: r.property_type,
     apartmentNumber: r.apartment_number ?? undefined,
     floor: r.floor ?? undefined,
@@ -461,6 +463,7 @@ export function addressToRow(a: PropertyAddress): Record<string, unknown> {
     id: a.id,
     nickname: a.nickname,
     address: a.address,
+    photo_url: a.photoUrl ?? null,
     property_type: a.propertyType,
     apartment_number: a.apartmentNumber ?? null,
     floor: a.floor ?? null,

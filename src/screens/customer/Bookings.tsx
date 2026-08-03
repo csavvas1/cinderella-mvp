@@ -10,6 +10,7 @@ import DatePicker from "../../components/DatePicker";
 import Dropdown from "../../components/Dropdown";
 import CameraCapture, { type CapturedPhoto } from "../../components/CameraCapture";
 import LinkedCalendar from "../../components/LinkedCalendar";
+import DispatchCleanerPicker from "../../components/DispatchCleanerPicker";
 import { priceJob } from "../../data/platform";
 import type { Booking, Review, ListingPlatform, ExternalBooking, PropertyAddress } from "../../types";
 
@@ -48,9 +49,12 @@ function statusBadge(s: string) {
 export default function Bookings() {
   const { bookings, addresses, cancelBooking, addReview, updateBooking, updateSeries, cancelSeries,
     externalBookings, connectedListings, notify, sendEmail, openAccount, dismissBooking, addManualStay, removeExternalBooking,
+    setBookingLate, assignDispatchCleaner,
     } = useStore();
   const [manualOpen, setManualOpen] = useState(false);
   const [editManual, setEditManual] = useState<import("../../types").ExternalBooking | null>(null);
+  // owner-pick fallback for a checkout with no free favourite cleaner
+  const [pickForBooking, setPickForBooking] = useState<string | null>(null);
   const nav = useNavigate();
   // Linked (channel-manager reservations) vs Unlinked (cleaning) calendar. Unlocks
   // once at least one property is connected to a channel. Toggle shows when both exist.
@@ -238,8 +242,11 @@ export default function Bookings() {
             {showLinked ? (
               <LinkedCalendar
                 extra={externalBookings}
+                addresses={addresses}
                 onRemove={(id) => removeExternalBooking(id)}
                 onEditDates={(id) => { const b = externalBookings.find((x) => x.id === id); if (b) setEditManual(b); }}
+                onSetLate={(id, late, hours) => setBookingLate(id, late, hours)}
+                onPickCleaner={(id) => setPickForBooking(id)}
               />
             ) : (
               <CalendarView
@@ -393,6 +400,14 @@ export default function Bookings() {
           onClose={() => setCancelTicket(null)}
           onRebook={() => { rebookCancelled(cancelTicket); setCancelTicket(null); }}
           onRemove={() => { dismissBooking(cancelTicket.id); setCancelTicket(null); }}
+        />
+      )}
+
+      {pickForBooking && (
+        <DispatchCleanerPicker
+          mode="single"
+          onPick={(cleanerId) => { assignDispatchCleaner(pickForBooking, cleanerId); setPickForBooking(null); }}
+          onClose={() => setPickForBooking(null)}
         />
       )}
     </div>

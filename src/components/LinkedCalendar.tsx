@@ -2,7 +2,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PlatformIcon from "./PlatformIcon";
 import { platformName } from "../data/ical";
-import type { ExternalBooking, Reservation } from "../types";
+import type { ExternalBooking, PropertyAddress, Reservation } from "../types";
+
+// shift a base "HH:MM" by lateHours → the actual cleaning start when late
+function shiftTime(base: string, lateHours: number): string {
+  const [h, m] = base.split(":").map(Number);
+  const t = h * 60 + m + Math.round(lateHours * 60);
+  return `${String(Math.min(23, Math.floor(t / 60))).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
+}
 
 function pad(n: number) { return String(n).padStart(2, "0"); }
 function todayISO() { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
@@ -22,10 +29,14 @@ const TOP_OFFSET = 24; // clears the day-number
 
 // Same grid/nav as the Standard (cleaning) calendar, with the Pro booking bars
 // overlaid. Tap a bar → detail card renders below the grid.
-export default function LinkedCalendar({ extra = [], onRemove, onEditDates }: {
+export default function LinkedCalendar({ extra = [], addresses = [], onRemove, onEditDates, onSetLate, onPickCleaner, defaultLateHours = 3 }: {
   extra?: ExternalBooking[];
+  addresses?: PropertyAddress[];
   onRemove?: (id: string) => void;
   onEditDates?: (id: string) => void;
+  onSetLate?: (bookingId: string, late: boolean, hours?: number) => void;
+  onPickCleaner?: (bookingId: string) => void;
+  defaultLateHours?: number;
 }) {
   const nav = useNavigate();
   const [month, setMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
@@ -166,6 +177,54 @@ export default function LinkedCalendar({ extra = [], onRemove, onEditDates }: {
             <div className="between"><span className="muted">Dates</span><b>{fmtRange(sel.checkIn, sel.checkOut)}</b></div>
             {sel.total != null && <div className="between"><span className="muted">Total</span><b>€{sel.total}</b></div>}
           </div>
+          {(() => {
+            // late-checkout / owner-pick controls, only for stays on an
+            // auto-cleaning property (otherwise there's no cleaning to shift).
+            const bk = extra.find((b) => b.id === sel.id);
+            const prop = bk ? addresses.find((a) => a.id === bk.addressId) : undefined;
+            if (!bk || !prop?.autoDispatch) return null;
+            const needs = bk.dispatchedJobId === "PENDING_OWNER";
+            const base = prop.dispatchTime || "11:00";
+            const lateHrs = bk.lateHours ?? defaultLateHours;
+            const cleanAt = bk.lateCheckout ? shiftTime(base, lateHrs) : base;
+            return (
+              <div className="lc__clean">
+                <div className="between">
+                  <span className="muted tiny">Cleaning</span>
+                  <b>{needs ? "Needs a cleaner" : cleanAt}</b>
+                </div>
+                {needs ? (
+                  <button className="btn agent" style={{ marginTop: 10 }} onClick={() => { onPickCleaner?.(sel.id); setSel(null); }}>
+                    Pick a cleaner
+                  </button>
+                ) : (
+                  <>
+                    <label className="dispatch__row" style={{ marginTop: 8 }}>
+                      <span>Late checkout</span>
+                      <span className={"switch" + (bk.lateCheckout ? " on" : "")}
+                        onClick={() => onSetLate?.(sel.id, !bk.lateCheckout)}>
+                        <span className="switch__dot" />
+                      </span>
+                    </label>
+                    {bk.lateCheckout && (
+                      <div className="row between" style={{ gap: 10, marginTop: 8, alignItems: "center" }}>
+                        <span className="muted tiny">Extra hours after {base}</span>
+                        <div className="stepper" style={{ width: "auto" }}>
+                          <button className="stepper__btn" onClick={() => onSetLate?.(sel.id, true, Math.max(1, lateHrs - 1))}>−</button>
+                          <span className="stepper__val">+{lateHrs}h</span>
+                          <button className="stepper__btn" onClick={() => onSetLate?.(sel.id, true, Math.min(12, lateHrs + 1))}>+</button>
+                        </div>
+                      </div>
+                    )}
+                    <p className="tiny muted" style={{ marginTop: 8 }}>
+                      Guest leaving late? Push the cleaner's arrival back for this stay only. Now booked for {cleanAt}.
+                    </p>
+                  </>
+                )}
+              </div>
+            );
+          })()}
+
           {manualIds.has(sel.id) ? (
             <div className="row" style={{ gap: 8, marginTop: 14 }}>
               <button className="btn secondary grow" onClick={() => { onEditDates?.(sel.id); setSel(null); }}>Edit dates</button>

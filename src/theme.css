@@ -2493,3 +2493,65 @@ input[type="range"]::-webkit-slider-thumb {
 .gopro-btn__main { font-size: 15px; font-weight: 800; line-height: 1.1; }
 .gopro-btn__sub { font-size: 11.5px; opacity: .9; margin-top: 2px; }
 .gopro-btn__chev { font-size: 22px; font-weight: 700; opacity: .85; }
+
+/* ---- property photo upload (property editor) ---- */
+.propphoto {
+  width: 100%; border: 1.5px dashed var(--line); background: var(--bg-page);
+  border-radius: var(--radius-sm); overflow: hidden; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; color: var(--muted);
+  min-height: 132px; position: relative; padding: 0;
+}
+.propphoto--set { border-style: solid; }
+.propphoto__add { display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; padding: 22px; }
+.propphoto__img { width: 100%; height: 168px; object-fit: cover; display: block; }
+.propphoto__edit {
+  position: absolute; right: 8px; bottom: 8px; background: rgba(0,0,0,.6); color: #fff;
+  font-size: 12px; font-weight: 600; padding: 5px 10px; border-radius: 999px; backdrop-filter: blur(4px);
+}
+
+/* ---- linked-property card (whole card = expand toggle) ---- */
+.lprop {
+  position: relative; border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--card); margin-bottom: 12px; overflow: hidden;
+}
+.lprop--open { box-shadow: 0 4px 18px rgba(0,0,0,.06); }
+.lprop__head {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px;
+  background: none; border: none; text-align: left; cursor: pointer; color: var(--text);
+}
+.lprop__cover {
+  width: 56px; height: 56px; border-radius: 12px; flex: none; overflow: hidden;
+  display: flex; align-items: center; justify-content: center; color: #fff;
+}
+.lprop__cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.lprop__mono { display: flex; align-items: center; justify-content: center; }
+.lprop__meta { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; padding-right: 56px; }
+.lprop__name { font-size: 14.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lprop__logos { display: flex; gap: 5px; align-items: center; }
+.lprop__status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.lprop__status.on { color: var(--green); }
+.lprop__dot { width: 7px; height: 7px; border-radius: 999px; background: var(--muted); flex: none; }
+.lprop__status.on .lprop__dot { background: var(--green); }
+.lprop__chev { position: absolute; right: 14px; top: 22px; color: var(--muted); font-size: 13px; }
+.lprop__actions { position: absolute; right: 40px; top: 14px; display: flex; gap: 2px; }
+.lprop__body { padding: 4px 14px 16px; border-top: 1px solid var(--line); }
+
+/* ---- stepper (paired with TimeSelect on the property card) ---- */
+.stepper {
+  display: flex; align-items: center; justify-content: space-between;
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
+  background: var(--bg-page); padding: 5px 6px; width: 100%;
+}
+.stepper__btn {
+  width: 34px; height: 34px; border-radius: 9px; border: none; background: var(--card);
+  color: var(--text); font-size: 20px; font-weight: 700; cursor: pointer; line-height: 1;
+  box-shadow: 0 1px 2px rgba(0,0,0,.06);
+}
+.stepper__btn:active { transform: scale(.94); }
+.stepper__val { font-size: 15px; font-weight: 800; }
+
+/* ---- calendar reservation-detail cleaning block ---- */
+.lc__clean {
+  margin-top: 14px; padding: 12px; border: 1px solid var(--line);
+  border-radius: var(--radius-sm); background: var(--bg-page);
+}

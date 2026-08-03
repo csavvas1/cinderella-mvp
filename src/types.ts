@@ -131,6 +131,7 @@ export interface PropertyAddress {
   id: string;
   nickname: string;
   address: string;
+  photoUrl?: string; // cover photo for the property card (owner upload; OTA-sourced later)
   propertyType: PropertyType;
   apartmentNumber?: string; // required when propertyType === "apartment"
   floor?: string;           // apartment floor (optional)

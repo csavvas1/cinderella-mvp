@@ -23,7 +23,7 @@ function prevMonthDefaults() {
 }
 
 export default function Referrals() {
-  const { referralCode, referees, jobs } = useStore();
+  const { referralCode, referees, jobs, myUid } = useStore();
   const REFERRAL = getConfig().referral;
   const [copied, setCopied] = useState(false);
   const [showGoal, setShowGoal] = useState(false);
@@ -54,7 +54,7 @@ export default function Referrals() {
   const inviteText = `Join me cleaning on ${APP_NAME}. Sign up with my link and we both earn a bonus: ${inviteLink}`;
 
   // --- work earnings this month (net of commission) ---
-  const done = jobs.filter((j) => j.status === "completed");
+  const done = jobs.filter((j) => j.status === "completed" && j.cleanerUid === myUid);
   const workEarn = done.reduce((s, j) => s + (j.cleanerPay ?? priceJob(j.ratePerHour * j.durationHours).cleanerPay), 0);
   const tasks = done.length;
   const hoursWorked = done.reduce((s, j) => s + j.durationHours, 0);

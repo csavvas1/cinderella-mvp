@@ -182,7 +182,23 @@ export default function Account() {
   const spentThisMonth = bookings.filter((b) => b.status === "completed").reduce((s, b) => s + b.total, 0);
   const spentCount = bookings.filter((b) => b.status === "completed").length;
 
-  const [form, setForm] = useState<{ nickname: string; address: string; propertyType: "apartment" | "house"; apartmentNumber: string; floor: string; bedrooms: number; bathrooms: number; kitchens: number; commonRooms: number }>({ nickname: "", address: "", propertyType: "apartment", apartmentNumber: "", floor: "", bedrooms: 1, bathrooms: 1, kitchens: 1, commonRooms: 1 });
+  const [form, setForm] = useState<{ nickname: string; address: string; photoUrl: string; propertyType: "apartment" | "house"; apartmentNumber: string; floor: string; bedrooms: number; bathrooms: number; kitchens: number; commonRooms: number }>({ nickname: "", address: "", photoUrl: "", propertyType: "apartment", apartmentNumber: "", floor: "", bedrooms: 1, bathrooms: 1, kitchens: 1, commonRooms: 1 });
+  const [propPhotoBusy, setPropPhotoBusy] = useState(false);
+  const propPhotoInput = useRef<HTMLInputElement>(null);
+  // upload a property cover photo -> Supabase Storage -> stash publicUrl on the form
+  async function uploadPropPhoto(f: File) {
+    setPropPhotoBusy(true);
+    try {
+      const { data: sess } = await supabase.auth.getSession();
+      const uid = sess.session?.user.id ?? "anon";
+      const path = `${uid}/property/${Date.now()}-${f.name.replace(/[^\w.]+/g, "_")}`;
+      const { error } = await supabase.storage.from("proofs").upload(path, f, { upsert: false });
+      if (error) throw error;
+      const { data: pub } = supabase.storage.from("proofs").getPublicUrl(path);
+      setForm((prev) => ({ ...prev, photoUrl: pub.publicUrl }));
+    } catch { /* ignore upload failure */ }
+    finally { setPropPhotoBusy(false); }
+  }
   const [addrFocus, setAddrFocus] = useState(false);
   // Connect sheet: which property is being connected (null = closed)
   const [connectProp, setConnectProp] = useState<PropertyAddress | null>(null);
@@ -256,14 +272,14 @@ export default function Account() {
   }, [form.address]);
 
   function resetForm() {
-    setForm({ nickname: "", address: "", propertyType: "apartment", apartmentNumber: "", floor: "", bedrooms: 1, bathrooms: 1, kitchens: 1, commonRooms: 1 });
+    setForm({ nickname: "", address: "", photoUrl: "", propertyType: "apartment", apartmentNumber: "", floor: "", bedrooms: 1, bathrooms: 1, kitchens: 1, commonRooms: 1 });
     setPin(undefined); setMapCenter(undefined);
   }
 
   function openEditProperty(a: PropertyAddress) {
     setForm({
       nickname: a.nickname === a.address ? "" : a.nickname,
-      address: a.address, propertyType: a.propertyType, apartmentNumber: a.apartmentNumber ?? "", floor: a.floor ?? "",
+      address: a.address, photoUrl: a.photoUrl ?? "", propertyType: a.propertyType, apartmentNumber: a.apartmentNumber ?? "", floor: a.floor ?? "",
       bedrooms: a.bedrooms, bathrooms: a.bathrooms, kitchens: a.kitchens, commonRooms: a.commonRooms,
     });
     // restore the saved pin (if any) so editing shows the marker in place
@@ -278,6 +294,7 @@ export default function Account() {
     if (form.propertyType === "apartment" && !form.apartmentNumber.trim()) return;
     const a: PropertyAddress = {
       id: editId ?? crypto.randomUUID(), ...form,
+      photoUrl: form.photoUrl || undefined,
       nickname: form.nickname.trim() || form.address.trim(),
       apartmentNumber: form.propertyType === "apartment" ? form.apartmentNumber.trim() : undefined,
       floor: form.propertyType === "apartment" ? (form.floor.trim() || undefined) : undefined,
@@ -528,6 +545,23 @@ export default function Account() {
               <b style={{ fontSize: 16 }}>{editId ? "Edit property" : "Add a property"}</b>
               <button className="iconbtn" onClick={() => { setShowAdd(false); setEditId(null); resetForm(); }}>✕</button>
             </div>
+            <div className="label">Photo (optional)</div>
+            <input ref={propPhotoInput} type="file" accept="image/*" style={{ display: "none" }}
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadPropPhoto(f); e.target.value = ""; }} />
+            <button type="button" className={"propphoto" + (form.photoUrl ? " propphoto--set" : "")}
+              onClick={() => propPhotoInput.current?.click()} disabled={propPhotoBusy}>
+              {form.photoUrl ? (
+                <>
+                  <img src={form.photoUrl} alt="Property" className="propphoto__img" />
+                  <span className="propphoto__edit">{propPhotoBusy ? "Uploading…" : "Change photo"}</span>
+                </>
+              ) : (
+                <span className="propphoto__add">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5" /><circle cx="8.5" cy="10" r="1.6" /><path d="m4 18 5-4.5 3.5 3 3-2.5L20 18" /></svg>
+                  {propPhotoBusy ? "Uploading…" : "Add a cover photo"}
+                </span>
+              )}
+            </button>
             <div className="label">Nickname (optional)</div>
             <input className="input" value={form.nickname} placeholder="e.g. Seaside Apartment" onChange={(e) => setForm({ ...form, nickname: e.target.value })} />
             <div className="label">Address</div>
