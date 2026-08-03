@@ -4,7 +4,7 @@ import { CUSTOMER_DOC_IDS, CLEANER_DOC_IDS, getLegalDoc, SUPPLY_TERMS_VERSION } 
 import { SEED_ADDRESSES, SEED_BOOKINGS, SEED_CARDS, SEED_JOBS, SEED_LISTINGS, SEED_EXTERNAL_BOOKINGS } from "../data/seed";
 import { CLEANERS, agentRowToCleaner, autoAcceptDecision, type PublicAgentRow } from "../data/cleaners";
 import { dispatchDecision, dispatchTimeFor, DEFAULT_LATE_HOURS } from "../data/dispatch";
-import { notifyUser } from "../lib/notify";
+import { notifyUser, sendEmailToSelf } from "../lib/notify";
 import { SEED_THREADS, SEED_MESSAGES, DEFAULT_AUTO_TEMPLATE, renderTemplate } from "../data/messages";
 import type { Cleaner } from "../types";
 import { makeReferralCode } from "../data/referral";
@@ -152,11 +152,6 @@ function jobIsLive(status: Job["status"]): boolean {
 
 // Mock email — a real app sends via a backend/SMTP. We log it so the flow is
 // observable in the prototype without any mail infrastructure.
-function sendEmailMock(to: string, subject: string, body: string) {
-  // eslint-disable-next-line no-console
-  console.info(`[email → ${to}] ${subject}\n${body}`);
-}
-
 // Fire a real browser push for a notification whenever the browser supports it
 // and permission is granted. In production each side is a different device, so
 // the cleaner is pushed the moment a job is assigned regardless of what the
@@ -1847,13 +1842,13 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         const who = bk?.cleanerName ?? "Your cleaner";
         const when = bk ? ` on ${bk.date} at ${bk.time}` : "";
         if (status === "approved")
-          sendEmailMock(currentEmail || "you@cinderella.cy", "Your cleaning is confirmed",
+          void sendEmailToSelf("Your cleaning is confirmed",
             `${who} accepted your cleaning${when}${bk ? ` at ${bk.addressNickname}` : ""}.`);
         else if (cleanerCancel)
-          sendEmailMock(currentEmail || "you@cinderella.cy", "Your cleaning was cancelled",
+          void sendEmailToSelf("Your cleaning was cancelled",
             `${who} cancelled your cleaning${when}. You can book another cleaner.`);
         else if (status === "declined")
-          sendEmailMock(currentEmail || "you@cinderella.cy", "Your booking was declined",
+          void sendEmailToSelf("Your booking was declined",
             `${who} can't take your cleaning${when}. You can book another cleaner.`);
       }
     },
@@ -1935,7 +1930,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     unreadCount: (acct.notifications ?? [])
       .filter((n) => n.audience === role && !n.read && !bellHidesForAgent(role, n.kind)).length,
     notify: (n) => pushNotif(makeNotif(n)),
-    sendEmail: (subject, body) => sendEmailMock(currentEmail || "you@cinderella.cy", subject, body),
+    sendEmail: (subject, body) => void sendEmailToSelf(subject, body),
     pushEnabled,
     requestPushPermission: async () => {
       // ask permission, subscribe to Web Push, and persist the subscription so

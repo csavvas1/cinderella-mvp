@@ -957,7 +957,7 @@ export default function Account() {
       <button className="btn danger" onClick={logout}>Sign out</button>
 
       <div style={{ height: 14 }} />
-      <p className="tiny muted" style={{ textAlign: "center" }}>{APP_NAME} demo · {APP_VERSION}</p>
+      <p className="tiny muted" style={{ textAlign: "center" }}>{APP_NAME} · {APP_VERSION}</p>
 
       {/* ===================== MODALS ===================== */}
 

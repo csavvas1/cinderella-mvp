@@ -202,7 +202,7 @@ const COOKIES: LegalDoc = {
 - **Functional** storage (e.g. remembering your last-used side, theme).
 - **Analytics** (only if enabled) to understand usage — set only with your consent.
 
-This app currently stores data in your browser's **local storage** to run the demo. In production, non-essential cookies/analytics will be set only after you consent.
+This app stores some data in your browser's **local storage** so it works reliably (e.g. keeping you signed in). Non-essential cookies/analytics are set only after you consent.
 
 ## 2. Managing cookies
 You can clear or block cookies/local storage in your browser settings. Blocking strictly-necessary storage may break core features (e.g. staying logged in).
