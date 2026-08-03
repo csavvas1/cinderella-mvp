@@ -8,8 +8,10 @@ import MapPicker from "../../components/MapPicker";
 export default function JobDetail() {
   const { id } = useParams();
   const nav = useNavigate();
-  const { jobs, setJobStatus, saveJobPhotos, acknowledgeJob, markJobSeen } = useStore();
-  const j = jobs.find((x) => x.id === id);
+  const { jobs, setJobStatus, saveJobPhotos, acknowledgeJob, markJobSeen, myUid } = useStore();
+  // agent side: only surface a job assigned to THIS user as the cleaner. A
+  // deep-link to a job the user merely booked as a customer must not open here.
+  const j = jobs.find((x) => x.id === id && x.cleanerUid === myUid);
   const [cam, setCam] = useState<null | "before" | "after">(null);
   // proof photo URLs come straight off the job (persisted), so they survive a
   // reload and are visible to both cleaner and customer.
