@@ -5,8 +5,8 @@ import { useRef, useState, type ReactNode } from "react";
 // content down (direct DOM transform, 1:1 with the thumb — no per-frame React
 // state, so no lag) and reveal a spinner. Releasing past the threshold fires
 // onRefresh; otherwise the content springs back.
-const THRESHOLD = 70;     // px pull needed to trigger a refresh
-const MAX_PULL = 120;     // clamp so it can't be dragged the whole screen down
+const THRESHOLD = 95;     // damped px pull needed to trigger a refresh
+const MAX_PULL = 150;     // clamp so it can't be dragged the whole screen down
 
 export default function PullToRefresh({
   onRefresh,
@@ -85,7 +85,7 @@ export default function PullToRefresh({
     startY.current = null;
     if (!pulling.current) return;
     pulling.current = false;
-    if (pullDist.current >= THRESHOLD * 0.5) {
+    if (pullDist.current >= THRESHOLD) {
       // trigger: hold the content at the spinner rest position, run the refresh,
       // then spring back.
       setSpin(true);
