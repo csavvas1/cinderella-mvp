@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useStore } from "../context/AppStore";
-import { LogoMark } from "../components/Logo";
-import { APP_NAME } from "../data/brand";
+import WordmarkGreek from "../components/WordmarkGreek";
 
 // Detect mobile platform to pick the matching biometric icon.
 function detectPlatform(): "ios" | "android" | "other" {
@@ -209,12 +208,8 @@ export default function Login() {
         background: "radial-gradient(700px 400px at 50% 0%, rgba(79,70,229,0.18), transparent 60%), var(--bg)",
       }}
     >
-      <div style={{ textAlign: "center", marginTop: 18 }}>
-        {!showQuick && <div style={{ display: "flex", justifyContent: "center" }}><LogoMark size={64} /></div>}
-        <h1 style={{ fontSize: 32, fontWeight: 900, letterSpacing: -1, margin: showQuick ? "0 0 6px" : "12px 0 6px" }}>{APP_NAME}</h1>
-        {!showQuick && (
-          <p className="sub" style={{ fontSize: 14.5 }}>Find a trusted cleaner in a few taps. Or earn as one.</p>
-        )}
+      <div style={{ textAlign: "center", marginTop: 18, display: "flex", justifyContent: "center" }}>
+        <WordmarkGreek height={showQuick ? 56 : 76} />
       </div>
 
       {showQuick ? (
