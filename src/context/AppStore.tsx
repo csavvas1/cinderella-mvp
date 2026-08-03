@@ -1202,8 +1202,8 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       const a = acct.addresses.find((x) => x.id === addressId);
       if (!a) return;
       const updated = { ...a, ...cfg };
-      // local-only patch (dispatch config isn't in the addresses DB mapper yet)
-      patchAcct({ addresses: acct.addresses.map((x) => x.id === addressId ? updated : x) });
+      // persist to the addresses row (patches local + upserts DB)
+      value.updateAddress(updated);
       // pick up existing checkouts after enabling / reconfiguring
       setTimeout(() => reconcileDispatch(), 0);
     },

@@ -434,6 +434,10 @@ export interface AddressRow {
   lng: number | null;
   export_token: string | null;
   share_code: string | null;
+  auto_dispatch: boolean | null;
+  dispatch_cleaner_ids: string[] | null;
+  dispatch_time: string | null;
+  dispatch_hours: number | null;
 }
 
 export function rowToAddress(r: AddressRow): PropertyAddress {
@@ -454,6 +458,10 @@ export function rowToAddress(r: AddressRow): PropertyAddress {
     lng: r.lng ?? undefined,
     exportToken: r.export_token ?? undefined,
     shareCode: r.share_code ?? undefined,
+    autoDispatch: r.auto_dispatch ?? undefined,
+    dispatchCleanerIds: r.dispatch_cleaner_ids ?? undefined,
+    dispatchTime: r.dispatch_time ?? undefined,
+    dispatchHours: r.dispatch_hours ?? undefined,
   };
 }
 
@@ -474,6 +482,10 @@ export function addressToRow(a: PropertyAddress): Record<string, unknown> {
     linked_card_id: a.linkedCardId ?? null,
     lat: a.lat ?? null,
     lng: a.lng ?? null,
+    auto_dispatch: a.autoDispatch ?? null,
+    dispatch_cleaner_ids: a.dispatchCleanerIds ?? null,
+    dispatch_time: a.dispatchTime ?? null,
+    dispatch_hours: a.dispatchHours ?? null,
   };
 }
 
