@@ -234,6 +234,7 @@ interface AppState {
   changePassword: (newPassword: string) => Promise<{ error?: string }>;  // Supabase password update
   resetPassword: (email: string) => Promise<{ error?: string }>;         // send a password-reset email
   recovering: boolean;                                                    // arrived via a reset link -> show set-new-password screen
+  bootSplash: boolean;                                                    // show the branded post-login splash while data hydrates
   finishRecovery: (newPassword: string) => Promise<{ error?: string }>;  // set the new password + return to login
   userName: string;
   userPhone: string;
@@ -530,6 +531,14 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   const [authLoading, setAuthLoading] = useState<boolean>(true);
   // true when the user arrived via a password-reset link (show the set-new-password screen).
   const [recovering, setRecovering] = useState<boolean>(false);
+  // branded splash shown right after a login/unlock so the profile+data can
+  // hydrate in the background without the user seeing a half-loaded app. Auto-
+  // clears after a short minimum hold (see startBootSplash).
+  const [bootSplash, setBootSplash] = useState<boolean>(false);
+  function startBootSplash() {
+    setBootSplash(true);
+    setTimeout(() => setBootSplash(false), 1400);
+  }
   // real agent accounts adapted into Cleaner objects, merged with the mock list.
   const [realCleaners, setRealCleaners] = useState<Cleaner[]>([]);
   // reviews loaded from the shared public.reviews table, grouped by cleaner id.
@@ -1009,6 +1018,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   async function doLogin(email: string, password: string): Promise<{ error?: string }> {
     const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
     if (error || !data.user) return { error: error?.message ?? "Sign in failed" };
+    startBootSplash();
     await hydrateProfile(data.user.id, data.user.email ?? email.trim());
     return {};
   }
@@ -1049,6 +1059,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
 
   // local-only demo account — never touches Supabase, full seed data.
   function loginDemo() {
+    startBootSplash();
     setAccounts((p) => (p[DEMO_EMAIL] ? p : { ...p, [DEMO_EMAIL]: seededAccount("Savvas") }));
     setCurrentKey(DEMO_EMAIL);
     setCurrentEmail(DEMO_EMAIL);
@@ -1145,6 +1156,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       return error ? { error: error.message } : {};
     },
     recovering,
+    bootSplash,
     finishRecovery: async (newPassword) => {
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) return { error: error.message };
@@ -1991,6 +2003,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       if (!biometricEmail) return { error: "No Face ID account on this device." };
       try {
         const ok = await verifyBiometric(biometricEmail);
+        if (ok) startBootSplash();
         return ok ? {} : { error: "Face ID verification failed." };
       } catch (err) {
         return { error: (err as Error).message };

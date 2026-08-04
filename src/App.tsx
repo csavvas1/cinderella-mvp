@@ -6,6 +6,7 @@ import TabBar from "./components/TabBar";
 import PullToRefresh from "./components/PullToRefresh";
 import SwipePager from "./components/SwipePager";
 import { LogoMark } from "./components/Logo";
+import WordmarkGreek from "./components/WordmarkGreek";
 import { useStore } from "./context/AppStore";
 
 // A property-share invite link is ?join=CODE. Capture it as soon as the app
@@ -330,6 +331,23 @@ function Splash() {
   );
 }
 
+// Branded post-login splash: the wordmark ink-writes on an indigo screen while
+// the profile + data hydrate in the background, so the app never appears half-
+// loaded. Shown for a short minimum hold (see startBootSplash in the store).
+function BrandSplash() {
+  return (
+    <div
+      className="screen"
+      style={{
+        display: "flex", alignItems: "center", justifyContent: "center",
+        background: "linear-gradient(160deg, #4f46e5 0%, #6d5ff0 42%, #8b7ff5 100%)",
+      }}
+    >
+      <WordmarkGreek height={88} />
+    </div>
+  );
+}
+
 function RecoveryScreen() {
   const { finishRecovery } = useStore();
   const [pw1, setPw1] = useState("");
@@ -375,7 +393,7 @@ function RecoveryScreen() {
 }
 
 export default function App() {
-  const { loggedIn, authLoading, recovering, biometricEnabled, needsCustomerConsent } = useStore();
+  const { loggedIn, authLoading, recovering, biometricEnabled, needsCustomerConsent, bootSplash } = useStore();
   // App was closed while signed in + biometric on -> require an auto unlock on reopen.
   const [locked, setLocked] = useState(() => loggedIn && biometricEnabled);
   // Password-reset link landing: show the set-new-password screen above everything.
@@ -385,6 +403,9 @@ export default function App() {
   if (authLoading && !loggedIn) return <PhoneFrame><Splash /></PhoneFrame>;
   if (loggedIn && locked) return <PhoneFrame><LockScreen onUnlock={() => setLocked(false)} /></PhoneFrame>;
   if (!loggedIn) return <PhoneFrame><Login /></PhoneFrame>;
+  // Right after login/unlock: hold the branded splash briefly so the profile +
+  // data hydrate before the app shows (no half-loaded flash).
+  if (bootSplash) return <PhoneFrame><BrandSplash /></PhoneFrame>;
   // MANDATORY: a logged-in account that hasn't accepted the current customer
   // documents is blocked on the consent screen until they Agree.
   if (needsCustomerConsent) return <PhoneFrame><ConsentScreen /></PhoneFrame>;
