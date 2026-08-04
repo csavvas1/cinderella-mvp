@@ -182,15 +182,13 @@ function Shell() {
     onDragEnd();
   }
 
-  // On (re)entering the app after login, land on the side the launch preference
-  // selected (role is set from the account's launchSide at login). Only redirect
-  // if we're NOT already on a valid route for this side — otherwise a Shell
-  // remount (e.g. after a pull-to-refresh re-hydrate) would yank the user back
-  // to the default tab instead of leaving them where they were.
+  // On entering the app after login, ALWAYS land on the side's default tab:
+  // agents on Jobs, customers (and deactivated agents) on Search. This effect
+  // runs once on Shell mount — which only happens on a fresh login/reload, not
+  // on a pull-to-refresh re-hydrate (Shell stays mounted there), so it won't
+  // yank an in-app user around.
   useEffect(() => {
-    const onAgent = pathname.startsWith("/agent");
-    const onValidSide = role === "agent" ? onAgent : !onAgent;
-    if (!onValidSide) nav(role === "agent" ? "/agent/jobs" : "/book");
+    nav(role === "agent" ? "/agent/jobs" : "/book", { replace: true });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Keep the URL on the correct side when the role toggle flips.
@@ -331,27 +329,6 @@ function Splash() {
   );
 }
 
-// Branded post-login splash: the wordmark sits on an indigo screen while the
-// profile + data hydrate in the background, so the app never appears half-
-// loaded. MUST mirror the Login screen's slid-to-centre position exactly (same
-// padding + marginTop + translateY as Login's authing state) so the handoff
-// from Login to this splash shows no jump.
-function BrandSplash() {
-  return (
-    <div
-      className="screen"
-      style={{
-        display: "flex", flexDirection: "column", justifyContent: "space-between",
-        padding: "56px 26px 36px",
-        background: "linear-gradient(160deg, #4f46e5 0%, #6d5ff0 42%, #8b7ff5 100%)",
-      }}
-    >
-      <div style={{ textAlign: "center", marginTop: 24, display: "flex", justifyContent: "center", transform: "translateY(38vh)" }}>
-        <WordmarkGreek height={84} />
-      </div>
-    </div>
-  );
-}
 
 function RecoveryScreen() {
   const { finishRecovery } = useStore();
@@ -408,11 +385,47 @@ export default function App() {
   if (authLoading && !loggedIn) return <PhoneFrame><Splash /></PhoneFrame>;
   if (loggedIn && locked) return <PhoneFrame><LockScreen onUnlock={() => setLocked(false)} /></PhoneFrame>;
   if (!loggedIn) return <PhoneFrame><Login /></PhoneFrame>;
-  // Right after login/unlock: hold the branded splash briefly so the profile +
-  // data hydrate before the app shows (no half-loaded flash).
-  if (bootSplash) return <PhoneFrame><BrandSplash /></PhoneFrame>;
   // MANDATORY: a logged-in account that hasn't accepted the current customer
   // documents is blocked on the consent screen until they Agree.
-  if (needsCustomerConsent) return <PhoneFrame><ConsentScreen /></PhoneFrame>;
-  return <PhoneFrame><Shell /></PhoneFrame>;
+  const content = needsCustomerConsent ? <ConsentScreen /> : <Shell />;
+  // The app renders underneath; the branded splash sits on top and slides DOWN
+  // to reveal it when the boot hold ends (curtain-up reveal).
+  return (
+    <PhoneFrame>
+      {content}
+      <SplashCurtain show={bootSplash} />
+    </PhoneFrame>
+  );
+}
+
+// Full-cover branded splash that slides down out of view once `show` turns
+// false, revealing the app mounted underneath. Stays mounted through the slide
+// so the exit animates, then removes itself.
+function SplashCurtain({ show }: { show: boolean }) {
+  const [render, setRender] = useState(show);
+  const [down, setDown] = useState(false);
+  useEffect(() => {
+    if (show) { setRender(true); setDown(false); return; }
+    // trigger slide-down, then unmount after the transition
+    setDown(true);
+    const t = setTimeout(() => setRender(false), 750);
+    return () => clearTimeout(t);
+  }, [show]);
+  if (!render) return null;
+  return (
+    <div
+      style={{
+        position: "absolute", inset: 0, zIndex: 200,
+        display: "flex", flexDirection: "column", justifyContent: "space-between",
+        padding: "56px 26px 36px",
+        background: "linear-gradient(160deg, #4f46e5 0%, #6d5ff0 42%, #8b7ff5 100%)",
+        transform: down ? "translateY(100%)" : "translateY(0)",
+        transition: "transform .7s cubic-bezier(.5,0,.2,1)",
+      }}
+    >
+      <div style={{ textAlign: "center", marginTop: 24, display: "flex", justifyContent: "center", transform: "translateY(38vh)" }}>
+        <WordmarkGreek height={84} />
+      </div>
+    </div>
+  );
 }
