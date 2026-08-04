@@ -532,13 +532,12 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   // true when the user arrived via a password-reset link (show the set-new-password screen).
   const [recovering, setRecovering] = useState<boolean>(false);
   // branded splash shown right after a login/unlock so the profile+data can
-  // hydrate in the background without the user seeing a half-loaded app. Auto-
-  // clears after a short minimum hold (see startBootSplash).
+  // hydrate before the app appears (no half-loaded flash). Driven by a deadline:
+  // when the user transitions signed-out -> signed-in we hold the splash until
+  // BOTH the minimum duration has elapsed AND the agent directory has loaded.
+  const BOOT_SPLASH_MS = 2600;
   const [bootSplash, setBootSplash] = useState<boolean>(false);
-  function startBootSplash() {
-    setBootSplash(true);
-    setTimeout(() => setBootSplash(false), 1400);
-  }
+  const prevLoggedIn = useRef<boolean>(init.current.loggedIn);
   // real agent accounts adapted into Cleaner objects, merged with the mock list.
   const [realCleaners, setRealCleaners] = useState<Cleaner[]>([]);
   // reviews loaded from the shared public.reviews table, grouped by cleaner id.
@@ -1018,7 +1017,6 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   async function doLogin(email: string, password: string): Promise<{ error?: string }> {
     const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
     if (error || !data.user) return { error: error?.message ?? "Sign in failed" };
-    startBootSplash();
     await hydrateProfile(data.user.id, data.user.email ?? email.trim());
     return {};
   }
@@ -1059,13 +1057,26 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
 
   // local-only demo account — never touches Supabase, full seed data.
   function loginDemo() {
-    startBootSplash();
     setAccounts((p) => (p[DEMO_EMAIL] ? p : { ...p, [DEMO_EMAIL]: seededAccount("Savvas") }));
     setCurrentKey(DEMO_EMAIL);
     setCurrentEmail(DEMO_EMAIL);
     setRole("customer");
     setLoggedIn(true);
   }
+
+  // Branded boot splash: whenever the user goes signed-out -> signed-in, show
+  // the splash and hold it for a fixed minimum so the profile + agent directory
+  // + reviews finish loading before the app appears. A single timer (no racing
+  // against async loads) makes the transition feel deliberate, not laggy.
+  useEffect(() => {
+    if (loggedIn && !prevLoggedIn.current) {
+      setBootSplash(true);
+      const t = setTimeout(() => setBootSplash(false), BOOT_SPLASH_MS);
+      prevLoggedIn.current = true;
+      return () => clearTimeout(t);
+    }
+    prevLoggedIn.current = loggedIn;
+  }, [loggedIn]);
 
   // Fetch the public agent directory once the user is signed in (RLS on the view
   // requires an authenticated session). Adapts each real agent into a Cleaner.
@@ -2003,7 +2014,6 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       if (!biometricEmail) return { error: "No Face ID account on this device." };
       try {
         const ok = await verifyBiometric(biometricEmail);
-        if (ok) startBootSplash();
         return ok ? {} : { error: "Face ID verification failed." };
       } catch (err) {
         return { error: (err as Error).message };

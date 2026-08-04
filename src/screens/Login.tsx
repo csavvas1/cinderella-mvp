@@ -199,6 +199,23 @@ export default function Login() {
   }
 
 
+  // While a sign-in / sign-up / Face ID check is in flight, immediately hide the
+  // form and show the centred wordmark. This hands off seamlessly to the global
+  // boot splash once auth completes, so the user never sees the form linger.
+  if (busy || scanning) {
+    return (
+      <div
+        className="screen"
+        style={{
+          display: "flex", alignItems: "center", justifyContent: "center",
+          background: "linear-gradient(160deg, #4f46e5 0%, #6d5ff0 42%, #8b7ff5 100%)",
+        }}
+      >
+        <WordmarkGreek height={88} />
+      </div>
+    );
+  }
+
   return (
     <div
       className="screen"
