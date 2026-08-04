@@ -199,22 +199,10 @@ export default function Login() {
   }
 
 
-  // While a sign-in / sign-up / Face ID check is in flight, immediately hide the
-  // form and show the centred wordmark. This hands off seamlessly to the global
-  // boot splash once auth completes, so the user never sees the form linger.
-  if (busy || scanning) {
-    return (
-      <div
-        className="screen"
-        style={{
-          display: "flex", alignItems: "center", justifyContent: "center",
-          background: "linear-gradient(160deg, #4f46e5 0%, #6d5ff0 42%, #8b7ff5 100%)",
-        }}
-      >
-        <WordmarkGreek height={88} />
-      </div>
-    );
-  }
+  // On a sign-in / sign-up / Face ID check, glide the wordmark down to the
+  // centre (same element, CSS transform — reads as motion, not a re-mount) and
+  // fade the form out. Hands off to the global boot splash once auth completes.
+  const authing = busy || scanning;
 
   return (
     <div
@@ -225,10 +213,23 @@ export default function Login() {
         background: "linear-gradient(160deg, #4f46e5 0%, #6d5ff0 42%, #8b7ff5 100%)",
       }}
     >
-      <div style={{ textAlign: "center", marginTop: 24, display: "flex", justifyContent: "center" }}>
+      <div
+        style={{
+          textAlign: "center", marginTop: 24, display: "flex", justifyContent: "center",
+          // slide toward vertical centre while authenticating
+          transform: authing ? "translateY(38vh)" : "translateY(0)",
+          transition: "transform .65s cubic-bezier(.5,.05,.25,1)",
+          willChange: "transform",
+        }}
+      >
         <WordmarkGreek height={showQuick ? 60 : 84} />
       </div>
 
+      <div style={{
+        opacity: authing ? 0 : 1,
+        transition: "opacity .35s ease",
+        pointerEvents: authing ? "none" : "auto",
+      }}>
       {showQuick ? (
         /* ---- returning account: one tap to unlock ---- */
         <div style={{ margin: "auto 0", display: "flex", flexDirection: "column", alignItems: "center" }}>
@@ -315,23 +316,7 @@ export default function Login() {
           )}
         </div>
       )}
-
-      {/* mock face-scan overlay */}
-      {scanning && (
-        <div className="modal__backdrop">
-          <div className="modal" style={{ textAlign: "center" }}>
-            <div className="bioscan">
-              <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-                <path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2" />
-                <circle cx="9" cy="10" r="1" /><circle cx="15" cy="10" r="1" />
-                <path d="M9 14a4 4 0 0 0 6 0" />
-              </svg>
-            </div>
-            <b style={{ fontSize: 16 }}>Scanning…</b>
-            <p className="sub" style={{ marginTop: 4 }}>Look at your device</p>
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   );
 }
