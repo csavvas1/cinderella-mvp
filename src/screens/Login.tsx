@@ -218,11 +218,12 @@ export default function Login() {
           textAlign: "center", marginTop: 24, display: "flex", justifyContent: "center",
           // slide toward vertical centre while authenticating
           transform: authing ? "translateY(38vh)" : "translateY(0)",
-          transition: "transform .65s cubic-bezier(.5,.05,.25,1)",
+          transition: "transform 1.1s cubic-bezier(.4,0,.2,1)",
           willChange: "transform",
         }}
       >
-        <WordmarkGreek height={showQuick ? 60 : 84} />
+        {/* fixed height so the slid position matches the boot splash exactly */}
+        <WordmarkGreek height={84} />
       </div>
 
       <div style={{

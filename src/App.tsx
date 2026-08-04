@@ -331,19 +331,24 @@ function Splash() {
   );
 }
 
-// Branded post-login splash: the wordmark ink-writes on an indigo screen while
-// the profile + data hydrate in the background, so the app never appears half-
-// loaded. Shown for a short minimum hold (see startBootSplash in the store).
+// Branded post-login splash: the wordmark sits on an indigo screen while the
+// profile + data hydrate in the background, so the app never appears half-
+// loaded. MUST mirror the Login screen's slid-to-centre position exactly (same
+// padding + marginTop + translateY as Login's authing state) so the handoff
+// from Login to this splash shows no jump.
 function BrandSplash() {
   return (
     <div
       className="screen"
       style={{
-        display: "flex", alignItems: "center", justifyContent: "center",
+        display: "flex", flexDirection: "column", justifyContent: "space-between",
+        padding: "56px 26px 36px",
         background: "linear-gradient(160deg, #4f46e5 0%, #6d5ff0 42%, #8b7ff5 100%)",
       }}
     >
-      <WordmarkGreek height={88} />
+      <div style={{ textAlign: "center", marginTop: 24, display: "flex", justifyContent: "center", transform: "translateY(38vh)" }}>
+        <WordmarkGreek height={84} />
+      </div>
     </div>
   );
 }
