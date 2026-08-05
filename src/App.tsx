@@ -362,11 +362,21 @@ function LockScreen({ onUnlock }: { onUnlock: () => void }) {
   );
 }
 
+// Branded launch splash: the wordmark centred on the near-black hero with a
+// small loading indicator, shown from cold open until the app is ready. Same
+// background as Login + SplashCurtain so the transition into the app is seamless.
 function Splash() {
   return (
-    <div className="lockscreen">
-      <div className="bioscan"><LogoMark size={44} /></div>
-      <b style={{ fontSize: 16, marginTop: 12 }}>Loading…</b>
+    <div
+      style={{
+        position: "absolute", inset: 0, background: "#0d0d0f",
+        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 22,
+      }}
+    >
+      <WordmarkGreek height={84} />
+      <div className="splashdots" aria-label="Loading">
+        <span /><span /><span />
+      </div>
     </div>
   );
 }
@@ -460,9 +470,8 @@ function SplashCurtain({ show }: { show: boolean }) {
         position: "absolute", inset: 0, zIndex: 200,
         display: "flex", flexDirection: "column", justifyContent: "space-between",
         padding: "56px 26px 36px",
-        // matches the login hero exactly so the wordmark glide is seamless
-        background:
-          "radial-gradient(120% 90% at 12% 8%, rgba(225,120,150,0.22) 0%, rgba(225,120,150,0) 46%), linear-gradient(160deg, #1a1420 0%, #221a2c 50%, #2a1f35 100%)",
+        // matches the login + launch hero exactly so the wordmark glide is seamless
+        background: "#0d0d0f",
         transform: down ? "translateY(100%)" : "translateY(0)",
         transition: "transform .7s cubic-bezier(.5,0,.2,1)",
       }}

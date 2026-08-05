@@ -54,7 +54,7 @@ export function renderHtml(p: EmailPayload): string {
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f2f3f7;padding:24px 0">
     <tr><td align="center">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:18px;overflow:hidden;box-shadow:0 6px 24px rgba(20,21,26,0.06)">
-        <tr><td style="background:linear-gradient(160deg,#1a1420 0%,#221a2c 50%,#2a1f35 100%);padding:26px 28px;text-align:center">
+        <tr><td style="background:#0d0d0f;padding:26px 28px;text-align:center">
           <span style="font-family:'Segoe Script','Bradley Hand',cursive;font-size:30px;font-weight:700;color:#ffffff;letter-spacing:.5px">${BRAND}</span>
         </td></tr>
         <tr><td style="padding:28px">

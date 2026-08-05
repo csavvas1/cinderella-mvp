@@ -210,11 +210,9 @@ export default function Login() {
       style={{
         display: "flex", flexDirection: "column", justifyContent: "space-between",
         padding: "56px 26px 36px",
-        // warm charcoal hero (Airbnb-dark): deep near-black with a soft rose glow
-        // top-left. Kept identical to the boot splash so the wordmark glide reads
-        // as one continuous motion across the login -> splash handoff.
-        background:
-          "radial-gradient(120% 90% at 12% 8%, rgba(225,120,150,0.22) 0%, rgba(225,120,150,0) 46%), linear-gradient(160deg, #1a1420 0%, #221a2c 50%, #2a1f35 100%)",
+        // flat near-black hero. Kept identical to the boot + launch splash so the
+        // wordmark glide reads as one continuous motion across the handoff.
+        background: "#0d0d0f",
       }}
     >
       <div
