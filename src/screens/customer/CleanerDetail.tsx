@@ -46,7 +46,7 @@ export default function CleanerDetail() {
     Date.now(), customerRep.rating, customerRep.reviewsCount, cleaner
   );
 
-  function confirm() {
+  async function confirm() {
     // safety: never book without a real saved property
     if (!addresses.length || !addresses.some((a) => a.id === draft.addrId)) { openAccount(); return; }
     const time = draft.time || "11:00";
@@ -130,7 +130,10 @@ export default function CleanerDetail() {
     });
 
     addBookings(newBookings);
-    addJobs(newJobs);
+    // Await the job INSERT before notifying the agent. notify-user verifies the
+    // job row server-side (customer_uid = caller, cleaner_uid = target); firing
+    // the alert before the row commits 403s → the agent never gets the push.
+    await addJobs(newJobs);
     // Alert the agent side: auto-accepted = a confirmed job, otherwise a request
     // awaiting their approval.
     const first = newJobs[0];

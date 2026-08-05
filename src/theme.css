@@ -2570,3 +2570,16 @@ input[type="range"]::-webkit-slider-thumb {
 }
 .seg3 button.active { background: var(--card); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
 .lc__cleanhd { font-size: 12px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 8px; }
+
+/* ---------- login hero (warm-charcoal, Airbnb-dark) ---------- */
+/* The login screen renders on a fixed dark hero regardless of the app theme,
+   so elements sitting DIRECTLY on the hero (outside the white card) need light
+   text in both light + dark modes. The .card keeps its own light styling. */
+.login-hero .biotap__lbl { color: rgba(255,255,255,0.92); }
+.login-hero .acctile__other { color: rgba(255,255,255,0.6); }
+.login-hero .acctile__other:hover { color: #fff; }
+.login-hero .linklike { color: rgba(255,255,255,0.6); }
+.login-hero .linklike:hover { color: #fff; }
+/* Face ID tap button: keep it a bright floating tile on the dark hero */
+.login-hero .biotap { color: var(--indigo); background: #fff; border-color: rgba(255,255,255,0.14); }
+.login-hero .biotap:hover { border-color: rgba(255,255,255,0.3); box-shadow: 0 14px 34px rgba(0,0,0,0.4); }

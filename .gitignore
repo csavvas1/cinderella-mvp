@@ -18,3 +18,6 @@ dist-ssr/
 .idea/
 package-lock.json
 supabase/.temp/
+
+.vercel
+.env*

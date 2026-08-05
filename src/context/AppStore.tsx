@@ -318,8 +318,8 @@ interface AppState {
   cleaners: Cleaner[];
 
   jobs: Job[];
-  addJob: (j: Job) => void;
-  addJobs: (js: Job[]) => void;
+  addJob: (j: Job) => Promise<void>;
+  addJobs: (js: Job[]) => Promise<void>;
   setJobStatus: (id: string, status: Job["status"]) => void;
   saveJobPhotos: (jobId: string, kind: "before" | "after", urls: string[]) => void;
   verification: IdentityVerification | null;
@@ -600,9 +600,11 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     if (!isRealUser || !currentKey) return;
     supabase.from("bookings").update(cols).eq("series_id", seriesId).eq("user_id", currentKey).then(logErr("series patch"));
   }
-  function dbInsertJobs(js: Job[]) {
-    if (!isRealUser || !currentKey || js.length === 0) return;
-    supabase.from("jobs").insert(js.map((j) => ({ ...jobToRow(j), customer_uid: currentKey }))).then(logErr("job insert"));
+  function dbInsertJobs(js: Job[]): Promise<void> {
+    if (!isRealUser || !currentKey || js.length === 0) return Promise.resolve();
+    return Promise.resolve(
+      supabase.from("jobs").insert(js.map((j) => ({ ...jobToRow(j), customer_uid: currentKey }))).then(logErr("job insert")),
+    );
   }
   function dbPatchJob(id: string, cols: Record<string, unknown>) {
     if (!isRealUser || !currentKey) return;
@@ -811,10 +813,15 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     if (!changed && !newJobs.length) return;
     if (newBookings2.length) { patchAcct({ bookings: [...newBookings2, ...acct.bookings], externalBookings: patchedExt }); dbInsertBookings(newBookings2); }
     else { patchAcct({ externalBookings: patchedExt }); }
-    if (newJobs.length) { setJobs((p) => [...newJobs, ...p]); dbInsertJobs(newJobs); }
-    alerts.forEach((a) => {
-      if (a.targetUid) void notifyUser(a.targetUid, { id: crypto.randomUUID(), audience: a.audience, kind: a.kind, jobId: a.jobId, title: a.title, body: a.body, read: false, createdAt: Date.now() });
-      else pushNotif({ id: crypto.randomUUID(), audience: a.audience, kind: a.kind, jobId: a.jobId, title: a.title, body: a.body, read: false, createdAt: Date.now() });
+    // Await the job INSERT before alerting the agent: notify-user verifies the
+    // job row server-side (customer_uid/cleaner_uid match), so firing the alert
+    // before the row commits 403s and the agent gets no notification/push.
+    const jobsInserted = newJobs.length ? (setJobs((p) => [...newJobs, ...p]), dbInsertJobs(newJobs)) : Promise.resolve();
+    void jobsInserted.then(() => {
+      alerts.forEach((a) => {
+        if (a.targetUid) void notifyUser(a.targetUid, { id: crypto.randomUUID(), audience: a.audience, kind: a.kind, jobId: a.jobId, title: a.title, body: a.body, read: false, createdAt: Date.now() });
+        else pushNotif({ id: crypto.randomUUID(), audience: a.audience, kind: a.kind, jobId: a.jobId, title: a.title, body: a.body, read: false, createdAt: Date.now() });
+      });
     });
   }
 
@@ -1249,8 +1256,10 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         bookings: [booking2, ...acct.bookings],
         externalBookings: (acct.externalBookings ?? []).map((x) => x.id === bookingId ? { ...x, dispatchedJobId: job.id } : x),
       });
-      dbInsertBookings([booking2]); setJobs((p) => [job, ...p]); dbInsertJobs([job]);
-      if (real) void notifyUser(cleaner.id, { id: crypto.randomUUID(), audience: "agent", kind: "booking_new", jobId: job.id, title: auto ? "New cleaning" : "New cleaning request", body: `${prop.nickname} · ${b.checkOut} ${time}.`, read: false, createdAt: Date.now() });
+      dbInsertBookings([booking2]); setJobs((p) => [job, ...p]);
+      // Await the job INSERT before notify-user (it verifies the job row exists).
+      const jobInserted = dbInsertJobs([job]);
+      if (real) void jobInserted.then(() => notifyUser(cleaner.id, { id: crypto.randomUUID(), audience: "agent", kind: "booking_new", jobId: job.id, title: auto ? "New cleaning" : "New cleaning request", body: `${prop.nickname} · ${b.checkOut} ${time}.`, read: false, createdAt: Date.now() }));
       else pushNotif({ id: crypto.randomUUID(), audience: "agent", kind: "booking_new", jobId: job.id, title: "New cleaning", body: `${prop.nickname} · ${b.checkOut} ${time}.`, read: false, createdAt: Date.now() });
     },
     reconcileDispatch,
@@ -1729,8 +1738,8 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     cleaners: [...realCleaners],
 
     jobs,
-    addJob: (j) => { setJobs((p) => [j, ...p]); dbInsertJobs([j]); },
-    addJobs: (js) => { setJobs((p) => [...js, ...p]); dbInsertJobs(js); },
+    addJob: (j) => { setJobs((p) => [j, ...p]); return dbInsertJobs([j]); },
+    addJobs: (js) => { setJobs((p) => [...js, ...p]); return dbInsertJobs(js); },
     dismissJob: (id) => { setJobs((p) => p.map((j) => (j.id === id ? { ...j, dismissedByAgent: true } : j))); dbPatchJob(id, { dismissed_by_agent: true }); },
     // Acknowledge a modified job: restore the status it held before the change
     // (usually "approved") and clear the modification markers.

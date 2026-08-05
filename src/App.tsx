@@ -418,7 +418,9 @@ function SplashCurtain({ show }: { show: boolean }) {
         position: "absolute", inset: 0, zIndex: 200,
         display: "flex", flexDirection: "column", justifyContent: "space-between",
         padding: "56px 26px 36px",
-        background: "linear-gradient(160deg, #4f46e5 0%, #6d5ff0 42%, #8b7ff5 100%)",
+        // matches the login hero exactly so the wordmark glide is seamless
+        background:
+          "radial-gradient(120% 90% at 12% 8%, rgba(225,120,150,0.22) 0%, rgba(225,120,150,0) 46%), linear-gradient(160deg, #1a1420 0%, #221a2c 50%, #2a1f35 100%)",
         transform: down ? "translateY(100%)" : "translateY(0)",
         transition: "transform .7s cubic-bezier(.5,0,.2,1)",
       }}

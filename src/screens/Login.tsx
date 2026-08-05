@@ -206,16 +206,20 @@ export default function Login() {
 
   return (
     <div
-      className="screen"
+      className="screen login-hero"
       style={{
         display: "flex", flexDirection: "column", justifyContent: "space-between",
         padding: "56px 26px 36px",
-        background: "linear-gradient(160deg, #4f46e5 0%, #6d5ff0 42%, #8b7ff5 100%)",
+        // warm charcoal hero (Airbnb-dark): deep near-black with a soft rose glow
+        // top-left. Kept identical to the boot splash so the wordmark glide reads
+        // as one continuous motion across the login -> splash handoff.
+        background:
+          "radial-gradient(120% 90% at 12% 8%, rgba(225,120,150,0.22) 0%, rgba(225,120,150,0) 46%), linear-gradient(160deg, #1a1420 0%, #221a2c 50%, #2a1f35 100%)",
       }}
     >
       <div
         style={{
-          textAlign: "center", marginTop: 24, display: "flex", justifyContent: "center",
+          textAlign: "center", marginTop: 24, display: "flex", flexDirection: "column", alignItems: "center", gap: 14,
           // slide toward vertical centre while authenticating
           transform: authing ? "translateY(38vh)" : "translateY(0)",
           transition: "transform 1.1s cubic-bezier(.4,0,.2,1)",
@@ -224,6 +228,14 @@ export default function Login() {
       >
         {/* fixed height so the slid position matches the boot splash exactly */}
         <WordmarkGreek height={84} />
+        {/* tagline fades out with the wordmark's slide so only the mark hands off
+            to the boot splash */}
+        <div style={{
+          color: "rgba(255,255,255,0.62)", fontSize: 14, fontWeight: 500,
+          letterSpacing: 0.2, opacity: authing ? 0 : 1, transition: "opacity .3s ease",
+        }}>
+          Spotless homes, on demand.
+        </div>
       </div>
 
       <div style={{
