@@ -99,8 +99,13 @@ body {
    was only as tall as the content, leaving a dead zone at the bottom where a
    horizontal swipe never registered. min-height (not height) so tall pages
    still grow + scroll normally. */
-.ptr { position: relative; min-height: 100%; }
-.ptr__content { will-change: transform; min-height: 100%; }
+/* Fill the scroll area's full height so the swipe surface covers the whole
+   screen even when the current page is short. .ptr__content is a flex column so
+   .swipe can flex:1 and truly fill it — min-height:100% alone did not resolve
+   reliably against the scroll-container flex item, leaving the pager's touch
+   target only as tall as the content (swipe worked in the upper area only). */
+.ptr { position: relative; min-height: 100%; display: flex; flex-direction: column; }
+.ptr__content { will-change: transform; flex: 1; display: flex; flex-direction: column; min-height: 100%; }
 /* spinner lives above the content, revealed as it's pulled down */
 .ptr__spinner {
   position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
@@ -1460,11 +1465,15 @@ input[type="range"]::-webkit-slider-thumb {
    matches the swipe direction. swipe RIGHT (advance) -> new page enters from
    the right; swipe LEFT (back) -> new page enters from the left. */
 /* ---------- Instagram-style horizontal pager ---------- */
-.swipe { overflow: hidden; width: 100%; min-height: 100%; }
+/* No own overflow clip: the off-screen neighbours (parked at ±100%) are clipped
+   by the .phone frame, and a tall current page must overflow vertically so
+   .screen (the sole scroll container) scrolls it. Height comes from flex so the
+   swipe/touch surface always fills the screen, even on short pages. */
+.swipe { width: 100%; min-height: 100%; flex: 1; display: flex; flex-direction: column; }
 /* Track height follows the CURRENT page only. Neighbours are taken out of flow
    (see .swipe__page--prev/next) so a tall neighbour (calendar) no longer forces
    a short page (Book) to become scrollable. */
-.swipe__track { position: relative; width: 100%; min-height: 100%; will-change: transform; }
+.swipe__track { position: relative; width: 100%; min-height: 100%; flex: 1; display: flex; flex-direction: column; will-change: transform; }
 /* each page takes the full viewport width so exactly one shows at rest, with the
    neighbour parked just off-screen ready to slide in as you drag. */
 /* position:relative so a modal's `position:absolute; inset:0` backdrop resolves
@@ -1474,7 +1483,9 @@ input[type="range"]::-webkit-slider-thumb {
    to the pager JS. React touch listeners are passive (preventDefault is ignored),
    so this CSS is what actually stops a horizontal swipe from also scrolling the
    page vertically. */
-.swipe__page { width: 100%; min-width: 100%; min-height: 100%; position: relative; touch-action: pan-y; }
+.swipe__page { width: 100%; min-width: 100%; min-height: 100%; flex: 1; position: relative; touch-action: pan-y; }
+/* absolutely-parked neighbours must NOT flex (they're out of flow) — pin height */
+.swipe__page--prev, .swipe__page--next { flex: none; height: 100%; }
 /* neighbours parked off-screen, out of flow so they don't set the track height */
 .swipe__page--prev { position: absolute; top: 0; right: 100%; }
 .swipe__page--next { position: absolute; top: 0; left: 100%; }
