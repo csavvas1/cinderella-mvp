@@ -72,6 +72,28 @@ export async function sendEmailToUser(targetUid: string, jobId: string, payload:
   }
 }
 
+const WELCOME_FN_URL = `${String(import.meta.env.VITE_SUPABASE_URL || "").replace(/\/+$/, "")}/functions/v1/welcome-email`;
+
+// Send the branded welcome + verify-your-email message to the signed-in user.
+// Used on signup and by the "Resend email" banner action. Returns ok/error so
+// the banner can show feedback. Best-effort in dev/demo (no session).
+export async function sendWelcomeEmail(name?: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const { data: sess } = await supabase.auth.getSession();
+    const token = sess.session?.access_token;
+    if (!token) return { ok: false, error: "no session" };
+    const res = await fetch(WELCOME_FN_URL, {
+      method: "POST",
+      headers: { "content-type": "application/json", apikey: ANON, authorization: `Bearer ${token}` },
+      body: JSON.stringify({ name: name ?? "" }),
+    });
+    if (!res.ok) return { ok: false, error: await res.text() };
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
+}
+
 export async function notifyUser(targetUid: string, n: AppNotification): Promise<void> {
   try {
     const { data: sess } = await supabase.auth.getSession();

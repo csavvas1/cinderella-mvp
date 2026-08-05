@@ -9,6 +9,16 @@ import PaymentPicker from "../../components/PaymentPicker";
 import Avatar from "../../components/Avatar";
 import type { Booking, Job, Recurrence } from "../../types";
 
+// "HH:MM" + minutes -> "HH:MM" (24h, clamped to same day). Used to show a job's
+// end time in the agent email.
+function addMinutesToTime(hhmm: string, addMins: number): string {
+  const [h, m] = (hhmm || "0:0").split(":").map((x) => parseInt(x, 10) || 0);
+  const total = Math.min(24 * 60 - 1, h * 60 + m + addMins);
+  const hh = String(Math.floor(total / 60)).padStart(2, "0");
+  const mm = String(total % 60).padStart(2, "0");
+  return `${hh}:${mm}`;
+}
+
 export default function CleanerDetail() {
   const { id } = useParams();
   const nav = useNavigate();
@@ -190,17 +200,33 @@ export default function CleanerDetail() {
     });
     // branded email to the AGENT that a new job landed (real send, guarded server-side)
     if (isRealAgent && cleaner!.id) {
+      // start + end datetime for the FIRST occurrence
+      const endTime = addMinutesToTime(first.time, Math.round(hours * 60));
+      const whenRange = `${occDates[0]} · ${first.time}–${endTime} (${hours}h)`;
+      const fullAddr = draft.address || prop?.address || where;
+      const propBits = prop
+        ? [prop.bedrooms ? `${prop.bedrooms} bed` : null, prop.bathrooms ? `${prop.bathrooms} bath` : null,
+           prop.kitchens ? `${prop.kitchens} kitchen` : null].filter(Boolean).join(" · ")
+        : "";
+      const agentPay = newJobs.reduce((s, j) => s + (j.cleanerPay ?? 0), 0);
+      const agentRows = [
+        { label: "Customer", value: userName || "A customer" },
+        ...(userPhone ? [{ label: "Phone", value: userPhone }] : []),
+        { label: "Address", value: fullAddr },
+        ...(propBits ? [{ label: "Property", value: `${draft.scope === "partial" ? "Partial · " : ""}${propBits}` }] : []),
+        { label: "When", value: whenRange },
+        ...(n > 1 ? [{ label: "Occurrences", value: `${n} cleanings (${recurrence})` }] : []),
+        { label: "You'll earn", value: `€${agentPay.toFixed(2)}${n > 1 ? " total" : ""}` },
+        { label: "Status", value: anyAuto ? "Confirmed — on your schedule" : "Awaiting your response" },
+      ];
       void sendEmailToUser(cleaner!.id, first.id, {
         subject: anyAuto ? "New cleaning job added" : "New booking request",
         heading: anyAuto ? "You have a new cleaning job" : "New booking request",
         greeting: `Hi ${cleaner!.name},`,
-        intro: `${userName || "A customer"} ${anyAuto ? "booked" : "requested"} ${n > 1 ? `${n} cleanings` : "a cleaning"}${anyAuto ? " — it's on your schedule." : ". Please accept or decline in the app."}`,
-        rows: [
-          { label: "Customer", value: userName || "A customer" },
-          { label: "Where", value: where },
-          { label: "When", value: whenTxt },
-        ],
+        intro: `${userName || "A customer"} ${anyAuto ? "booked you" : "requested you"} for ${n > 1 ? `${n} cleanings` : "a cleaning"}.${anyAuto ? " It's on your schedule — see the details below." : " Please review and accept or decline in the app."}`,
+        rows: agentRows,
         cta: { label: anyAuto ? "View job" : "Review request", url: `${origin}/jobs` },
+        note: anyAuto ? "Please arrive on time. You can view directions and contact details in the app." : "Respond promptly — requests expire if not accepted in time.",
       });
     }
     // booking placed — drop the in-progress form so a later Book starts fresh

@@ -4,7 +4,7 @@ import { CUSTOMER_DOC_IDS, CLEANER_DOC_IDS, getLegalDoc, SUPPLY_TERMS_VERSION } 
 import { SEED_ADDRESSES, SEED_BOOKINGS, SEED_CARDS, SEED_JOBS, SEED_LISTINGS, SEED_EXTERNAL_BOOKINGS } from "../data/seed";
 import { CLEANERS, agentRowToCleaner, autoAcceptDecision, type PublicAgentRow } from "../data/cleaners";
 import { dispatchDecision, dispatchTimeFor, DEFAULT_LATE_HOURS } from "../data/dispatch";
-import { notifyUser, sendEmailToSelf, type EmailPayload } from "../lib/notify";
+import { notifyUser, sendEmailToSelf, sendWelcomeEmail, type EmailPayload } from "../lib/notify";
 import { SEED_THREADS, SEED_MESSAGES, DEFAULT_AUTO_TEMPLATE, renderTemplate } from "../data/messages";
 import type { Cleaner } from "../types";
 import { makeReferralCode } from "../data/referral";
@@ -368,6 +368,10 @@ interface AppState {
   // branded email to the current account's address (structured payload or legacy
   // subject+body). Falls back to a console log in dev/demo.
   sendEmail: (payload: EmailPayload) => void;
+  // email verification (soft gate — banner while false)
+  emailVerified: boolean;
+  resendVerifyEmail: () => Promise<{ ok: boolean; error?: string }>;
+  refreshEmailVerified: () => Promise<void>;
   // browser push
   pushEnabled: boolean;
   requestPushPermission: () => Promise<{ granted: boolean; error?: string }>;
@@ -556,6 +560,9 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   const [pushEnabled, setPushEnabled] = useState<boolean>(
     typeof Notification !== "undefined" && Notification.permission === "granted"
   );
+  // email-verification state (own users row). Real users only; demo is always
+  // treated as verified so the banner never shows for the local demo account.
+  const [emailVerified, setEmailVerified] = useState<boolean>(true);
 
   // current account view (falls back to empty when logged out)
   const acct = (currentKey && accounts[currentKey]) || emptyAccount("Guest");
@@ -877,7 +884,10 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     try {
       const { data, error } = await supabase.from("users").select("*").eq("id", uid).maybeSingle();
       if (error) { /* eslint-disable-next-line no-console */ console.error("profile fetch failed:", error.message); }
-      if (data) profile = rowToProfile(data as UsersRow);
+      if (data) {
+        profile = rowToProfile(data as UsersRow);
+        setEmailVerified(!!(data as { email_verified?: boolean }).email_verified);
+      }
     } catch (e) { /* eslint-disable-next-line no-console */ console.error(e); }
 
     // load consent proof rows
@@ -1045,6 +1055,8 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     setCurrentEmail(data.user.email ?? email.trim());
     setRole("customer");
     setLoggedIn(true);
+    // new account starts unverified — show the banner + send the welcome/verify email
+    setEmailVerified(false);
     // write-through phone + referral + name to the (trigger-created) users row
     supabase.from("users").update({
       name, phone: phone?.trim() || null, referred_by_code: code ?? null,
@@ -1053,6 +1065,8 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       // eslint-disable-next-line no-console
       if (e) console.error("signup profile write failed:", e.message);
     });
+    // fire the branded welcome + verify email (best-effort; needs a live session)
+    void sendWelcomeEmail(name);
     return {};
   }
 
@@ -1986,6 +2000,13 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       .filter((n) => n.audience === role && !n.read && !bellHidesForAgent(role, n.kind)).length,
     notify: (n) => pushNotif(makeNotif(n)),
     sendEmail: (payload) => void sendEmailToSelf(payload),
+    emailVerified: isRealUser ? emailVerified : true,
+    resendVerifyEmail: () => sendWelcomeEmail(acct.name),
+    refreshEmailVerified: async () => {
+      if (!isRealUser || !currentKey) return;
+      const { data } = await supabase.from("users").select("email_verified").eq("id", currentKey).maybeSingle();
+      if (data) setEmailVerified(!!(data as { email_verified?: boolean }).email_verified);
+    },
     pushEnabled,
     requestPushPermission: async () => {
       // ask permission, subscribe to Web Push, and persist the subscription so

@@ -2588,3 +2588,29 @@ input[type="range"]::-webkit-slider-thumb {
 /* Face ID tap button: keep it a bright floating tile on the dark hero */
 .login-hero .biotap { color: var(--indigo); background: #fff; border-color: rgba(255,255,255,0.14); }
 .login-hero .biotap:hover { border-color: rgba(255,255,255,0.3); box-shadow: 0 14px 34px rgba(0,0,0,0.4); }
+
+/* ---------- email-verify banner + toast ---------- */
+.verifybar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 16px; background: #fef3c7; border-bottom: 1px solid #fde68a;
+  font-size: 13px; color: #92610a; font-weight: 600;
+}
+:root[data-theme="dark"] .verifybar { background: #2a1f0e; border-bottom-color: #4a3a1a; color: #fbbf24; }
+.verifybar__txt { flex: 1; line-height: 1.35; }
+.verifybar__btn {
+  flex-shrink: 0; border: none; cursor: pointer;
+  background: #92610a; color: #fff; font-weight: 700; font-size: 12.5px;
+  padding: 7px 14px; border-radius: 999px;
+}
+.verifybar__btn:disabled { opacity: .6; cursor: default; }
+:root[data-theme="dark"] .verifybar__btn { background: #fbbf24; color: #1a1408; }
+
+.verifytoast {
+  position: absolute; left: 50%; top: 76px; transform: translateX(-50%);
+  z-index: 120; max-width: 90%;
+  padding: 11px 18px; border-radius: 12px; font-size: 13.5px; font-weight: 700;
+  box-shadow: 0 10px 30px rgba(20,21,26,.22); animation: verifytoastin .25s ease;
+}
+.verifytoast--ok { background: #ecfdf3; color: #157347; border: 1px solid #a7f3d0; }
+.verifytoast--fail { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+@keyframes verifytoastin { from { opacity: 0; transform: translate(-50%, -8px); } to { opacity: 1; transform: translate(-50%, 0); } }

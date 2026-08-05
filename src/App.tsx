@@ -55,8 +55,28 @@ import JobDetail from "./screens/agent/JobDetail";
 import Calendar from "./screens/agent/Calendar";
 import Referrals from "./screens/agent/Referrals";
 
+// Soft-gate banner shown under the app bar while the account's email is
+// unverified. "Resend" re-sends the branded welcome/verify email.
+function VerifyBanner({ onResend }: { onResend: () => Promise<{ ok: boolean; error?: string }> }) {
+  const [state, setState] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  async function resend() {
+    setState("sending");
+    const r = await onResend();
+    setState(r.ok ? "sent" : "error");
+    setTimeout(() => setState("idle"), 4000);
+  }
+  return (
+    <div className="verifybar">
+      <span className="verifybar__txt">Please verify your email to secure your account.</span>
+      <button className="verifybar__btn" onClick={resend} disabled={state === "sending" || state === "sent"}>
+        {state === "sending" ? "Sending…" : state === "sent" ? "Sent ✓" : state === "error" ? "Try again" : "Resend"}
+      </button>
+    </div>
+  );
+}
+
 function Shell() {
-  const { role, accountOpen, closeAccount, refresh, joinProperty, notify } = useStore();
+  const { role, accountOpen, closeAccount, refresh, joinProperty, notify, emailVerified, resendVerifyEmail, refreshEmailVerified } = useStore();
   const nav = useNavigate();
   const { pathname } = useLocation();
 
@@ -212,9 +232,31 @@ function Shell() {
     if (role === "agent") sessionStorage.removeItem("book-form");
   }, [role]);
 
+  // Handle the verify-email redirect (?verified=1|0). On success, refresh the
+  // flag (hides the banner) + toast; then strip the param so a refresh is clean.
+  const [verifyToast, setVerifyToast] = useState<null | "ok" | "fail">(null);
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    const v = sp.get("verified");
+    if (v == null) return;
+    if (v === "1") { void refreshEmailVerified(); setVerifyToast("ok"); }
+    else setVerifyToast("fail");
+    sp.delete("verified");
+    const clean = window.location.pathname + (sp.toString() ? `?${sp}` : "") + window.location.hash;
+    window.history.replaceState({}, "", clean);
+    const t = setTimeout(() => setVerifyToast(null), 4000);
+    return () => clearTimeout(t);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <>
       <AppBar />
+      {!emailVerified && <VerifyBanner onResend={resendVerifyEmail} />}
+      {verifyToast && (
+        <div className={"verifytoast" + (verifyToast === "ok" ? " verifytoast--ok" : " verifytoast--fail")}>
+          {verifyToast === "ok" ? "Email verified — you're all set." : "That verification link is invalid or expired. Tap Resend."}
+        </div>
+      )}
       <div className="screen" ref={screenRef}>
         <PullToRefresh onRefresh={refresh} scrollRef={screenRef}>
           {onTab ? (
