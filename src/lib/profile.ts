@@ -352,8 +352,8 @@ export function jobToRow(j: Job): Record<string, unknown> {
     booking_id: j.bookingId ?? null,
     customer_name: j.customerName,
     customer_phone: j.customerPhone ?? null,
-    before_photos: j.beforePhotos ?? null,
-    after_photos: j.afterPhotos ?? null,
+    before_photos: j.beforePhotos ?? [],  // NOT NULL in DB (default '{}') — never send null
+    after_photos: j.afterPhotos ?? [],    // NOT NULL in DB (default '{}') — never send null
     type: j.type,
     property_type: j.propertyType ?? null,
     apartment_number: j.apartmentNumber ?? null,
