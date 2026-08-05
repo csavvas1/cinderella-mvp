@@ -11,7 +11,7 @@
 // ============================================================================
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { json, preflight } from "../_shared/http.ts";
-import { sendViaResend, BRAND } from "../_shared/email.ts";
+import { sendEmail, BRAND } from "../_shared/email.ts";
 
 const admin = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
   // public verify endpoint (no JWT needed — token is the credential)
   const verifyUrl = `${SUPABASE_URL}/functions/v1/verify-email?token=${token}`;
 
-  const r = await sendViaResend(email, `Welcome to ${BRAND} — please verify your email`, {
+  const r = await sendEmail(email, `Welcome to ${BRAND} — please verify your email`, {
     subject: `Welcome to ${BRAND} — please verify your email`,
     heading: `Welcome to ${BRAND}!`,
     greeting: `Hi ${name},`,

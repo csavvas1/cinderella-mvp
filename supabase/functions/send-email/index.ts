@@ -11,7 +11,7 @@
 // ============================================================================
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { json, preflight } from "../_shared/http.ts";
-import { sendViaResend, type EmailPayload } from "../_shared/email.ts";
+import { sendEmail, type EmailPayload } from "../_shared/email.ts";
 
 const admin = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
   }
   if (!to) return json({ error: "no recipient email" }, 400);
 
-  const r = await sendViaResend(to, subject, body);
+  const r = await sendEmail(to, subject, body);
   if (!r.ok) return json({ error: `resend: ${r.error}` }, 502);
   return json({ ok: true, skipped: r.skipped ?? false });
 });

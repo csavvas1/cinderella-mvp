@@ -87,16 +87,40 @@ export function renderText(p: EmailPayload): string {
   return lines.join("\n");
 }
 
-// Send via Resend. Returns {ok} or {ok:false, error}. No-ops (ok:true, skipped)
-// when RESEND_API_KEY is unset so the app keeps working pre-config.
-export async function sendViaResend(to: string, subject: string, p: EmailPayload): Promise<{ ok: boolean; skipped?: boolean; error?: string }> {
+// Send an email. Primary transport is Gmail SMTP (no domain needed — sends to
+// any recipient using a Google App Password). Falls back to Resend's REST API
+// if Gmail isn't configured. No-ops (ok:true, skipped) when neither is set.
+//
+// Gmail SMTP secrets: GMAIL_USER, GMAIL_APP_PASSWORD. EMAIL_FROM sets the
+// display name/address (defaults to the Gmail address).
+export async function sendEmail(to: string, subject: string, p: EmailPayload): Promise<{ ok: boolean; skipped?: boolean; error?: string }> {
+  const gmailUser = Deno.env.get("GMAIL_USER") ?? "";
+  const gmailPass = (Deno.env.get("GMAIL_APP_PASSWORD") ?? "").replace(/\s+/g, "");
+  const from = Deno.env.get("EMAIL_FROM") ?? (gmailUser ? `${BRAND} <${gmailUser}>` : `${BRAND} <onboarding@resend.dev>`);
+  const html = renderHtml(p);
+  const text = renderText(p);
+
+  if (gmailUser && gmailPass) {
+    try {
+      const { SMTPClient } = await import("https://deno.land/x/denomailer@1.6.0/mod.ts");
+      const client = new SMTPClient({
+        connection: { hostname: "smtp.gmail.com", port: 465, tls: true, auth: { username: gmailUser, password: gmailPass } },
+      });
+      await client.send({ from, to, subject, content: text, html });
+      await client.close();
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: `gmail-smtp: ${(e as Error).message}` };
+    }
+  }
+
+  // fallback: Resend REST API
   const key = Deno.env.get("RESEND_API_KEY") ?? "";
-  const from = Deno.env.get("EMAIL_FROM") ?? `${BRAND} <onboarding@resend.dev>`;
   if (!key) return { ok: true, skipped: true };
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from, to, subject, text: renderText(p), html: renderHtml(p) }),
+    body: JSON.stringify({ from, to, subject, text, html }),
   });
   if (!res.ok) return { ok: false, error: await res.text() };
   return { ok: true };
