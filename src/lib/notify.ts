@@ -10,23 +10,62 @@ const ANON = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
 const EMAIL_FN_URL = `${String(import.meta.env.VITE_SUPABASE_URL || "").replace(/\/+$/, "")}/functions/v1/send-email`;
 
-// Send a transactional email to the SIGNED-IN user's own address via the
-// send-email Edge Function (recipient is derived server-side from the JWT).
-// Best-effort: a missed email never breaks a booking. In dev / demo (no real
-// session) it just logs, matching the old mock behaviour.
-export async function sendEmailToSelf(subject: string, body: string): Promise<void> {
+// Structured, branded email payload rendered server-side by the send-email
+// Edge Function. `body` is the legacy plain-text field (still supported).
+export interface EmailPayload {
+  subject: string;
+  heading?: string;
+  greeting?: string;
+  intro?: string;
+  rows?: { label: string; value: string }[];
+  cta?: { label: string; url: string };
+  note?: string;
+  body?: string; // legacy plain-text fallback
+}
+
+// Send a branded transactional email to the SIGNED-IN user's own address via
+// the send-email Edge Function (recipient derived server-side from the JWT).
+// Accepts either a structured payload or a legacy (subject, body) pair.
+// Best-effort: a missed email never breaks a booking. In dev/demo (no session)
+// it just logs.
+export async function sendEmailToSelf(payload: EmailPayload): Promise<void>;
+export async function sendEmailToSelf(subject: string, body: string): Promise<void>;
+export async function sendEmailToSelf(a: EmailPayload | string, b?: string): Promise<void> {
+  const payload: EmailPayload = typeof a === "string" ? { subject: a, body: b ?? "" } : a;
   try {
     const { data: sess } = await supabase.auth.getSession();
     const token = sess.session?.access_token;
     if (!token) {
       // eslint-disable-next-line no-console
-      console.info(`[email] ${subject}\n${body}`);
+      console.info(`[email] ${payload.subject}\n${payload.heading ?? ""}\n${payload.intro ?? payload.body ?? ""}`);
       return;
     }
     await fetch(EMAIL_FN_URL, {
       method: "POST",
       headers: { "content-type": "application/json", apikey: ANON, authorization: `Bearer ${token}` },
-      body: JSON.stringify({ subject, body }),
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    /* best-effort: ignore delivery failures */
+  }
+}
+
+// Send a branded email to ANOTHER user — only the agent (cleaner_uid) of a job
+// the caller booked; the Edge Function enforces this guard server-side. Used to
+// email the agent when they get a new job. Best-effort.
+export async function sendEmailToUser(targetUid: string, jobId: string, payload: EmailPayload): Promise<void> {
+  try {
+    const { data: sess } = await supabase.auth.getSession();
+    const token = sess.session?.access_token;
+    if (!token) {
+      // eslint-disable-next-line no-console
+      console.info(`[email → ${targetUid}] ${payload.subject}`);
+      return;
+    }
+    await fetch(EMAIL_FN_URL, {
+      method: "POST",
+      headers: { "content-type": "application/json", apikey: ANON, authorization: `Bearer ${token}` },
+      body: JSON.stringify({ ...payload, target_uid: targetUid, job_id: jobId }),
     });
   } catch {
     /* best-effort: ignore delivery failures */

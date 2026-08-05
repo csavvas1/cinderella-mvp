@@ -322,9 +322,18 @@ export default function Bookings() {
               audience: "agent", kind: "review_new", jobId: reviewFor.jobId,
               title: "New review", body: `You got a ${rating}★ review for ${reviewFor.addressNickname} (${reviewFor.date}).`,
             });
-            // mock email to the cleaner that they were rated
-            sendEmail(`You received a ${rating}★ review`,
-              `${reviewFor.cleanerName}, a customer rated your cleaning at ${reviewFor.addressNickname} ${rating}★.${text ? `\n"${text}"` : ""}`);
+            // branded email that a review was left
+            sendEmail({
+              subject: `You received a ${rating}★ review`,
+              heading: `You received a ${rating}★ review`,
+              intro: `A customer rated your cleaning at ${reviewFor.addressNickname} ${rating}★.`,
+              rows: [
+                { label: "Property", value: reviewFor.addressNickname },
+                { label: "Date", value: reviewFor.date },
+                { label: "Rating", value: `${rating}★` },
+                ...(text ? [{ label: "Comment", value: text }] : []),
+              ],
+            });
             setReviewFor(null);
           }}
         />

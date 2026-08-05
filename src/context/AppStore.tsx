@@ -4,7 +4,7 @@ import { CUSTOMER_DOC_IDS, CLEANER_DOC_IDS, getLegalDoc, SUPPLY_TERMS_VERSION } 
 import { SEED_ADDRESSES, SEED_BOOKINGS, SEED_CARDS, SEED_JOBS, SEED_LISTINGS, SEED_EXTERNAL_BOOKINGS } from "../data/seed";
 import { CLEANERS, agentRowToCleaner, autoAcceptDecision, type PublicAgentRow } from "../data/cleaners";
 import { dispatchDecision, dispatchTimeFor, DEFAULT_LATE_HOURS } from "../data/dispatch";
-import { notifyUser, sendEmailToSelf } from "../lib/notify";
+import { notifyUser, sendEmailToSelf, type EmailPayload } from "../lib/notify";
 import { SEED_THREADS, SEED_MESSAGES, DEFAULT_AUTO_TEMPLATE, renderTemplate } from "../data/messages";
 import type { Cleaner } from "../types";
 import { makeReferralCode } from "../data/referral";
@@ -365,8 +365,9 @@ interface AppState {
   notify: (n: Omit<AppNotification, "id" | "createdAt" | "read">) => void;
   markNotificationsRead: (audience?: NotifAudience) => void;
   clearNotifications: (audience?: NotifAudience) => void;
-  // mock email (logs) — send a confirmation to the current account's email
-  sendEmail: (subject: string, body: string) => void;
+  // branded email to the current account's address (structured payload or legacy
+  // subject+body). Falls back to a console log in dev/demo.
+  sendEmail: (payload: EmailPayload) => void;
   // browser push
   pushEnabled: boolean;
   requestPushPermission: () => Promise<{ granted: boolean; error?: string }>;
@@ -1870,18 +1871,40 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           if (notif) firePush(notif);
           if (bookingCols) dbPatchBooking(job.bookingId, bookingCols);
         }
-        // email the customer when the cleaner responds
+        // branded email to the customer when the cleaner responds
         const who = bk?.cleanerName ?? "Your cleaner";
-        const when = bk ? ` on ${bk.date} at ${bk.time}` : "";
+        const origin = typeof window !== "undefined" ? window.location.origin : "";
+        const bkRows = bk
+          ? [
+              { label: "Cleaner", value: bk.cleanerName },
+              { label: "Where", value: bk.addressNickname },
+              { label: "When", value: `${bk.date} at ${bk.time}` },
+            ]
+          : [];
         if (status === "approved")
-          void sendEmailToSelf("Your cleaning is confirmed",
-            `${who} accepted your cleaning${when}${bk ? ` at ${bk.addressNickname}` : ""}.`);
+          void sendEmailToSelf({
+            subject: "Your cleaning is confirmed",
+            heading: "Your cleaning is confirmed",
+            intro: `${who} accepted your cleaning. You're all set — here are the details:`,
+            rows: bkRows,
+            cta: { label: "View booking", url: `${origin}/bookings` },
+          });
         else if (cleanerCancel)
-          void sendEmailToSelf("Your cleaning was cancelled",
-            `${who} cancelled your cleaning${when}. You can book another cleaner.`);
+          void sendEmailToSelf({
+            subject: "Your cleaning was cancelled",
+            heading: "Your cleaning was cancelled",
+            intro: `${who} had to cancel your cleaning. No charge was made — you can book another cleaner anytime.`,
+            rows: bkRows,
+            cta: { label: "Book another cleaner", url: `${origin}/book` },
+          });
         else if (status === "declined")
-          void sendEmailToSelf("Your booking was declined",
-            `${who} can't take your cleaning${when}. You can book another cleaner.`);
+          void sendEmailToSelf({
+            subject: "Your booking request was declined",
+            heading: "Booking request declined",
+            intro: `${who} can't take your cleaning this time. No charge was made — plenty of other cleaners are available.`,
+            rows: bkRows,
+            cta: { label: "Find another cleaner", url: `${origin}/book` },
+          });
       }
     },
     agentProfile,
@@ -1962,7 +1985,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     unreadCount: (acct.notifications ?? [])
       .filter((n) => n.audience === role && !n.read && !bellHidesForAgent(role, n.kind)).length,
     notify: (n) => pushNotif(makeNotif(n)),
-    sendEmail: (subject, body) => void sendEmailToSelf(subject, body),
+    sendEmail: (payload) => void sendEmailToSelf(payload),
     pushEnabled,
     requestPushPermission: async () => {
       // ask permission, subscribe to Web Push, and persist the subscription so

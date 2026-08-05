@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { CLEANERS, autoAcceptDecision, isWeekend, occurrenceDates, cleanerBadges } from "../../data/cleaners";
 import { priceJob, cleanerCancelRate, monetisationEnabled } from "../../data/platform";
 import { useStore } from "../../context/AppStore";
-import { notifyUser } from "../../lib/notify";
+import { notifyUser, sendEmailToUser } from "../../lib/notify";
 import BackButton from "../../components/BackButton";
 import PaymentPicker from "../../components/PaymentPicker";
 import Avatar from "../../components/Avatar";
@@ -167,18 +167,42 @@ export default function CleanerDetail() {
         ? `Your cleaning with ${cleaner!.name} · ${where} · ${whenTxt} is confirmed.`
         : `Request sent to ${cleaner!.name} for ${where} · ${whenTxt}. You'll be notified when they respond.`,
     });
-    // mock email confirmation to the customer
+    // branded email confirmation to the customer
     const total = newBookings.reduce((s, b) => s + b.total, 0);
-    sendEmail(
-      anyAuto ? "Your Σιντερέλλα booking is confirmed" : "We received your booking request",
-      `${anyAuto ? "Confirmed" : "Requested"}: ${n > 1 ? `${n} cleanings` : "cleaning"} with ${cleaner!.name}.\n` +
-      `Where: ${where}\nWhen: ${whenTxt}\nTotal: €${total.toFixed(2)}`
-    );
-    // mock email to the cleaner that a job was assigned (real app: to their inbox)
-    // eslint-disable-next-line no-console
-    console.info(`[email → ${cleaner!.name} (cleaner)] ${anyAuto ? "New job assigned to you" : "New booking request for you"}\n` +
-      `${userName || "A customer"} ${anyAuto ? "booked" : "requested"} ${n > 1 ? `${n} cleanings` : "a cleaning"} · ${where} · ${whenTxt}.` +
-      `${anyAuto ? " It's on your schedule." : " Accept or decline in the app."}`);
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const custRows = [
+      { label: "Cleaner", value: cleaner!.name },
+      { label: n > 1 ? "Cleanings" : "Service", value: n > 1 ? `${n} cleanings` : "Cleaning" },
+      { label: "Where", value: where },
+      { label: "When", value: whenTxt },
+      { label: "Total", value: `€${total.toFixed(2)}` },
+    ];
+    sendEmail({
+      subject: anyAuto ? "Your booking is confirmed" : "We received your booking request",
+      heading: anyAuto ? "Your cleaning is confirmed" : "Booking request received",
+      greeting: `Hi ${userName || "there"},`,
+      intro: anyAuto
+        ? `Great news — ${cleaner!.name} is booked to clean ${where}. Here are the details:`
+        : `Thanks for your request. We've sent it to ${cleaner!.name} and you'll be notified as soon as they respond. Here are the details:`,
+      rows: custRows,
+      cta: { label: "View booking", url: `${origin}/bookings` },
+      note: anyAuto ? undefined : "You won't be charged until the cleaner accepts.",
+    });
+    // branded email to the AGENT that a new job landed (real send, guarded server-side)
+    if (isRealAgent && cleaner!.id) {
+      void sendEmailToUser(cleaner!.id, first.id, {
+        subject: anyAuto ? "New cleaning job added" : "New booking request",
+        heading: anyAuto ? "You have a new cleaning job" : "New booking request",
+        greeting: `Hi ${cleaner!.name},`,
+        intro: `${userName || "A customer"} ${anyAuto ? "booked" : "requested"} ${n > 1 ? `${n} cleanings` : "a cleaning"}${anyAuto ? " — it's on your schedule." : ". Please accept or decline in the app."}`,
+        rows: [
+          { label: "Customer", value: userName || "A customer" },
+          { label: "Where", value: where },
+          { label: "When", value: whenTxt },
+        ],
+        cta: { label: anyAuto ? "View job" : "Review request", url: `${origin}/jobs` },
+      });
+    }
     // booking placed — drop the in-progress form so a later Book starts fresh
     sessionStorage.removeItem("book-form");
     // if this was a rebook of a cancelled booking, dismiss that cancelled one so
