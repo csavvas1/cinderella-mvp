@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { X } from "lucide-react";
+import { X, Star } from "lucide-react";
 import { useStore } from "../context/AppStore";
 import { cleanerBadges, marketStats } from "../data/cleaners";
 import Avatar from "./Avatar";
@@ -73,7 +73,7 @@ export default function DispatchCleanerPicker({
           <div className="mkt__sep" />
           <div className="mkt__item"><div className="mkt__val">€{stats.typical}</div><div className="mkt__lbl">{stats.typicalLabel.replace(" (median)", "")}</div></div>
           <div className="mkt__sep" />
-          <div className="mkt__item"><div className="mkt__val">★ {stats.avgRating}</div><div className="mkt__lbl">Avg rating</div></div>
+          <div className="mkt__item"><div className="mkt__val"><Star size={14} fill="currentColor" strokeWidth={0} style={{ verticalAlign: "-2px" }} /> {stats.avgRating}</div><div className="mkt__lbl">Avg rating</div></div>
         </div>
 
         {/* sort */}
@@ -109,7 +109,7 @@ export default function DispatchCleanerPicker({
                       title="Favourite">{favourites.includes(c.id) ? "♥" : "♡"}</button>
                   </div>
                   <div className="clcard__meta">
-                    <span className="stars">★ {c.rating.toFixed(1)}</span>
+                    <span className="stars"><Star size={14} fill="currentColor" strokeWidth={0} style={{ verticalAlign: "-2px" }} /> {c.rating.toFixed(1)}</span>
                     <span className="muted tiny">· {c.reviewsCount}</span>
                   </div>
                   <div className="badgerow">

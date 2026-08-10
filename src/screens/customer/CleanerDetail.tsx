@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X } from "lucide-react";
+import { X, Star } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { CLEANERS, autoAcceptDecision, isWeekend, occurrenceDates, cleanerBadges } from "../../data/cleaners";
 import { priceJob, cleanerCancelRate, monetisationEnabled } from "../../data/platform";
@@ -266,7 +266,7 @@ export default function CleanerDetail() {
           </div>
           <div className="tiny muted" style={{ marginTop: 2 }}>{cleaner.nationality}</div>
           <div className="row" style={{ gap: 8, marginTop: 4, flexWrap: "wrap" }}>
-            <span className="stars">★ {cleaner.rating.toFixed(1)}</span>
+            <span className="stars"><Star size={14} fill="currentColor" strokeWidth={0} style={{ verticalAlign: "-2px" }} /> {cleaner.rating.toFixed(1)}</span>
             <span className="tiny muted">· {cleaner.reviewsCount} reviews</span>
             <span className="tiny muted">· {cleaner.jobsDone.toLocaleString()} cleanings</span>
           </div>
@@ -292,7 +292,7 @@ export default function CleanerDetail() {
       <div className="h2" style={{ marginTop: 18 }}>Reviews</div>
       <button className="reviewbar" onClick={() => setShowReviews(true)}>
         <span className="reviewbar__score">
-          <span className="stars" style={{ fontSize: 16 }}>★ {cleaner.rating.toFixed(1)}</span>
+          <span className="stars" style={{ fontSize: 16 }}><Star size={14} fill="currentColor" strokeWidth={0} style={{ verticalAlign: "-2px" }} /> {cleaner.rating.toFixed(1)}</span>
           <span className="tiny muted">{allReviews.length} review{allReviews.length === 1 ? "" : "s"}</span>
         </span>
         <span className="reviewbar__cta">See reviews <span className="reviewbar__chev">›</span></span>
@@ -423,7 +423,7 @@ export default function CleanerDetail() {
               <button className="iconbtn" onClick={() => setShowReviews(false)} aria-label="Close"><X size={16} /></button>
             </div>
             <div className="row" style={{ gap: 8, marginBottom: 10 }}>
-              <span className="stars" style={{ fontSize: 16 }}>★ {cleaner.rating.toFixed(1)}</span>
+              <span className="stars" style={{ fontSize: 16 }}><Star size={14} fill="currentColor" strokeWidth={0} style={{ verticalAlign: "-2px" }} /> {cleaner.rating.toFixed(1)}</span>
               <span className="tiny muted">· {allReviews.length} review{allReviews.length === 1 ? "" : "s"}</span>
             </div>
             <div className="reviewlist">
@@ -434,7 +434,7 @@ export default function CleanerDetail() {
                   <div key={r.id} className="reviewlist__item">
                     <div className="between">
                       <b style={{ fontSize: 14 }}>{r.author}</b>
-                      <span className="stars">★ {r.rating}</span>
+                      <span className="stars"><Star size={14} fill="currentColor" strokeWidth={0} style={{ verticalAlign: "-2px" }} /> {r.rating}</span>
                     </div>
                     <div
                       className={"tiny muted reviewtext" + (isOpen ? "" : " clamp")}

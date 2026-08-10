@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { X } from "lucide-react";
+import { X, Star } from "lucide-react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useStore } from "../../context/AppStore";
@@ -525,7 +525,7 @@ function ReviewModal({ booking, onClose, onSubmit }: {
     <Modal onClose={onClose} title={`Review ${booking.cleanerName}`}>
       <div className="ratestars" style={{ justifyContent: "center", display: "flex", marginBottom: 12 }}>
         {[1, 2, 3, 4, 5].map((n) => (
-          <button key={n} className={"rstar big" + (n <= rating ? " on" : "")} onClick={() => setRating(n)}>★</button>
+          <button key={n} className={"rstar big" + (n <= rating ? " on" : "")} onClick={() => setRating(n)}><Star size={28} fill={n <= rating ? "currentColor" : "none"} /></button>
         ))}
       </div>
       <textarea className="input" rows={4} placeholder="How was the cleaning?" value={text} onChange={(e) => setText(e.target.value)} />
