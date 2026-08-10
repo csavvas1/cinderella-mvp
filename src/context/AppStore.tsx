@@ -1109,29 +1109,29 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   // loaded), but never before MIN_SPLASH_MS has elapsed since it went up. A ref
   // latch guarantees the lift timer is armed at most ONCE per raise, so the exit
   // slide can never fire twice even if deps churn during hydration.
+  // HARD SAFETY CAP — armed ONCE each time the curtain goes up, keyed only on
+  // `splashUp` so churn in the other deps can't clear/re-arm (and thus never
+  // fire) it. No matter what happens with auth or data, the curtain lifts by
+  // MAX_SPLASH_MS. The app renders underneath; late data just fills in.
+  useEffect(() => {
+    if (!splashUp) return;
+    const cap = setTimeout(() => setSplashUp(false), MAX_SPLASH_MS);
+    return () => clearTimeout(cap);
+  }, [splashUp]);
+
+  // Normal lift: once ready (session resolved + signed out, or data loaded),
+  // lift after MIN_SPLASH_MS. Latched so it schedules at most once per raise.
   const liftArmed = useRef(false);
   useEffect(() => {
     if (!splashUp) { liftArmed.current = false; return; } // reset for next raise
     if (liftArmed.current) return;                        // already scheduled
-
-    const elapsed = Date.now() - splashRaisedAt.current;
-
-    // HARD SAFETY CAP: no matter what, the curtain lifts after MAX_SPLASH_MS.
-    // A hung Supabase request (its .then never fires) would otherwise leave
-    // dataReady false forever and trap the user on the loading screen. The app
-    // renders underneath; any data that arrives later just fills in.
-    const capWait = Math.max(0, MAX_SPLASH_MS - elapsed);
-    const cap = setTimeout(() => setSplashUp(false), capWait);
-
     const ready = !authLoading && (!loggedIn || dataReady);
-    if (!ready) {
-      // not ready yet — keep only the safety cap armed; re-run when deps change
-      return () => clearTimeout(cap);
-    }
+    if (!ready) return;
     liftArmed.current = true;
+    const elapsed = Date.now() - splashRaisedAt.current;
     const wait = Math.max(0, MIN_SPLASH_MS - elapsed);
     const t = setTimeout(() => setSplashUp(false), wait);
-    return () => { clearTimeout(t); clearTimeout(cap); };
+    return () => clearTimeout(t);
   }, [splashUp, authLoading, loggedIn, dataReady]);
 
   // Fetch the public agent directory once the user is signed in (RLS on the view
