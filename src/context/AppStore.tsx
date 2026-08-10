@@ -1225,14 +1225,38 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) => {
         const row = payload.new as MessageRow;
         const m = rowToMessage(row, uid);
+        // If this message is for a thread I don't have locally yet (the OTHER
+        // party created the thread), fetch that thread first, then append the
+        // message — otherwise the very first message of a new thread is missed.
         setAccounts((p) => {
           const cur = p[uid];
           if (!cur) return p;
           const threads = cur.messageThreads ?? [];
-          // only act on messages for a thread I already know about
-          if (!threads.some((t) => t.id === row.thread_id)) return p;
+          const known = threads.some((t) => t.id === row.thread_id);
           const msgs = cur.messages ?? [];
           if (msgs.some((x) => x.id === m.id)) return p; // dedupe optimistic send
+
+          if (!known) {
+            // fetch the thread (RLS lets me read it only if I'm a party) and add
+            // it; append the message once it's in. Done outside this updater.
+            supabase.from("message_threads").select("*").eq("id", row.thread_id).maybeSingle()
+              .then(({ data }) => {
+                if (!data) return; // not my thread (RLS) — ignore
+                const t = rowToThread(data as ThreadRow, uid, nameFor);
+                t.lastAt = m.at; t.unread = row.from_user_id !== uid;
+                setAccounts((p2) => {
+                  const cur2 = p2[uid];
+                  if (!cur2) return p2;
+                  const th2 = cur2.messageThreads ?? [];
+                  const ms2 = cur2.messages ?? [];
+                  const threadsNext = th2.some((x) => x.id === t.id) ? th2 : [t, ...th2];
+                  const msgsNext = ms2.some((x) => x.id === m.id) ? ms2 : [...ms2, m];
+                  return { ...p2, [uid]: { ...cur2, messageThreads: threadsNext, messages: msgsNext } };
+                });
+              });
+            return p; // no synchronous change; the async fetch above applies it
+          }
+
           const nextThreads = threads.map((t) =>
             t.id === row.thread_id
               ? { ...t, lastAt: m.at, unread: row.from_user_id !== uid }
