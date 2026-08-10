@@ -547,6 +547,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   //     data has loaded (dataReady), AND
   //   - a minimum on-screen time has elapsed so it never flashes.
   const MIN_SPLASH_MS = 1800;
+  const MAX_SPLASH_MS = 6000; // hard cap — curtain always lifts by now, even if data hangs
   const [splashUp, setSplashUp] = useState<boolean>(true); // covering from cold open
   const [dataReady, setDataReady] = useState<boolean>(false); // agent dir + reviews loaded
   const splashRaisedAt = useRef<number>(Date.now()); // when the curtain last went up
@@ -1112,13 +1113,25 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!splashUp) { liftArmed.current = false; return; } // reset for next raise
     if (liftArmed.current) return;                        // already scheduled
-    const ready = !authLoading && (!loggedIn || dataReady);
-    if (!ready) return;
-    liftArmed.current = true;
+
     const elapsed = Date.now() - splashRaisedAt.current;
+
+    // HARD SAFETY CAP: no matter what, the curtain lifts after MAX_SPLASH_MS.
+    // A hung Supabase request (its .then never fires) would otherwise leave
+    // dataReady false forever and trap the user on the loading screen. The app
+    // renders underneath; any data that arrives later just fills in.
+    const capWait = Math.max(0, MAX_SPLASH_MS - elapsed);
+    const cap = setTimeout(() => setSplashUp(false), capWait);
+
+    const ready = !authLoading && (!loggedIn || dataReady);
+    if (!ready) {
+      // not ready yet — keep only the safety cap armed; re-run when deps change
+      return () => clearTimeout(cap);
+    }
+    liftArmed.current = true;
     const wait = Math.max(0, MIN_SPLASH_MS - elapsed);
     const t = setTimeout(() => setSplashUp(false), wait);
-    return () => clearTimeout(t);
+    return () => { clearTimeout(t); clearTimeout(cap); };
   }, [splashUp, authLoading, loggedIn, dataReady]);
 
   // Fetch the public agent directory once the user is signed in (RLS on the view
@@ -1130,6 +1143,10 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     // error — an error shouldn't trap the user behind the curtain forever).
     let settled = 0;
     const markSettled = () => { if (active && ++settled >= 2) setDataReady(true); };
+    // Safety net: if a Supabase request hangs (its .then never fires), force
+    // both loads "settled" after a few seconds so dataReady still flips and the
+    // curtain lifts. Data that arrives later still updates state normally.
+    const settleTimer = setTimeout(() => { if (active) setDataReady(true); }, 4000);
     supabase.from("public_agents").select("*").then(({ data, error }) => {
       if (!active) return;
       if (error) { /* eslint-disable-next-line no-console */ console.error("public_agents fetch failed:", error.message); markSettled(); return; }
@@ -1155,7 +1172,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       setDbReviews(grouped);
       markSettled();
     });
-    return () => { active = false; };
+    return () => { active = false; clearTimeout(settleTimer); };
   }, [loggedIn, currentKey]);
 
   // Session bootstrap: resolve any existing Supabase session on load, and keep in
