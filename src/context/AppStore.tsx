@@ -13,7 +13,7 @@ import { supabase } from "../lib/supabase";
 import { connectProperty as beds24Connect, disconnectProperty as beds24Disconnect } from "../data/beds24";
 import { registerBiometric, verifyBiometric } from "../lib/webauthn";
 import { enablePush, disablePush, syncExistingSubscription } from "../lib/push";
-import { rowToProfile, profileToRow, rowToAddress, addressToRow, rowToCard, cardToRow, rowToBooking, bookingToRow, rowToJob, jobToRow, rowToNotif, notifToRow, rowToListing, listingToRow, rowToExternalBooking, externalBookingToRow, rowToReview, reviewToRow, type ProfileFields, type UsersRow, type AddressRow, type CardRow, type BookingRow, type JobRow, type NotifRow, type ListingRow, type ExternalBookingRow, type ReviewRow } from "../lib/profile";
+import { rowToProfile, profileToRow, rowToAddress, addressToRow, rowToCard, cardToRow, rowToBooking, bookingToRow, rowToJob, jobToRow, rowToNotif, notifToRow, rowToListing, listingToRow, rowToExternalBooking, externalBookingToRow, rowToReview, reviewToRow, rowToThread, rowToMessage, type ProfileFields, type UsersRow, type AddressRow, type CardRow, type BookingRow, type JobRow, type NotifRow, type ListingRow, type ExternalBookingRow, type ReviewRow, type ThreadRow, type MessageRow } from "../lib/profile";
 
 export interface AgentProfile {
   rateWeekday: number;
@@ -271,6 +271,9 @@ interface AppState {
   addMessage: (threadId: string, m: ChatMessage) => void;
   markThreadRead: (threadId: string) => void;
   ensureThread: (t: ChatThread) => string;
+  // Create (or reuse) a real Supabase-backed customer<->cleaner thread. Returns
+  // the thread id, or null for demo/guest users or when no cleaner is given.
+  createThread: (customerUid: string, cleanerUid: string, jobId: string | undefined, subject: string) => Promise<string | null>;
   setAutoMessageTemplate: (tpl: string) => void;
   connectedListings: ConnectedListing[];
   externalBookings: ExternalBooking[];
@@ -1175,6 +1178,73 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     return () => { active = false; clearTimeout(settleTimer); };
   }, [loggedIn, currentKey]);
 
+  // Resolve a user id -> display name for the messaging list: real agent
+  // directory first, then the signed-in user's own name, else "".
+  function nameFor(uid: string): string {
+    const c = realCleaners.find((x) => x.id === uid);
+    if (c) return c.name;
+    if (uid === currentKey) return acct.name || "";
+    return "";
+  }
+
+  // ---- messaging: load my threads + messages on login (real users only) ----
+  // RLS scopes both selects to threads I'm a party to. This REPLACES local
+  // threads/messages for real users so no stale seed leaks in.
+  useEffect(() => {
+    if (!isRealUser || !currentKey) return;
+    let active = true;
+    const uid = currentKey;
+    Promise.all([
+      supabase.from("message_threads").select("*"),
+      supabase.from("messages").select("*"),
+    ]).then(([tRes, mRes]) => {
+      if (!active) return;
+      if (tRes.error) { /* eslint-disable-next-line no-console */ console.error("message_threads fetch failed:", tRes.error.message); return; }
+      if (mRes.error) { /* eslint-disable-next-line no-console */ console.error("messages fetch failed:", mRes.error.message); return; }
+      const msgRows = (mRes.data as MessageRow[]) ?? [];
+      const msgs = msgRows.map((r) => rowToMessage(r, uid)).sort((a, b) => a.at - b.at);
+      const threads = ((tRes.data as ThreadRow[]) ?? [])
+        .map((r) => {
+          const t = rowToThread(r, uid, nameFor);
+          t.unread = msgRows.some((mr) => mr.thread_id === r.id && mr.from_user_id !== uid && mr.read === false);
+          return t;
+        })
+        .sort((a, b) => b.lastAt - a.lastAt);
+      setAccounts((p) => (p[uid] ? { ...p, [uid]: { ...p[uid], messageThreads: threads, messages: msgs } } : p));
+    });
+    return () => { active = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loggedIn, currentKey]);
+
+  // ---- messaging realtime: append incoming messages for my threads ----
+  useEffect(() => {
+    if (!isRealUser || !currentKey) return;
+    const uid = currentKey;
+    const ch = supabase
+      .channel("msg-" + uid)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) => {
+        const row = payload.new as MessageRow;
+        const m = rowToMessage(row, uid);
+        setAccounts((p) => {
+          const cur = p[uid];
+          if (!cur) return p;
+          const threads = cur.messageThreads ?? [];
+          // only act on messages for a thread I already know about
+          if (!threads.some((t) => t.id === row.thread_id)) return p;
+          const msgs = cur.messages ?? [];
+          if (msgs.some((x) => x.id === m.id)) return p; // dedupe optimistic send
+          const nextThreads = threads.map((t) =>
+            t.id === row.thread_id
+              ? { ...t, lastAt: m.at, unread: row.from_user_id !== uid }
+              : t);
+          return { ...p, [uid]: { ...cur, messages: [...msgs, m], messageThreads: nextThreads } };
+        });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loggedIn, currentKey]);
+
   // Session bootstrap: resolve any existing Supabase session on load, and keep in
   // sync with auth changes. The demo account (currentKey === DEMO_EMAIL) is local
   // and must survive an initial "no session" result, so we don't clobber it.
@@ -1400,10 +1470,54 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     autoMessageTemplate: acct.autoMessageTemplate ?? "",
     unreadMessages: (acct.messageThreads ?? []).filter((t) => t.unread).length,
     addMessage: (threadId, m) => {
-      patchAcct({
-        messages: [...(acct.messages ?? []), m],
-        messageThreads: (acct.messageThreads ?? []).map((t) =>
-          t.id === threadId ? { ...t, lastAt: m.at, unread: m.from === "guest" } : t),
+      // DEMO: keep the old local-only behaviour (no DB, no push).
+      if (!isRealUser || !currentKey) {
+        patchAcct({
+          messages: [...(acct.messages ?? []), m],
+          messageThreads: (acct.messageThreads ?? []).map((t) =>
+            t.id === threadId ? { ...t, lastAt: m.at, unread: m.from === "guest" } : t),
+        });
+        return;
+      }
+      const uid = currentKey;
+      // Optimistic append (my own send => unread stays false). Functional read so
+      // it composes with realtime / other in-flight writes.
+      let otherPartyUid: string | undefined;
+      setAccounts((p) => {
+        const cur = p[uid];
+        if (!cur) return p;
+        const thread = (cur.messageThreads ?? []).find((t) => t.id === threadId);
+        if (thread) {
+          otherPartyUid = [thread.customerId, thread.cleanerUid].find((x) => x && x !== uid) ?? undefined;
+        }
+        const msgs = cur.messages ?? [];
+        if (msgs.some((x) => x.id === m.id)) return p; // dedupe
+        return {
+          ...p,
+          [uid]: {
+            ...cur,
+            messages: [...msgs, m],
+            messageThreads: (cur.messageThreads ?? []).map((t) =>
+              t.id === threadId ? { ...t, lastAt: m.at } : t),
+          },
+        };
+      });
+      // Persist the message + bump the thread's last_message_at.
+      supabase.from("messages").insert({ id: m.id, thread_id: threadId, from_user_id: uid, body: m.body }).then(({ error }) => {
+        if (error) { /* eslint-disable-next-line no-console */ console.error("message insert failed:", error.message); return; }
+        // Notify the other party once the message lands.
+        if (otherPartyUid) {
+          const preview = m.body.length > 60 ? m.body.slice(0, 60) + "…" : m.body;
+          const audience: NotifAudience = otherPartyUid === (acct.messageThreads ?? []).find((t) => t.id === threadId)?.cleanerUid ? "agent" : "customer";
+          void notifyUser(otherPartyUid, {
+            id: crypto.randomUUID(), audience, kind: "message",
+            title: "New message", body: preview, read: false, createdAt: Date.now(),
+          });
+        }
+      });
+      supabase.from("message_threads").update({ last_message_at: new Date(m.at).toISOString() }).eq("id", threadId).then(({ error }) => {
+        // eslint-disable-next-line no-console
+        if (error) console.error("thread bump failed:", error.message);
       });
     },
     markThreadRead: (threadId) => {
@@ -1411,12 +1525,40 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         messageThreads: (acct.messageThreads ?? []).map((t) =>
           t.id === threadId ? { ...t, unread: false } : t),
       });
+      if (isRealUser && currentKey) {
+        supabase.from("messages").update({ read: true }).eq("thread_id", threadId).neq("from_user_id", currentKey).then(({ error }) => {
+          // eslint-disable-next-line no-console
+          if (error) console.error("mark thread read failed:", error.message);
+        });
+      }
     },
     ensureThread: (t) => {
       const existing = (acct.messageThreads ?? []).find((x) => x.id === t.id);
       if (existing) return existing.id;
       patchAcct({ messageThreads: [t, ...(acct.messageThreads ?? [])] });
       return t.id;
+    },
+    createThread: async (customerUid, cleanerUid, jobId, subject) => {
+      if (!isRealUser || !currentKey || !customerUid || !cleanerUid) return null;
+      const uid = currentKey;
+      const { data, error } = await supabase
+        .from("message_threads")
+        .upsert(
+          { customer_id: customerUid, cleaner_id: cleanerUid, job_id: jobId ?? null, subject },
+          { onConflict: "customer_id,cleaner_id,job_id" },
+        )
+        .select()
+        .single();
+      if (error || !data) { /* eslint-disable-next-line no-console */ if (error) console.error("createThread failed:", error.message); return null; }
+      const thread = rowToThread(data as ThreadRow, uid, nameFor);
+      setAccounts((p) => {
+        const cur = p[uid];
+        if (!cur) return p;
+        const threads = cur.messageThreads ?? [];
+        if (threads.some((t) => t.id === thread.id)) return p;
+        return { ...p, [uid]: { ...cur, messageThreads: [thread, ...threads] } };
+      });
+      return thread.id;
     },
     setAutoMessageTemplate: (tpl) => { patchAcct({ autoMessageTemplate: tpl }); writeProfile({ autoMessageTemplate: tpl }); },
     connectedListings: acct.connectedListings ?? [],

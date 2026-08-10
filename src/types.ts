@@ -103,6 +103,7 @@ export interface ChatMessage {
   id: string;
   threadId: string;
   from: "guest" | "host";
+  senderUid?: string;      // real cleaner-chat messages: the author's user id (drives "mine" bubble side)
   title?: string;          // e.g. "Booking Confirmation", "Pre-Arrival — 2 Days Before"
   body: string;
   at: number;              // epoch ms
@@ -116,10 +117,14 @@ export interface ChatMessage {
 export interface ChatThread {
   id: string;
   kind: "guest" | "cleaner";
-  guest: string;           // guest name, or cleaner name for kind==="cleaner"
+  guest: string;           // guest name, or the COUNTERPARTY's name for kind==="cleaner"
   property: string;
   reservationId?: string;
   cleanerId?: string;      // set for kind==="cleaner"
+  // real cleaner<->customer threads (Supabase-backed):
+  customerId?: string;     // customer user id (party A)
+  cleanerUid?: string;     // cleaner/agent user id (party B)
+  jobId?: string;          // job context this thread belongs to
   platform: ListingPlatform;
   subject: string;         // sub-line in the list ("Day of Arrival — Welcome Email")
   dateRange: string;       // "18 Jul - 24 Jul"
@@ -303,7 +308,8 @@ export type NotifKind =
   | "job_completed"      // customer: cleaner marked the job done
   | "review_new"         // agent: customer left a review
   | "tip_new"            // agent: customer tipped
-  | "property_shared";   // customer: a partner shared a property with you
+  | "property_shared"    // customer: a partner shared a property with you
+  | "message";           // both: a new chat message from the other party
 
 // ---- legal consent proof ----
 // One acceptance record per legal document the user agreed to. Stores the exact

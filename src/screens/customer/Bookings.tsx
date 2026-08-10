@@ -50,7 +50,7 @@ function statusBadge(s: string) {
 export default function Bookings() {
   const { bookings, addresses, cancelBooking, addReview, updateBooking, updateSeries, cancelSeries,
     externalBookings, connectedListings, notify, sendEmail, openAccount, dismissBooking, addManualStay, removeExternalBooking,
-    setBookingLate, assignDispatchCleaner,
+    setBookingLate, assignDispatchCleaner, jobs, createThread, myUid,
     } = useStore();
   const [manualOpen, setManualOpen] = useState(false);
   const [editManual, setEditManual] = useState<import("../../types").ExternalBooking | null>(null);
@@ -255,7 +255,17 @@ export default function Bookings() {
                 bookings={visible}
                 cancelledBookings={cancelledList}
                 onEdit={(b) => setEditFor(b)}
-                onMessage={() => nav("/messages")}
+                onMessage={async (b) => {
+                  // resolve the booking's real agent via its linked job; only
+                  // real (non-mock) cleaners have a chat thread.
+                  const job = jobs.find((j) => j.id === b.jobId || j.bookingId === b.id);
+                  const cleanerUid = job?.cleanerUid;
+                  if (myUid && cleanerUid) {
+                    const tid = await createThread(myUid, cleanerUid, job?.id, `Cleaning · ${b.date}`);
+                    if (tid) { nav("/messages?thread=" + tid); return; }
+                  }
+                  nav("/messages");
+                }}
                 onReview={(b) => setReviewFor(b)}
                 onRefund={(b) => setRefundFor(b)}
                 onTip={(b) => setTipFor(b)}

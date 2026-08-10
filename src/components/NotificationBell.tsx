@@ -41,6 +41,8 @@ function KindIcon({ kind }: { kind: string }) {
       return svg(p("M20.8 8.6a5 5 0 0 0-8.8-3 5 5 0 0 0-8.8 3c0 4.5 8.8 9.7 8.8 9.7s8.8-5.2 8.8-9.7Z")); // heart
     case "property_shared":
       return svg(<>{p("M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM16.5 11a2.5 2.5 0 1 0 0-5")}{p("M3 20c0-2.5 2.7-4 6-4s6 1.5 6 4M17 16c2.3.3 4 1.6 4 4")}</>); // people
+    case "message":
+      return svg(p("M21 11.5a8.5 8.5 0 0 1-12.3 7.6L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5Z")); // chat bubble
     case "booking_new":
     default:
       return svg(<>{p("M3 4.5h18v16H3Z")}{p("M8 2.5v4M16 2.5v4M3 9h18")}</>); // calendar

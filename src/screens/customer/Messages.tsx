@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { X } from "lucide-react";
+import { X, ChevronRight } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import BackButton from "../../components/BackButton";
 import PlatformIcon from "../../components/PlatformIcon";
@@ -81,7 +81,7 @@ function ThreadList({ onOpen }: { onOpen: (id: string) => void }) {
 }
 
 function Thread({ thread }: { thread: ChatThread }) {
-  const { messages, addMessage } = useStore();
+  const { messages, addMessage, myUid } = useStore();
   const msgs = useMemo(
     () => messages.filter((m) => m.threadId === thread.id).sort((a, b) => a.at - b.at),
     [messages, thread.id]
@@ -92,12 +92,14 @@ function Thread({ thread }: { thread: ChatThread }) {
   function send(text: string) {
     const body = text.trim();
     if (!body) return;
-    addMessage(thread.id, { id: crypto.randomUUID(), threadId: thread.id, from: "host", body, at: Date.now(), channel: thread.kind === "cleaner" ? "airbnb" : "email" });
+    addMessage(thread.id, { id: crypto.randomUUID(), threadId: thread.id, from: "host", senderUid: myUid ?? undefined, body, at: Date.now(), channel: thread.kind === "cleaner" ? "airbnb" : "email" });
     setDraft(""); setShowQuick(false);
   }
-  function generateAI() {
-    addMessage(thread.id, { id: crypto.randomUUID(), threadId: thread.id, from: "host", body: "Hi " + thread.guest.split(" ")[0] + ",\n\nThanks for your message — happy to help! Let me know if there's anything else you need.\n\nWarm regards,\nThe Cinderella Team", at: Date.now(), channel: "email", aiReply: true });
-  }
+
+  // For a real cleaner<->customer thread, "mine" is decided by the author uid so
+  // both sides see their own messages on the right. Falls back to from==="host"
+  // for the seeded/guest threads which have no senderUid.
+  const isMine = (m: ChatMessage) => (m.senderUid ? m.senderUid === myUid : m.from === "host");
 
   let lastDay = "";
   return (
@@ -117,7 +119,7 @@ function Thread({ thread }: { thread: ChatThread }) {
           return (
             <div key={m.id}>
               {sep && <div className="msgdaysep">{day}</div>}
-              <div className={"bubble " + (m.from === "host" ? "me" : "them")}>
+              <div className={"bubble " + (isMine(m) ? "me" : "them")}>
                 {m.title && <b style={{ display: "block", marginBottom: 4 }}>{m.title}</b>}
                 <span style={{ whiteSpace: "pre-wrap" }}>{m.body}</span>
                 <div className="bubble__t">{timeLabel(m.at)}</div>
@@ -146,7 +148,6 @@ function Thread({ thread }: { thread: ChatThread }) {
       </div>
       <div className="row" style={{ gap: 16, marginTop: 8 }}>
         <button className="linkbtn" onClick={() => setShowQuick((v) => !v)}>Quick replies</button>
-        <button className="linkbtn" onClick={generateAI}>✨ Generate with AI</button>
       </div>
     </>
   );
@@ -189,7 +190,7 @@ function AutomationModal({ onClose }: { onClose: () => void }) {
               <b style={{ fontSize: 14 }}>{t}</b>
               <div className="tiny muted">{d}</div>
             </div>
-            <span className="dayrow__chev">›</span>
+            <span className="dayrow__chev"><ChevronRight size={16} /></span>
           </button>
         ))}
       </div>

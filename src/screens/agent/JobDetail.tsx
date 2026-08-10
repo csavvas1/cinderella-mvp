@@ -9,7 +9,7 @@ import { ArrowRight } from "lucide-react";
 export default function JobDetail() {
   const { id } = useParams();
   const nav = useNavigate();
-  const { jobs, setJobStatus, saveJobPhotos, acknowledgeJob, markJobSeen, myUid } = useStore();
+  const { jobs, setJobStatus, saveJobPhotos, acknowledgeJob, markJobSeen, myUid, createThread } = useStore();
   // agent side: only surface a job assigned to THIS user as the cleaner. A
   // deep-link to a job the user merely booked as a customer must not open here.
   const j = jobs.find((x) => x.id === id && x.cleanerUid === myUid);
@@ -69,6 +69,17 @@ export default function JobDetail() {
           {j.status === "modified" ? "Modified" : j.status}
         </span>
       </div>
+
+      {/* Message the customer — only when both sides are real accounts */}
+      {j.customerUid && j.cleanerUid && (
+        <button className="btn secondary sm" style={{ marginTop: 8, marginBottom: 4 }}
+          onClick={async () => {
+            const tid = await createThread(j.customerUid!, j.cleanerUid!, j.id, `Cleaning · ${j.date}`);
+            if (tid) nav("/messages?thread=" + tid);
+          }}>
+          Message customer
+        </button>
+      )}
 
       {j.status === "modified" && (
         <div className="card jd__card" style={{ borderLeft: "3px solid var(--indigo)" }}>

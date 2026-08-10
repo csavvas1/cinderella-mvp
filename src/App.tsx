@@ -292,6 +292,9 @@ function Shell() {
                 <Route path="/reviews/:id" element={<AllReviews />} />
                 <Route path="/confirmed/:id" element={<Confirmed />} />
                 <Route path="/agent/job/:id" element={<JobDetail />} />
+                {/* Messages is a customer swipe-tab, but agents reach a specific
+                    thread via this standalone route (e.g. from a JobDetail). */}
+                <Route path="/messages" element={<Messages />} />
                 <Route path="*" element={<Navigate to="/book" replace />} />
               </Routes>
             </div>

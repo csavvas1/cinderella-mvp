@@ -1,5 +1,5 @@
 import type { AgentProfile } from "../context/AppStore";
-import type { AppNotification, Booking, Card, ConnectedListing, CustomerReputation, ExternalBooking, Job, ListingPlatform, NotifAudience, NotifKind, PropertyAddress, Recurrence, Review } from "../types";
+import type { AppNotification, Booking, Card, ChatMessage, ChatThread, ConnectedListing, CustomerReputation, ExternalBooking, Job, ListingPlatform, NotifAudience, NotifKind, PropertyAddress, Recurrence, Review } from "../types";
 
 // ---- reviews: Review <-> public.reviews row ---------------------------------
 export interface ReviewRow {
@@ -111,6 +111,63 @@ export function notifToRow(n: AppNotification): Record<string, unknown> {
     job_id: n.jobId ?? null,
     created_at: new Date(n.createdAt).toISOString(),
   };
+}
+
+// ---- messaging: rows <-> ChatThread / ChatMessage ---------------------------
+export interface ThreadRow {
+  id: string;
+  customer_id: string;
+  cleaner_id: string;       // NOTE: this is the cleaner's USER id (agent uid)
+  job_id: string | null;
+  subject: string;
+  last_message_at: string;
+  created_at: string;
+}
+export interface MessageRow {
+  id: string;
+  thread_id: string;
+  from_user_id: string;
+  body: string;
+  read: boolean;
+  created_at: string;
+}
+
+// A thread row -> ChatThread. `viewerUid` is the signed-in user; `nameFor`
+// resolves the OTHER party's display name so the list shows who you're talking to.
+export function rowToThread(r: ThreadRow, viewerUid: string, nameFor: (uid: string) => string): ChatThread {
+  const otherUid = r.customer_id === viewerUid ? r.cleaner_id : r.customer_id;
+  return {
+    id: r.id,
+    kind: "cleaner",
+    guest: nameFor(otherUid) || "Cleaning chat",
+    property: "",
+    cleanerId: r.cleaner_id,
+    customerId: r.customer_id,
+    cleanerUid: r.cleaner_id,
+    jobId: r.job_id ?? undefined,
+    platform: "airbnb" as ListingPlatform, // unused for cleaner threads; satisfies the type
+    subject: r.subject || "",
+    dateRange: "",
+    lastAt: new Date(r.last_message_at).getTime(),
+    unread: false, // computed from unread messages after load
+  };
+}
+
+export function rowToMessage(r: MessageRow, viewerUid: string): ChatMessage {
+  return {
+    id: r.id,
+    threadId: r.thread_id,
+    from: r.from_user_id === viewerUid ? "host" : "guest",
+    senderUid: r.from_user_id,
+    body: r.body,
+    at: new Date(r.created_at).getTime(),
+    channel: "airbnb", // cleaner chat has no email/OTA channel; value unused for these bubbles
+  };
+}
+
+// ChatMessage -> messages row (thread_id + from_user_id set by caller on insert).
+export function messageToRow(m: ChatMessage): Record<string, unknown> {
+  return { id: m.id, body: m.body };
 }
 
 // ---- bookings: Booking <-> public.bookings row ------------------------------
