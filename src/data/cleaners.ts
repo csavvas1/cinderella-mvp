@@ -527,7 +527,7 @@ export function cleanerBadges(c: Cleaner): { label: string; cls: string }[] {
   // Verified is a hard requirement to work on the platform, so it carries no
   // signal in the list — omitted. Reliability lives on the detail page as a
   // plain cancellation-rate figure, not a badge.
-  if (c.rating >= 4.8) out.push({ label: "★ Top rated", cls: "amber" });
+  if (c.rating >= 4.8) out.push({ label: "Top rated", cls: "amber" });
   if (c.reviewsCount >= 100) out.push({ label: "100+ jobs", cls: "sky" });
   return out;
 }

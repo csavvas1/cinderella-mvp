@@ -3,6 +3,8 @@
 // Accepts any platform id string (the connect sheet uses a wider set than the
 // ListingPlatform union), so the prop is a plain string.
 
+import { Globe } from "lucide-react";
+
 type Brand = { bg: string; fg: string; letter: string; mark?: (c: string) => React.ReactNode };
 
 // simplified, on-brand glyphs (single-colour, drawn in the tile's fg colour)
@@ -74,7 +76,7 @@ const BRANDS: Record<string, Brand> = {
       </svg>
     ),
   },
-  other: { bg: "#8a8f9c", fg: "#fff", letter: "•" },
+  other: { bg: "#8a8f9c", fg: "#fff", letter: "", mark: () => <Globe size={14} /> },
 };
 
 export default function PlatformIcon({ platform, size = 18 }: { platform: string; size?: number }) {
