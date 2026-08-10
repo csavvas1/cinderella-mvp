@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { X, ChevronRight } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import BackButton from "../../components/BackButton";
@@ -31,49 +32,60 @@ export default function Messages() {
 
   function open(id: string) { markThreadRead(id); setOpenId(id); }
 
-  // An open thread renders its own sticky header (back + name + property) and a
-  // full-height chat column, so it does NOT use the .pad wrapper — the header
-  // must pin to the top without needing to scroll up to reach the back button.
-  if (openThread) return <Thread thread={openThread} onBack={() => setOpenId(null)} />;
-
   return (
     <div className="pad">
-      <div className="between" style={{ marginBottom: 10 }}>
-        <BackButton />
-      </div>
       <ThreadList onOpen={open} />
+      {/* Open chat is a full-screen overlay rendered into the phone frame, so it
+          escapes the tab pager / pull-to-refresh height chain — the header pins,
+          only messages scroll, composer sits at the very bottom. */}
+      {openThread && <Thread thread={openThread} onBack={() => setOpenId(null)} />}
     </div>
   );
 }
 
 function ThreadList({ onOpen }: { onOpen: (id: string) => void }) {
-  const { messageThreads, pro } = useStore();
+  const { messageThreads, pro, myUid, nameForUid, jobs } = useStore();
   const [q, setQ] = useState("");
   const [autoOpen, setAutoOpen] = useState(false);
+  // live name for a thread's counterparty (not the frozen guest field)
+  const nameOf = (t: ChatThread) => {
+    const other = t.customerId && t.cleanerUid
+      ? (t.customerId === myUid ? t.cleanerUid : t.customerId) : undefined;
+    return (other && nameForUid(other)) || t.guest || "Chat";
+  };
+  const propOf = (t: ChatThread) => {
+    const job = t.jobId ? jobs.find((j) => j.id === t.jobId) : undefined;
+    return job?.address || t.property || "";
+  };
   const list = useMemo(
     () => [...messageThreads]
-      .filter((t) => (t.guest + t.subject + t.property).toLowerCase().includes(q.toLowerCase()))
+      .filter((t) => (nameOf(t) + t.subject + propOf(t)).toLowerCase().includes(q.toLowerCase()))
       .sort((a, b) => b.lastAt - a.lastAt),
-    [messageThreads, q]
+    [messageThreads, q, jobs] // eslint-disable-line react-hooks/exhaustive-deps
   );
+  // search only surfaces once there are enough threads to warrant it
+  const showSearch = messageThreads.length > 6;
   return (
     <>
-      <div className="between" style={{ marginBottom: 10 }}>
-        <h1 className="h1" style={{ margin: 0 }}>Messages</h1>
-        {pro && <button className="btn sm secondary" onClick={() => setAutoOpen(true)}>+ Automation</button>}
-      </div>
-      <input className="input" placeholder="Search" value={q} onChange={(e) => setQ(e.target.value)} style={{ marginBottom: 10 }} />
+      {pro && (
+        <div className="between" style={{ marginBottom: 8 }}>
+          <span />
+          <button className="btn sm secondary" onClick={() => setAutoOpen(true)}>+ Automation</button>
+        </div>
+      )}
+      {showSearch && (
+        <input className="input" placeholder="Search messages" value={q} onChange={(e) => setQ(e.target.value)} style={{ marginBottom: 10 }} />
+      )}
       {list.length === 0 && <div className="note">No messages yet.</div>}
       {list.map((t) => (
         <button key={t.id} className="threadrow" onClick={() => onOpen(t.id)}>
           <span className="threadrow__av"><ThreadAvatar t={t} /></span>
           <div className="grow" style={{ minWidth: 0 }}>
             <div className="between">
-              <b style={{ fontSize: 14 }}>{t.guest}</b>
+              <b style={{ fontSize: 14 }}>{nameOf(t)}</b>
               <span className="tiny muted">{new Date(t.lastAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</span>
             </div>
-            <div className="tiny muted" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t.subject}</div>
-            {t.dateRange && <div className="tiny muted">{t.dateRange}</div>}
+            {propOf(t) && <div className="tiny muted" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{propOf(t)}</div>}
           </div>
           {t.unread && <span className="threadrow__dot" />}
         </button>
@@ -118,10 +130,13 @@ function Thread({ thread, onBack }: { thread: ChatThread; onBack: () => void }) 
   // "mine" by author uid so both sides see their own on the right (Messenger).
   const isMine = (m: ChatMessage) => (m.senderUid ? m.senderUid === myUid : m.from === "host");
 
+  const host = (typeof document !== "undefined" && document.querySelector(".phone")) || (typeof document !== "undefined" ? document.body : null);
+  if (!host) return null;
+
   let lastDay = "";
-  return (
+  const view = (
     <div className="chatview">
-      {/* sticky header — always reachable without scrolling */}
+      {/* fixed header — never scrolls */}
       <div className="chathead">
         <button className="chathead__back" onClick={onBack} aria-label="Back">
           <svg viewBox="0 0 24 24" width="20" height="20"><path d="M15 4 L7 12 L15 20" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
@@ -134,16 +149,28 @@ function Thread({ thread, onBack }: { thread: ChatThread; onBack: () => void }) 
       </div>
 
       <div className="chatscroll chatview__scroll" ref={scrollRef}>
-        {msgs.map((m) => {
+        {msgs.map((m, i) => {
           const day = dayLabel(m.at);
           const sep = day !== lastDay; lastDay = day;
+          const mine = isMine(m);
+          // group: show the counterparty avatar only on the LAST bubble of a run
+          // of their messages (Messenger style), keep alignment otherwise.
+          const next = msgs[i + 1];
+          const lastOfRun = !next || isMine(next) !== mine || dayLabel(next.at) !== day;
           return (
             <div key={m.id}>
               {sep && <div className="msgdaysep">{day}</div>}
-              <div className={"bubble " + (isMine(m) ? "me" : "them")}>
-                {m.title && <b style={{ display: "block", marginBottom: 4 }}>{m.title}</b>}
-                <span style={{ whiteSpace: "pre-wrap" }}>{m.body}</span>
-                <div className="bubble__t">{timeLabel(m.at)}</div>
+              <div className={"msgrow " + (mine ? "msgrow--me" : "msgrow--them")}>
+                {!mine && (
+                  <span className="msgrow__av">
+                    {lastOfRun ? <ThreadAvatar t={thread} size={26} /> : null}
+                  </span>
+                )}
+                <div className={"bubble " + (mine ? "me" : "them")}>
+                  {m.title && <b style={{ display: "block", marginBottom: 4 }}>{m.title}</b>}
+                  <span style={{ whiteSpace: "pre-wrap" }}>{m.body}</span>
+                  <div className="bubble__t">{timeLabel(m.at)}</div>
+                </div>
               </div>
             </div>
           );
@@ -175,6 +202,7 @@ function Thread({ thread, onBack }: { thread: ChatThread; onBack: () => void }) 
       )}
     </div>
   );
+  return createPortal(view, host);
 }
 
 function AutomationModal({ onClose }: { onClose: () => void }) {
