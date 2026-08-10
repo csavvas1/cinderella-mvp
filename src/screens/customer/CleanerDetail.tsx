@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, Star, Check, Circle } from "lucide-react";
+import { X, Star, Check, Circle, Heart } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { CLEANERS, autoAcceptDecision, isWeekend, occurrenceDates, cleanerBadges } from "../../data/cleaners";
 import { priceJob, cleanerCancelRate, monetisationEnabled } from "../../data/platform";
@@ -262,7 +262,7 @@ export default function CleanerDetail() {
           <div className="between">
             <div style={{ fontWeight: 900, fontSize: 19 }}>{cleaner.name}</div>
             <button className={"heart" + (favourites.includes(cleaner.id) ? " on" : "")} style={{ fontSize: 22 }}
-              onClick={() => toggleFavourite(cleaner.id)}>{favourites.includes(cleaner.id) ? "♥" : "♡"}</button>
+              onClick={() => toggleFavourite(cleaner.id)}>{favourites.includes(cleaner.id) ? <Heart size={18} fill="currentColor" /> : <Heart size={18} />}</button>
           </div>
           <div className="tiny muted" style={{ marginTop: 2 }}>{cleaner.nationality}</div>
           <div className="row" style={{ gap: 8, marginTop: 4, flexWrap: "wrap" }}>

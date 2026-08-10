@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Star } from "lucide-react";
+import { Star, Heart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { marketStats, isCleanerFree, availabilityStatus, occurrenceDates, isWeekend, cleanerBadges } from "../../data/cleaners";
 import type { Cleaner } from "../../types";
@@ -13,7 +13,7 @@ const SORTS: { key: Sort; label: string }[] = [
   { key: "rating", label: "Top rated" },
   { key: "price", label: "Cheapest" },
   { key: "reviews", label: "Most reviewed" },
-  { key: "favourites", label: "♥ Favourites" },
+  { key: "favourites", label: "Favourites" },
 ];
 
 const PAGE = 15;
@@ -236,7 +236,7 @@ export default function CleanerList() {
                     className={"heart" + (favourites.includes(c.id) ? " on" : "")}
                     onClick={(e) => { e.stopPropagation(); toggleFavourite(c.id); }}
                     title="Favourite"
-                  >{favourites.includes(c.id) ? "♥" : "♡"}</button>
+                  >{favourites.includes(c.id) ? <Heart size={18} fill="currentColor" /> : <Heart size={18} />}</button>
                 </div>
                 <div className="clcard__meta">
                   <span className="stars"><Star size={14} fill="currentColor" strokeWidth={0} style={{ verticalAlign: "-2px" }} /> {c.rating.toFixed(1)}</span>
@@ -293,7 +293,7 @@ function FavouritesView({
   if (total === 0) {
     return (
       <div className="empty" style={{ padding: "40px 16px" }}>
-        <div className="big">♡</div>
+        <div className="big"><Heart size={40} /></div>
         No favourites yet. Tap the heart on any cleaner to save them here.
       </div>
     );
@@ -318,7 +318,7 @@ function FavouritesView({
                     className={"heart" + (favourites.includes(c.id) ? " on" : "")}
                     onClick={(e) => { e.stopPropagation(); toggleFavourite(c.id); }}
                     title="Favourite"
-                  >{favourites.includes(c.id) ? "♥" : "♡"}</button>
+                  >{favourites.includes(c.id) ? <Heart size={18} fill="currentColor" /> : <Heart size={18} />}</button>
                 </div>
                 <div className="clcard__meta">
                   <span className="stars"><Star size={14} fill="currentColor" strokeWidth={0} style={{ verticalAlign: "-2px" }} /> {c.rating.toFixed(1)}</span>
@@ -361,7 +361,7 @@ function FavouritesView({
                     className={"heart" + (favourites.includes(c.id) ? " on" : "")}
                     onClick={(e) => { e.stopPropagation(); toggleFavourite(c.id); }}
                     title="Favourite"
-                  >{favourites.includes(c.id) ? "♥" : "♡"}</button>
+                  >{favourites.includes(c.id) ? <Heart size={18} fill="currentColor" /> : <Heart size={18} />}</button>
                 </div>
                 <div className="clcard__meta">
                   <span className="stars"><Star size={14} fill="currentColor" strokeWidth={0} style={{ verticalAlign: "-2px" }} /> {c.rating.toFixed(1)}</span>

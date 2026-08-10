@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { X, Star, Check, Plus } from "lucide-react";
+import { X, Star, Check, Plus, Heart } from "lucide-react";
 import { useStore } from "../context/AppStore";
 import { cleanerBadges, marketStats } from "../data/cleaners";
 import Avatar from "./Avatar";
@@ -17,7 +17,7 @@ const SORTS: { key: Sort; label: string }[] = [
   { key: "rating", label: "Top rated" },
   { key: "price", label: "Cheapest" },
   { key: "reviews", label: "Most reviewed" },
-  { key: "favourites", label: "♥ Favourites" },
+  { key: "favourites", label: "Favourites" },
 ];
 
 export default function DispatchCleanerPicker({
@@ -106,7 +106,7 @@ export default function DispatchCleanerPicker({
                     {c.name}
                     <button className={"heart" + (favourites.includes(c.id) ? " on" : "")}
                       onClick={(e) => { e.stopPropagation(); toggleFavourite(c.id); }}
-                      title="Favourite">{favourites.includes(c.id) ? "♥" : "♡"}</button>
+                      title="Favourite">{favourites.includes(c.id) ? <Heart size={18} fill="currentColor" /> : <Heart size={18} />}</button>
                   </div>
                   <div className="clcard__meta">
                     <span className="stars"><Star size={14} fill="currentColor" strokeWidth={0} style={{ verticalAlign: "-2px" }} /> {c.rating.toFixed(1)}</span>
