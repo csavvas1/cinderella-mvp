@@ -21,6 +21,16 @@ import ConsentGate from "../../components/ConsentGate";
 import { CLEANER_DOC_IDS, LEGAL_DOCS } from "../../data/legal";
 import type { Booking, Card, PropertyAddress } from "../../types";
 
+// "done" indicator for a configured agent setup row (rates, payout, etc) — a
+// small green check pill instead of the word "Set".
+function DoneTick({ label }: { label?: string }) {
+  return (
+    <span className="donetick" aria-label={label || "Done"} title={label}>
+      <Check size={15} strokeWidth={3} />
+    </span>
+  );
+}
+
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const YEARS = ["2026", "2025", "2024"];
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -819,7 +829,7 @@ export default function Account() {
               const schedSet = Object.values(sched).some((s) => s && s.length);
               const citySet = serviceCities.length > 0;
               return rateSet && schedSet && citySet
-                ? <span className="statuspill statuspill--ok">Set</span>
+                ? <DoneTick label="Rates & availability set" />
                 : <span className="statuspill statuspill--warn">Set up</span>;
             })()}
           </div>
@@ -848,14 +858,13 @@ export default function Account() {
             <b style={{ fontSize: 14 }}>Get paid</b>
             {(() => {
               if (!agentProfile.payoutType) return <span className="statuspill statuspill--warn">Add card</span>;
-              const last4 = (agentProfile.payoutNumber || "").slice(-4);
               if (agentProfile.payoutType === "card") {
                 const st = cardExpiryStatus(agentProfile.payoutExpiry);
                 if (st === "expired") return <span className="statuspill statuspill--warn">Card expired</span>;
                 if (st === "soon") return <span className="statuspill statuspill--warn">Expires {agentProfile.payoutExpiry}</span>;
-                return <span className="statuspill statuspill--ok">Card •{last4}</span>;
+                return <DoneTick label="Payout method set" />;
               }
-              return <span className="statuspill statuspill--ok">Bank •{last4}</span>;
+              return <DoneTick label="Payout method set" />;
             })()}
           </div>
 
