@@ -92,7 +92,7 @@ function captureReferral(): string {
 }
 
 export default function Login() {
-  const { login, signup, resetPassword, biometricEnabled, biometricEmail, loginWithBiometric, lastAccount } = useStore();
+  const { login, signup, resetPassword, biometricEnabled, biometricEmail, loginWithBiometric, lastAccount, beginAuthTransition, endAuthTransition } = useStore();
   const [mode, setMode] = useState<"in" | "up">("in");
   const [name, setName] = useState("");
   const [surname, setSurname] = useState("");
@@ -175,15 +175,17 @@ export default function Login() {
       if (password !== confirm) { setErr("Passwords don't match."); return; }
     }
     setBusy(true);
+    beginAuthTransition(); // curtain covers instantly — no dead wait on the form
     const res = mode === "up"
       ? await signup(email, password, fullName, "", refCode || undefined)
       : await login(email, password);
     setBusy(false);
     if (res.error) {
+      endAuthTransition();  // failed — drop the curtain back to the form
       recordFailure();  // count the failed attempt toward the lockout
       setErr(res.error);
     } else {
-      clearThrottle();  // success resets the counter
+      clearThrottle();  // success resets the counter — curtain stays up, app mounts under it
     }
     // on success App.tsx swaps to the app (consent screen first if needed)
   }
@@ -192,48 +194,41 @@ export default function Login() {
   async function bioLogin() {
     setErr("");
     setScanning(true);
+    beginAuthTransition(); // curtain covers instantly
     const res = await loginWithBiometric(); // triggers the real biometric prompt
     setScanning(false);
-    if (res.error) setErr(res.error);
+    if (res.error) { endAuthTransition(); setErr(res.error); } // failed — back to form
     // on success App.tsx swaps to the app
   }
 
 
-  // On a sign-in / sign-up / Face ID check, glide the wordmark down to the
-  // centre (same element, CSS transform — reads as motion, not a re-mount) and
-  // fade the form out. Hands off to the global boot splash once auth completes.
+  // On a sign-in / sign-up / Face ID check, just fade the form out. The wordmark
+  // already sits at the vertical centre (matching the splash curtain exactly), so
+  // no glide is needed — it stays put and the curtain hands off seamlessly.
   const authing = busy || scanning;
 
   return (
     <div
       className="screen login-hero"
       style={{
-        display: "flex", flexDirection: "column", justifyContent: "space-between",
+        position: "relative",
+        display: "flex", flexDirection: "column", justifyContent: "flex-end",
         padding: "56px 26px 36px",
-        // flat near-black hero. Kept identical to the boot + launch splash so the
-        // wordmark glide reads as one continuous motion across the handoff.
-        background: "#0d0d0f",
+        // near-black + subtle indigo glow. Kept identical to the boot + launch
+        // splash so the wordmark position is continuous across the handoff.
+        background: "radial-gradient(520px 360px at 50% 42%, rgba(99,102,241,0.16), transparent 62%), #0b0b0d",
       }}
     >
+      {/* wordmark pinned to the vertical centre — same spot the splash curtain
+          uses, so login -> curtain has zero jump */}
       <div
         style={{
-          textAlign: "center", marginTop: 24, display: "flex", flexDirection: "column", alignItems: "center", gap: 14,
-          // slide toward vertical centre while authenticating
-          transform: authing ? "translateY(38vh)" : "translateY(0)",
-          transition: "transform 1.1s cubic-bezier(.4,0,.2,1)",
-          willChange: "transform",
+          position: "absolute", left: 0, right: 0, top: "42%",
+          transform: "translateY(-50%)",
+          textAlign: "center", display: "flex", justifyContent: "center",
         }}
       >
-        {/* fixed height so the slid position matches the boot splash exactly */}
         <WordmarkGreek height={84} />
-        {/* tagline fades out with the wordmark's slide so only the mark hands off
-            to the boot splash */}
-        <div style={{
-          color: "rgba(255,255,255,0.62)", fontSize: 14, fontWeight: 500,
-          letterSpacing: 0.2, opacity: authing ? 0 : 1, transition: "opacity .3s ease",
-        }}>
-          Spotless homes, on demand.
-        </div>
       </div>
 
       <div style={{

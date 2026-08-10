@@ -22,6 +22,10 @@
   --radius-sm: 12px;
   --shadow: 0 6px 24px rgba(20, 21, 26, 0.06);
   --shadow-lg: 0 24px 60px rgba(20, 21, 26, 0.18);
+
+  --font-body: "Manrope", -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-display: "Alegreya", Georgia, "Times New Roman", serif;
+  --font-wordmark: "Vollkorn", Georgia, "Times New Roman", serif;
 }
 
 :root[data-theme="dark"] {
@@ -42,7 +46,7 @@
 html, body, #root { height: 100%; margin: 0; }
 
 body {
-  font-family: "Inter", -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--font-body);
   background: var(--bg-page);
   color: var(--text);
   -webkit-font-smoothing: antialiased;
@@ -156,7 +160,7 @@ body {
   }
 }
 .appbar__row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.brand { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 19px; letter-spacing: -0.3px; }
+.brand { display: flex; align-items: center; gap: 8px; font-family: var(--font-display); font-weight: 800; font-size: 21px; letter-spacing: -0.2px; }
 .brand .spark { font-size: 20px; }
 .brand--agent .dot { color: var(--agent); }
 
@@ -520,8 +524,8 @@ body {
 
 /* ---------- generic ui ---------- */
 .pad { padding: 16px 18px 84px; }
-.h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; margin: 4px 0 2px; }
-.h2 { font-size: 16px; font-weight: 800; margin: 18px 0 10px; letter-spacing: -0.2px; }
+.h1 { font-family: var(--font-display); font-size: 27px; font-weight: 800; letter-spacing: -0.3px; margin: 4px 0 2px; }
+.h2 { font-family: var(--font-display); font-size: 18px; font-weight: 700; margin: 18px 0 10px; letter-spacing: -0.1px; }
 .sub { color: var(--muted); font-size: 13.5px; margin: 0 0 8px; line-height: 1.45; }
 .label { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; margin: 14px 0 7px; }
 
@@ -2628,8 +2632,25 @@ input[type="range"]::-webkit-slider-thumb {
 .verifytoast--fail { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
 @keyframes verifytoastin { from { opacity: 0; transform: translate(-50%, -8px); } to { opacity: 1; transform: translate(-50%, 0); } }
 
-/* ---------- launch splash loading dots ---------- */
-.splashdots { display: flex; gap: 7px; }
+/* ---------- launch splash: branded loading screen ---------- */
+/* Wordmark rises + fades in on curtain appear (pro entrance). */
+.splash__mark {
+  animation: splashMarkIn .7s cubic-bezier(.2,.7,.2,1) both;
+}
+@keyframes splashMarkIn {
+  0%   { opacity: 0; transform: translateY(14px) scale(.985); letter-spacing: -.01em; }
+  100% { opacity: 1; transform: translateY(0)    scale(1);    letter-spacing: 0; }
+}
+
+/* Dots fade + scale in AFTER the wordmark settles, then run the bounce loop. */
+.splashdots {
+  display: flex; gap: 7px;
+  animation: splashDotsIn .45s ease both .5s;
+}
+@keyframes splashDotsIn {
+  0%   { opacity: 0; transform: translateY(6px) scale(.8); }
+  100% { opacity: 1; transform: translateY(0)   scale(1); }
+}
 .splashdots span {
   width: 7px; height: 7px; border-radius: 999px;
   background: rgba(255,255,255,0.55); animation: splashdot 1s ease-in-out infinite;

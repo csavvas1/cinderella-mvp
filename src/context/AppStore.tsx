@@ -234,7 +234,9 @@ interface AppState {
   changePassword: (newPassword: string) => Promise<{ error?: string }>;  // Supabase password update
   resetPassword: (email: string) => Promise<{ error?: string }>;         // send a password-reset email
   recovering: boolean;                                                    // arrived via a reset link -> show set-new-password screen
-  bootSplash: boolean;                                                    // show the branded post-login splash while data hydrates
+  splashUp: boolean;                                                      // unified branded curtain covering the app (cold-open / sign-in / post-login)
+  beginAuthTransition: () => void;                                        // raise the curtain immediately on sign-in attempt (pre-empts the flicker)
+  endAuthTransition: () => void;                                          // lower the curtain if sign-in failed
   finishRecovery: (newPassword: string) => Promise<{ error?: string }>;  // set the new password + return to login
   userName: string;
   userPhone: string;
@@ -536,12 +538,18 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   const [authLoading, setAuthLoading] = useState<boolean>(true);
   // true when the user arrived via a password-reset link (show the set-new-password screen).
   const [recovering, setRecovering] = useState<boolean>(false);
-  // branded splash shown right after a login/unlock so the profile+data can
-  // hydrate before the app appears (no half-loaded flash). Driven by a deadline:
-  // when the user transitions signed-out -> signed-in we hold the splash until
-  // BOTH the minimum duration has elapsed AND the agent directory has loaded.
-  const BOOT_SPLASH_MS = 2600;
-  const [bootSplash, setBootSplash] = useState<boolean>(false);
+  // Unified branded splash ("curtain") shown across cold-open, sign-in and
+  // post-login. It is ALWAYS painted on top of the app; `splashUp` true = the
+  // curtain is covering, false = it has slid away to reveal the app. It lifts
+  // only when the app is genuinely ready:
+  //   - not still resolving the initial session (authLoading === false), AND
+  //   - either signed out (show Login) OR signed in AND the directory+reviews
+  //     data has loaded (dataReady), AND
+  //   - a minimum on-screen time has elapsed so it never flashes.
+  const MIN_SPLASH_MS = 1800;
+  const [splashUp, setSplashUp] = useState<boolean>(true); // covering from cold open
+  const [dataReady, setDataReady] = useState<boolean>(false); // agent dir + reviews loaded
+  const splashRaisedAt = useRef<number>(Date.now()); // when the curtain last went up
   const prevLoggedIn = useRef<boolean>(init.current.loggedIn);
   // real agent accounts adapted into Cleaner objects, merged with the mock list.
   const [realCleaners, setRealCleaners] = useState<Cleaner[]>([]);
@@ -1075,6 +1083,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     setLoggedIn(false);
     setCurrentKey(null);
     setCurrentEmail(null);
+    setAccountOpen(false); // don't re-open the account sheet on next sign-in
   }
 
   // local-only demo account — never touches Supabase, full seed data.
@@ -1086,40 +1095,57 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     setLoggedIn(true);
   }
 
-  // Branded boot splash: whenever the user goes signed-out -> signed-in, show
-  // the splash and hold it for a fixed minimum so the profile + agent directory
-  // + reviews finish loading before the app appears. A single timer (no racing
-  // against async loads) makes the transition feel deliberate, not laggy.
+  // Track the signed-out -> signed-in edge. The curtain is raised explicitly by
+  // beginAuthTransition() on the sign-in tap (before the network await), so we
+  // do NOT re-raise here — doing so reset the min-duration clock and caused the
+  // exit slide to run twice. This effect only keeps prevLoggedIn in sync.
   useEffect(() => {
-    if (loggedIn && !prevLoggedIn.current) {
-      setBootSplash(true);
-      const t = setTimeout(() => setBootSplash(false), BOOT_SPLASH_MS);
-      prevLoggedIn.current = true;
-      return () => clearTimeout(t);
-    }
     prevLoggedIn.current = loggedIn;
   }, [loggedIn]);
+
+  // Unified splash controller: decide when the curtain may lift. It lifts once
+  // the initial session is resolved AND (signed out, or signed in with data
+  // loaded), but never before MIN_SPLASH_MS has elapsed since it went up. A ref
+  // latch guarantees the lift timer is armed at most ONCE per raise, so the exit
+  // slide can never fire twice even if deps churn during hydration.
+  const liftArmed = useRef(false);
+  useEffect(() => {
+    if (!splashUp) { liftArmed.current = false; return; } // reset for next raise
+    if (liftArmed.current) return;                        // already scheduled
+    const ready = !authLoading && (!loggedIn || dataReady);
+    if (!ready) return;
+    liftArmed.current = true;
+    const elapsed = Date.now() - splashRaisedAt.current;
+    const wait = Math.max(0, MIN_SPLASH_MS - elapsed);
+    const t = setTimeout(() => setSplashUp(false), wait);
+    return () => clearTimeout(t);
+  }, [splashUp, authLoading, loggedIn, dataReady]);
 
   // Fetch the public agent directory once the user is signed in (RLS on the view
   // requires an authenticated session). Adapts each real agent into a Cleaner.
   useEffect(() => {
-    if (!loggedIn) { setRealCleaners([]); return; }
+    if (!loggedIn) { setRealCleaners([]); setDataReady(false); return; }
     let active = true;
+    // dataReady gates the splash lift: flip true once BOTH loads settle (ok or
+    // error — an error shouldn't trap the user behind the curtain forever).
+    let settled = 0;
+    const markSettled = () => { if (active && ++settled >= 2) setDataReady(true); };
     supabase.from("public_agents").select("*").then(({ data, error }) => {
       if (!active) return;
-      if (error) { /* eslint-disable-next-line no-console */ console.error("public_agents fetch failed:", error.message); return; }
+      if (error) { /* eslint-disable-next-line no-console */ console.error("public_agents fetch failed:", error.message); markSettled(); return; }
       const list = (data as PublicAgentRow[])
         .map((r) => agentRowToCleaner(r))
         .filter((c): c is Cleaner => c !== null)
         // never list the current user as a bookable cleaner to themselves
         .filter((c) => c.id !== currentKey);
       setRealCleaners(list);
+      markSettled();
     });
     // Load the shared reviews table (globally readable) and group by cleaner id
     // so every browsing customer sees the same, persisted reviews.
     supabase.from("reviews").select("*").then(({ data, error }) => {
       if (!active) return;
-      if (error) { /* eslint-disable-next-line no-console */ console.error("reviews fetch failed:", error.message); return; }
+      if (error) { /* eslint-disable-next-line no-console */ console.error("reviews fetch failed:", error.message); markSettled(); return; }
       const grouped: UserReviews = {};
       for (const row of (data as ReviewRow[])) {
         (grouped[row.cleaner_id] ??= []).push(rowToReview(row));
@@ -1127,6 +1153,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       // newest first within each cleaner
       for (const k of Object.keys(grouped)) grouped[k].sort((a, b) => (a.date < b.date ? 1 : -1));
       setDbReviews(grouped);
+      markSettled();
     });
     return () => { active = false; };
   }, [loggedIn, currentKey]);
@@ -1164,6 +1191,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         setLoggedIn(false);
         setCurrentKey(null);
         setCurrentEmail(null);
+        setAccountOpen(false);
       }
     });
     return () => { active = false; sub.subscription.unsubscribe(); };
@@ -1189,7 +1217,22 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       return error ? { error: error.message } : {};
     },
     recovering,
-    bootSplash,
+    splashUp,
+    // Raise the curtain the INSTANT the sign-in button is pressed (before the
+    // network await), so there's no dead 2s on the form and no flash — the
+    // branded loading screen appears immediately and the Login screen unmounts
+    // under cover once auth succeeds.
+    beginAuthTransition: () => {
+      setDataReady(false);
+      splashRaisedAt.current = Date.now();
+      setSplashUp(true);
+    },
+    // Lower the curtain again if the sign-in FAILED (still logged out) so the
+    // user sees the form + error rather than being trapped behind the splash.
+    endAuthTransition: () => {
+      splashRaisedAt.current = 0; // bypass the min-duration hold on this drop
+      setSplashUp(false);
+    },
     finishRecovery: async (newPassword) => {
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) return { error: error.message };
@@ -1199,6 +1242,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       setLoggedIn(false);
       setCurrentKey(null);
       setCurrentEmail(null);
+      setAccountOpen(false);
       return {};
     },
     userName: acct.name,

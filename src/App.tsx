@@ -362,26 +362,6 @@ function LockScreen({ onUnlock }: { onUnlock: () => void }) {
   );
 }
 
-// Branded launch splash: the wordmark centred on the near-black hero with a
-// small loading indicator, shown from cold open until the app is ready. Same
-// background as Login + SplashCurtain so the transition into the app is seamless.
-function Splash() {
-  return (
-    <div
-      style={{
-        position: "absolute", inset: 0, background: "#0d0d0f",
-        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 22,
-      }}
-    >
-      <WordmarkGreek height={84} />
-      <div className="splashdots" aria-label="Loading">
-        <span /><span /><span />
-      </div>
-    </div>
-  );
-}
-
-
 function RecoveryScreen() {
   const { finishRecovery } = useStore();
   const [pw1, setPw1] = useState("");
@@ -427,40 +407,54 @@ function RecoveryScreen() {
 }
 
 export default function App() {
-  const { loggedIn, authLoading, recovering, biometricEnabled, needsCustomerConsent, bootSplash } = useStore();
+  const { loggedIn, recovering, biometricEnabled, needsCustomerConsent, splashUp } = useStore();
   // App was closed while signed in + biometric on -> require an auto unlock on reopen.
   const [locked, setLocked] = useState(() => loggedIn && biometricEnabled);
   // Password-reset link landing: show the set-new-password screen above everything.
   if (recovering) return <PhoneFrame><RecoveryScreen /></PhoneFrame>;
-  // Wait for the initial Supabase session check so a returning session doesn't
-  // flash the Login screen before it hydrates.
-  if (authLoading && !loggedIn) return <PhoneFrame><Splash /></PhoneFrame>;
   if (loggedIn && locked) return <PhoneFrame><LockScreen onUnlock={() => setLocked(false)} /></PhoneFrame>;
-  if (!loggedIn) return <PhoneFrame><Login /></PhoneFrame>;
-  // MANDATORY: a logged-in account that hasn't accepted the current customer
-  // documents is blocked on the consent screen until they Agree.
-  const content = needsCustomerConsent ? <ConsentScreen /> : <Shell />;
-  // The app renders underneath; the branded splash sits on top and slides DOWN
-  // to reveal it when the boot hold ends (curtain-up reveal).
+
+  // The real content tree is ALWAYS mounted; the branded curtain sits on top and
+  // slides down to reveal it once the app is ready (splashUp false). Keeping the
+  // content mounted under the curtain avoids the unmount/remount flash that used
+  // to flicker between the login glide and the app appearing.
+  const content = !loggedIn
+    ? <Login />
+    : needsCustomerConsent
+      ? <ConsentScreen />
+      : <Shell />;
   return (
     <PhoneFrame>
       {content}
-      <SplashCurtain show={bootSplash} />
+      <SplashCurtain show={splashUp} />
     </PhoneFrame>
   );
 }
 
-// Full-cover branded splash that slides down out of view once `show` turns
-// false, revealing the app mounted underneath. Stays mounted through the slide
-// so the exit animates, then removes itself.
+// Unified full-cover branded curtain. Always mounted on top of the app. It
+// appears INSTANTLY (no slide-in — that read as a weird transition) and only
+// animates on EXIT, sliding down to reveal the app. Covers cold-open, sign-in
+// and post-login. Wordmark sits at the same 42% centre the Login screen uses so
+// there is zero jump across the handoff.
 function SplashCurtain({ show }: { show: boolean }) {
   const [render, setRender] = useState(show);
-  const [down, setDown] = useState(false);
+  const [down, setDown] = useState(!show); // true only during the exit slide
+  // Once the exit slide has started it must finish exactly once — guard against
+  // re-entry (StrictMode double-effects / dep churn) that replayed the slide.
+  const exiting = useRef(false);
   useEffect(() => {
-    if (show) { setRender(true); setDown(false); return; }
-    // trigger slide-down, then unmount after the transition
+    if (show) {
+      // appear instantly, fully covering — no slide-in transition
+      exiting.current = false;
+      setRender(true);
+      setDown(false);
+      return;
+    }
+    // exit: slide down once, then unmount after the transition finishes
+    if (exiting.current) return;
+    exiting.current = true;
     setDown(true);
-    const t = setTimeout(() => setRender(false), 750);
+    const t = setTimeout(() => setRender(false), 720);
     return () => clearTimeout(t);
   }, [show]);
   if (!render) return null;
@@ -470,14 +464,24 @@ function SplashCurtain({ show }: { show: boolean }) {
         position: "absolute", inset: 0, zIndex: 200,
         display: "flex", flexDirection: "column", justifyContent: "space-between",
         padding: "56px 26px 36px",
-        // matches the login + launch hero exactly so the wordmark glide is seamless
-        background: "#0d0d0f",
+        // near-black + subtle indigo glow. Matches the login hero exactly so the
+        // wordmark position is continuous across the handoff.
+        background: "radial-gradient(520px 360px at 50% 42%, rgba(99,102,241,0.16), transparent 62%), #0b0b0d",
         transform: down ? "translateY(100%)" : "translateY(0)",
-        transition: "transform .7s cubic-bezier(.5,0,.2,1)",
+        // only animate the exit slide; entry is instant (no transition)
+        transition: down ? "transform .7s cubic-bezier(.5,0,.2,1)" : "none",
       }}
     >
-      <div style={{ textAlign: "center", marginTop: 24, display: "flex", justifyContent: "center", transform: "translateY(38vh)" }}>
-        <WordmarkGreek height={84} />
+      <div style={{
+        position: "absolute", left: 0, right: 0, top: "42%",
+        transform: "translateY(-50%)",
+        textAlign: "center", display: "flex", flexDirection: "column",
+        alignItems: "center", gap: 22,
+      }}>
+        <span className="splash__mark"><WordmarkGreek height={84} /></span>
+        <div className="splashdots" aria-label="Loading">
+          <span /><span /><span />
+        </div>
       </div>
     </div>
   );
