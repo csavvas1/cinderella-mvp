@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { X } from "lucide-react";
 
 export default function InfoTitle({ title, info }: { title: string; info: ReactNode }) {
   const [open, setOpen] = useState(false);
@@ -13,7 +14,7 @@ export default function InfoTitle({ title, info }: { title: string; info: ReactN
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="between" style={{ marginBottom: 10 }}>
               <b style={{ fontSize: 15 }}>{title}</b>
-              <button className="iconbtn" onClick={() => setOpen(false)}>✕</button>
+              <button className="iconbtn" onClick={() => setOpen(false)} aria-label="Close"><X size={16} /></button>
             </div>
             <div className="sub" style={{ margin: 0 }}>{info}</div>
           </div>

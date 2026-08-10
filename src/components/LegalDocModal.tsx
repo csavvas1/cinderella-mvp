@@ -1,3 +1,4 @@
+import { X } from "lucide-react";
 import { getLegalDoc } from "../data/legal";
 
 // Minimal, safe markdown-ish renderer for the legal doc bodies. Supports
@@ -51,7 +52,7 @@ export default function LegalDocModal({ docId, onClose }: { docId: string; onClo
       <div className="modal tall legal" onClick={(e) => e.stopPropagation()}>
         <div className="between" style={{ marginBottom: 8 }}>
           <b style={{ fontSize: 16, color: "var(--text)" }}>{doc.title}</b>
-          <button className="iconbtn" onClick={onClose}>✕</button>
+          <button className="iconbtn" onClick={onClose} aria-label="Close"><X size={16} /></button>
         </div>
         <div className="legal__scroll">{renderBody(doc.body)}</div>
         <div style={{ height: 12 }} />

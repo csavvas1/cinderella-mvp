@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { X } from "lucide-react";
 import { useStore } from "../context/AppStore";
 import { cleanerBadges, marketStats } from "../data/cleaners";
 import Avatar from "./Avatar";
@@ -63,7 +64,7 @@ export default function DispatchCleanerPicker({
       <div className="modal tall" onClick={(e) => e.stopPropagation()}>
         <div className="between" style={{ marginBottom: 10 }}>
           <b style={{ fontSize: 16 }}>{mode === "single" ? "Pick a cleaner" : "Add priority cleaners"}</b>
-          <button className="iconbtn" onClick={onClose}>✕</button>
+          <button className="iconbtn" onClick={onClose} aria-label="Close"><X size={16} /></button>
         </div>
 
         {/* market snapshot */}

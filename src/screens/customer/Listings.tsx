@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { X } from "lucide-react";
 import { useStore } from "../../context/AppStore";
 import { CLEANERS } from "../../data/cleaners";
 import PlatformIcon from "../../components/PlatformIcon";
@@ -130,7 +131,7 @@ export default function Listings({
                         <button className="iconbtn" disabled={idx === (a.dispatchCleanerIds!.length - 1)} title="Down"
                           onClick={() => { const ids = [...(a.dispatchCleanerIds ?? [])]; [ids[idx + 1], ids[idx]] = [ids[idx], ids[idx + 1]]; setDispatchConfig(a.id, { dispatchCleanerIds: ids }); }}>↓</button>
                         <button className="iconbtn" title="Remove"
-                          onClick={() => setDispatchConfig(a.id, { dispatchCleanerIds: (a.dispatchCleanerIds ?? []).filter((x) => x !== id) })}>✕</button>
+                          onClick={() => setDispatchConfig(a.id, { dispatchCleanerIds: (a.dispatchCleanerIds ?? []).filter((x) => x !== id) })}><X size={16} /></button>
                       </div>
                     ))}
                     {nCleaners === 0 && (

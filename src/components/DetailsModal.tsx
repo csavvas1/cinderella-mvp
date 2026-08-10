@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { X } from "lucide-react";
 import { isBiometricAvailable, verifyBiometric } from "../lib/webauthn";
 
 type Editing = null | "phone" | "password";
@@ -71,7 +72,7 @@ export default function DetailsModal({
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="between" style={{ marginBottom: 14 }}>
           <b style={{ fontSize: 16 }}>My details</b>
-          <button className="iconbtn" onClick={onClose}>✕</button>
+          <button className="iconbtn" onClick={onClose} aria-label="Close"><X size={16} /></button>
         </div>
 
         {/* EMAIL — read-only (account identity, not editable) */}

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { X } from "lucide-react";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { useStore } from "../context/AppStore";
@@ -71,7 +72,7 @@ export default function StripePaymentSheet({
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="between" style={{ marginBottom: 8 }}>
           <b style={{ fontSize: 17 }}>Add a payment method</b>
-          <button className="iconbtn" onClick={onClose}>✕</button>
+          <button className="iconbtn" onClick={onClose} aria-label="Close"><X size={16} /></button>
         </div>
         <p className="sub" style={{ marginTop: 0, fontSize: 12.5 }}>
           €14.99/mo per connected property. Cancel anytime.

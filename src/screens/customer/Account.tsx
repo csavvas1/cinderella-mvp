@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { X } from "lucide-react";
 import { useStore } from "../../context/AppStore";
 import { BrandIcon } from "../../components/PaymentPicker";
 import DetailsModal from "../../components/DetailsModal";
@@ -497,7 +498,7 @@ export default function Account() {
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="between" style={{ marginBottom: 12 }}>
               <b style={{ fontSize: 16 }}>Add a property</b>
-              <button className="iconbtn" onClick={() => setAddChoice(false)}>✕</button>
+              <button className="iconbtn" onClick={() => setAddChoice(false)} aria-label="Close"><X size={16} /></button>
             </div>
             <div className="addchoice">
               <button className="addchoice__opt" onClick={() => { setAddChoice(false); setConnectNew(true); }}>
@@ -543,7 +544,7 @@ export default function Account() {
           <div className="modal tall" onClick={(e) => e.stopPropagation()}>
             <div className="between" style={{ marginBottom: 12 }}>
               <b style={{ fontSize: 16 }}>{editId ? "Edit property" : "Add a property"}</b>
-              <button className="iconbtn" onClick={() => { setShowAdd(false); setEditId(null); resetForm(); }}>✕</button>
+              <button className="iconbtn" onClick={() => { setShowAdd(false); setEditId(null); resetForm(); }} aria-label="Close"><X size={16} /></button>
             </div>
             <div className="label">Photo (optional)</div>
             <input ref={propPhotoInput} type="file" accept="image/*" style={{ display: "none" }}
@@ -673,7 +674,7 @@ export default function Account() {
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="between" style={{ marginBottom: 8 }}>
               <b style={{ fontSize: 17 }}>Share this property</b>
-              <button className="iconbtn" onClick={() => setShareProp(null)}>✕</button>
+              <button className="iconbtn" onClick={() => setShareProp(null)} aria-label="Close"><X size={16} /></button>
             </div>
             <p className="sub" style={{ marginTop: 0 }}>
               Give a co-worker access to <b>{shareProp.nickname}</b>. They'll be able to see and edit its calendar, cleaning schedule and bookings. Anyone opening the link and signing in gets access automatically.
@@ -731,7 +732,7 @@ export default function Account() {
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="between" style={{ marginBottom: 12 }}>
               <b style={{ fontSize: 16 }}>Add a card</b>
-              <button className="iconbtn" onClick={() => setShowAddCard(false)}>✕</button>
+              <button className="iconbtn" onClick={() => setShowAddCard(false)} aria-label="Close"><X size={16} /></button>
             </div>
             <div className="label">Card nickname</div>
             <input className="input" value={cardForm.nickname} placeholder="e.g. Personal" onChange={(e) => setCardForm({ ...cardForm, nickname: e.target.value })} />
@@ -751,7 +752,7 @@ export default function Account() {
               <div className="tiny muted">•••• {c.last4}</div>
             </div>
           </div>
-          <button className="iconbtn" title="Remove" onClick={() => deleteCard(c.id)}>✕</button>
+          <button className="iconbtn" title="Remove" onClick={() => deleteCard(c.id)}><X size={16} /></button>
         </div>
       ))}
 
@@ -768,7 +769,7 @@ export default function Account() {
           <div className="modal tall" onClick={(e) => e.stopPropagation()}>
             <div className="between" style={{ marginBottom: 4 }}>
               <b style={{ fontSize: 16 }}>Expense statements</b>
-              <button className="iconbtn" onClick={() => setShowExp(false)}>✕</button>
+              <button className="iconbtn" onClick={() => setShowExp(false)} aria-label="Close"><X size={16} /></button>
             </div>
             <div className="card row between" style={{ marginBottom: 14 }}>
               <div>
@@ -1050,7 +1051,7 @@ export default function Account() {
           <div className="modal tall" onClick={(e) => e.stopPropagation()}>
             <div className="between" style={{ marginBottom: 14 }}>
               <b style={{ fontSize: 16 }}>Rates & availability</b>
-              <button className="iconbtn" onClick={() => setShowRates(false)}>✕</button>
+              <button className="iconbtn" onClick={() => setShowRates(false)} aria-label="Close"><X size={16} /></button>
             </div>
 
             <div className="label" style={{ marginTop: 0 }}>Your rate</div>
@@ -1102,7 +1103,7 @@ export default function Account() {
           <div className="modal tall" onClick={(e) => e.stopPropagation()}>
             <div className="between" style={{ marginBottom: 12 }}>
               <b style={{ fontSize: 16 }}>{DAY_FULL[editDay]} hours</b>
-              <button className="iconbtn" onClick={() => setEditDay(null)}>✕</button>
+              <button className="iconbtn" onClick={() => setEditDay(null)} aria-label="Close"><X size={16} /></button>
             </div>
             {(sched[editDay] ?? []).map((s, i) => {
               const prevEnd = i > 0 ? (sched[editDay] ?? [])[i - 1].end : undefined;
@@ -1112,7 +1113,7 @@ export default function Account() {
                   <span className="slotdash">–</span>
                   <div className="grow"><TimeSelect value={s.end} min={s.start} onChange={(v) => setDaySlot(editDay, i, "end", v)} /></div>
                   {(sched[editDay] ?? []).length > 1 && (
-                    <button className="iconbtn" title="Remove" onClick={() => removeDaySlot(editDay, i)}>✕</button>
+                    <button className="iconbtn" title="Remove" onClick={() => removeDaySlot(editDay, i)}><X size={16} /></button>
                   )}
                 </div>
               );
@@ -1130,7 +1131,7 @@ export default function Account() {
           <div className="modal tall" onClick={(e) => e.stopPropagation()}>
             <div className="between" style={{ marginBottom: 12 }}>
               <b style={{ fontSize: 16 }}>Payout method</b>
-              <button className="iconbtn" onClick={() => setShowPayout(false)}>✕</button>
+              <button className="iconbtn" onClick={() => setShowPayout(false)} aria-label="Close"><X size={16} /></button>
             </div>
             <div className="seg" style={{ marginBottom: 12 }}>
               <button className={payType === "bank" ? "active" : ""} onClick={() => setPayType("bank")}>Bank</button>
@@ -1189,7 +1190,7 @@ export default function Account() {
           <div className="modal tall" onClick={(e) => e.stopPropagation()}>
             <div className="between" style={{ marginBottom: 14 }}>
               <b style={{ fontSize: 16 }}>Disputes</b>
-              <button className="iconbtn" onClick={() => setShowDisputes(false)}>✕</button>
+              <button className="iconbtn" onClick={() => setShowDisputes(false)} aria-label="Close"><X size={16} /></button>
             </div>
             {disputes.length === 0 ? (
               <p className="sub" style={{ margin: "8px 0" }}>No refund requests right now.</p>
@@ -1241,7 +1242,7 @@ export default function Account() {
           <div className="modal tall" onClick={(e) => e.stopPropagation()}>
             <div className="between" style={{ marginBottom: 14 }}>
               <b style={{ fontSize: 16 }}>Identity verification</b>
-              <button className="iconbtn" onClick={() => setShowVerify(false)}>✕</button>
+              <button className="iconbtn" onClick={() => setShowVerify(false)} aria-label="Close"><X size={16} /></button>
             </div>
             {verified ? (
               <div style={{ textAlign: "center", padding: "16px 0 6px" }}>
@@ -1355,7 +1356,7 @@ export default function Account() {
           <div className="modal tall" onClick={(e) => e.stopPropagation()}>
             <div className="between" style={{ marginBottom: 12 }}>
               <b style={{ fontSize: 16 }}>Legal & policies</b>
-              <button className="iconbtn" onClick={() => setShowLegal(false)}>✕</button>
+              <button className="iconbtn" onClick={() => setShowLegal(false)} aria-label="Close"><X size={16} /></button>
             </div>
             <div className="card" style={{ padding: 0, overflow: "hidden" }}>
               {LEGAL_DOCS.map((d, i) => {
@@ -1401,7 +1402,7 @@ function DisputeModal({ booking, onClose, onRespond }: {
       <div className="modal tall" onClick={(e) => e.stopPropagation()}>
         <div className="between" style={{ marginBottom: 12 }}>
           <b style={{ fontSize: 16 }}>Refund request</b>
-          <button className="iconbtn" onClick={onClose}>✕</button>
+          <button className="iconbtn" onClick={onClose} aria-label="Close"><X size={16} /></button>
         </div>
         <div className="card" style={{ marginBottom: 12 }}>
           <div className="between"><b style={{ fontSize: 14 }}>{booking.addressNickname}</b><span className="tiny muted">{r.date}</span></div>

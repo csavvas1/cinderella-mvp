@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { X } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import BackButton from "../../components/BackButton";
 import PlatformIcon from "../../components/PlatformIcon";
@@ -162,7 +163,7 @@ function AutomationModal({ onClose }: { onClose: () => void }) {
         <div className="modal tall" onClick={(e) => e.stopPropagation()}>
           <div className="between" style={{ marginBottom: 8 }}>
             <b style={{ fontSize: 15 }}>Auto message on booking</b>
-            <button className="iconbtn" onClick={onClose}>✕</button>
+            <button className="iconbtn" onClick={onClose} aria-label="Close"><X size={16} /></button>
           </div>
           <p className="sub" style={{ marginTop: 0 }}>Sent automatically when a booking is created. Use {"{guest}"}, {"{property}"}, {"{date}"}, {"{cleaner}"}.</p>
           <textarea className="input" style={{ minHeight: 160, resize: "vertical" }} value={tpl} onChange={(e) => setTpl(e.target.value)} />

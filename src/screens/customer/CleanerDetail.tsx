@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { X } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { CLEANERS, autoAcceptDecision, isWeekend, occurrenceDates, cleanerBadges } from "../../data/cleaners";
 import { priceJob, cleanerCancelRate, monetisationEnabled } from "../../data/platform";
@@ -392,7 +393,7 @@ export default function CleanerDetail() {
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="between" style={{ marginBottom: 10 }}>
               <b style={{ fontSize: 16 }}>Before you pay</b>
-              <button className="iconbtn" onClick={() => setSupplyWarn(false)}>✕</button>
+              <button className="iconbtn" onClick={() => setSupplyWarn(false)} aria-label="Close"><X size={16} /></button>
             </div>
             <div className="note amber" style={{ marginTop: 0 }}>
               You must provide <b>all cleaning products, tools and equipment</b> needed for this clean (detergents, cloths, mop, vacuum, etc.).
@@ -419,7 +420,7 @@ export default function CleanerDetail() {
           <div className="modal modal--reviews" onClick={(e) => e.stopPropagation()}>
             <div className="between" style={{ marginBottom: 4 }}>
               <b style={{ fontSize: 16 }}>Reviews</b>
-              <button className="iconbtn" onClick={() => setShowReviews(false)}>✕</button>
+              <button className="iconbtn" onClick={() => setShowReviews(false)} aria-label="Close"><X size={16} /></button>
             </div>
             <div className="row" style={{ gap: 8, marginBottom: 10 }}>
               <span className="stars" style={{ fontSize: 16 }}>★ {cleaner.rating.toFixed(1)}</span>

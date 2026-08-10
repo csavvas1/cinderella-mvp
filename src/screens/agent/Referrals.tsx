@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { X } from "lucide-react";
 import { useStore } from "../../context/AppStore";
 import { getConfig, priceJob, currentMonthKey } from "../../data/platform";
 import { monthlyPerformance, rewardForMonth, type MonthlyPerf, type ReferralReward } from "../../data/referral";
@@ -170,7 +171,7 @@ export default function Referrals() {
           <div className="modal tall" onClick={(e) => e.stopPropagation()}>
             <div className="between" style={{ marginBottom: 4 }}>
               <b style={{ fontSize: 16 }}>Earnings statements</b>
-              <button className="iconbtn" onClick={() => setShowStatements(false)}>✕</button>
+              <button className="iconbtn" onClick={() => setShowStatements(false)} aria-label="Close"><X size={16} /></button>
             </div>
             <div className="card row between" style={{ marginBottom: 14 }}>
               <div>
@@ -213,7 +214,7 @@ export default function Referrals() {
             onTouchStart={goalSwipe.onTouchStart} onTouchMove={goalSwipe.onTouchMove} onTouchEnd={goalSwipe.onTouchEnd}>
             <div className="between" style={{ marginBottom: 12 }}>
               <b style={{ fontSize: 16 }}>How Refer &amp; earn works</b>
-              <button className="iconbtn" onClick={() => setShowGoal(false)}>✕</button>
+              <button className="iconbtn" onClick={() => setShowGoal(false)} aria-label="Close"><X size={16} /></button>
             </div>
 
             <p className="sub" style={{ marginTop: 0 }}>
@@ -277,7 +278,7 @@ function RefereeModal({ data, onClose }: {
       <div className="modal tall" onClick={(e) => e.stopPropagation()}>
         <div className="between" style={{ marginBottom: 12 }}>
           <b style={{ fontSize: 16 }}>{referee.name}</b>
-          <button className="iconbtn" onClick={onClose}>✕</button>
+          <button className="iconbtn" onClick={onClose} aria-label="Close"><X size={16} /></button>
         </div>
 
         <div className={"refstatus lg " + (reward.eligible ? "ok" : "wait")} style={{ marginBottom: 14 }}>

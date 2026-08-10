@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { X } from "lucide-react";
 import { getLegalDoc } from "../data/legal";
 import LegalDocModal from "./LegalDocModal";
 
@@ -25,7 +26,7 @@ export default function ConsentGate({
       <div className="modal tall" onClick={(e) => e.stopPropagation()}>
         <div className="between" style={{ marginBottom: 10 }}>
           <b style={{ fontSize: 16 }}>{title}</b>
-          <button className="iconbtn" onClick={onCancel}>✕</button>
+          <button className="iconbtn" onClick={onCancel} aria-label="Close"><X size={16} /></button>
         </div>
         <p className="sub" style={{ marginTop: 0, fontSize: 13 }}>{intro}</p>
 

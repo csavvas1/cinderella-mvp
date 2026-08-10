@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import PlatformIcon from "./PlatformIcon";
 import { platformName } from "../data/ical";
@@ -177,7 +178,7 @@ export default function LinkedCalendar({ extra = [], addresses = [], listings = 
         <div className="rescard" ref={rescardRef}>
           <div className="between" style={{ marginBottom: 8 }}>
             <b style={{ fontSize: 16 }}>Booking</b>
-            <button className="iconbtn" onClick={() => setSel(null)}>✕</button>
+            <button className="iconbtn" onClick={() => setSel(null)} aria-label="Close"><X size={16} /></button>
           </div>
           {sel.propertyPhoto && <img className="rescard__photo" src={sel.propertyPhoto} alt={sel.property} loading="lazy" />}
           <b style={{ fontSize: 17, display: "block", marginTop: 12 }}>{sel.property}</b>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { X } from "lucide-react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useStore } from "../../context/AppStore";
@@ -777,7 +778,7 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="between" style={{ marginBottom: 12 }}>
           <b style={{ fontSize: 16 }}>{title}</b>
-          <button className="iconbtn" onClick={onClose}>✕</button>
+          <button className="iconbtn" onClick={onClose} aria-label="Close"><X size={16} /></button>
         </div>
         {children}
       </div>
@@ -1050,7 +1051,7 @@ function ManualStayModal({
         style={{ borderRadius: 18, maxHeight: "none", width: "calc(100% - 32px)", maxWidth: 420 }}>
         <div className="between" style={{ marginBottom: 8 }}>
           <b style={{ fontSize: 17 }}>{initial ? "Edit booking" : "Add a booking"}</b>
-          <button className="iconbtn" onClick={onClose}>✕</button>
+          <button className="iconbtn" onClick={onClose} aria-label="Close"><X size={16} /></button>
         </div>
 
         <div className="label">Property</div>

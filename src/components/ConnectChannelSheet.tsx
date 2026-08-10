@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { X } from "lucide-react";
 import type { PropertyAddress } from "../types";
 import { useStore } from "../context/AppStore";
 import { monetisationEnabled } from "../data/platform";
@@ -93,7 +94,7 @@ export default function ConnectChannelSheet({
       <div className="modal tall" onClick={(e) => e.stopPropagation()}>
         <div className="between" style={{ marginBottom: 10 }}>
           <b style={{ fontSize: 17 }}>Connect your listings</b>
-          <button className="iconbtn" onClick={onClose}>✕</button>
+          <button className="iconbtn" onClick={onClose} aria-label="Close"><X size={16} /></button>
         </div>
 
         <div className="chan-grid">
