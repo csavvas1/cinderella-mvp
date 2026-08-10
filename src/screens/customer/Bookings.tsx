@@ -978,16 +978,10 @@ function CalendarView({
               {(b.status === "upcoming" || b.status === "confirmed" || b.status === "awaiting") && (
                 <div className="row" style={{ gap: 8, marginTop: 10 }}>
                   <button className="btn sm secondary grow" onClick={() => onEdit(b)}>Modify</button>
-                  {(() => {
-                    // Messaging opens from 24h before the start, until the cleaning
-                    // starts (after it's done, messaging is disabled).
-                    const startMs = new Date(`${b.date}T${b.time || "00:00"}:00`).getTime();
-                    const now = Date.now();
-                    const within24h = !isNaN(startMs) && startMs - now <= 24 * 3600 * 1000 && startMs > now;
-                    return within24h
-                      ? <button className="btn sm agent grow" onClick={() => onMessage(b)}>Message cleaner</button>
-                      : null;
-                  })()}
+                  {/* Messaging is available for any active booking — including
+                      today / last-minute. It only closes once the booking is done
+                      (completed/cancelled), enforced read-only in the chat view. */}
+                  <button className="btn sm agent grow" onClick={() => onMessage(b)}>Message cleaner</button>
                 </div>
               )}
               {b.status === "completed" && (

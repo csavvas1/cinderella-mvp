@@ -400,6 +400,7 @@ interface AppState {
   loginWithBiometric: () => Promise<{ error?: string }>; // unlock with the real Face ID prompt
   refresh: () => Promise<void>;      // pull-to-refresh: re-fetch the signed-in account's data
   myUid: string | null;              // the signed-in user's id (uid), for ownership filters
+  nameForUid: (uid: string) => string; // live display-name resolver (counterparty in chat)
 }
 
 const KEY = "cinderella-state-v11";
@@ -1181,9 +1182,20 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   // Resolve a user id -> display name for the messaging list: real agent
   // directory first, then the signed-in user's own name, else "".
   function nameFor(uid: string): string {
+    if (uid === currentKey) return acct.name || "";
+    // agent in the public directory
     const c = realCleaners.find((x) => x.id === uid);
     if (c) return c.name;
-    if (uid === currentKey) return acct.name || "";
+    // otherwise resolve via jobs I'm involved in: the counterparty is either the
+    // job's customer (customer_uid) or its cleaner. This covers an AGENT looking
+    // up a CUSTOMER's name (customers aren't in the cleaner directory).
+    for (const j of jobs) {
+      if (j.customerUid === uid && j.customerName) return j.customerName;
+      if (j.cleanerUid === uid && j.cleanerId) {
+        const cc = realCleaners.find((x) => x.id === j.cleanerId);
+        if (cc) return cc.name;
+      }
+    }
     return "";
   }
 
@@ -2305,6 +2317,9 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       }
     },
     myUid: currentKey,
+    // live counterparty-name resolver for the chat UI (re-resolves at render once
+    // jobs/cleaners are loaded, so a name isn't frozen blank from fetch-time).
+    nameForUid: (uid: string) => nameFor(uid),
     // pull-to-refresh: re-pull this account's data from Supabase (no app restart,
     // no white flash). Only meaningful for a real signed-in user; the demo
     // account has nothing to re-fetch, so resolve immediately.

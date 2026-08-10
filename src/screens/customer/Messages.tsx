@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { X, ChevronRight } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import BackButton from "../../components/BackButton";
@@ -31,14 +31,17 @@ export default function Messages() {
 
   function open(id: string) { markThreadRead(id); setOpenId(id); }
 
+  // An open thread renders its own sticky header (back + name + property) and a
+  // full-height chat column, so it does NOT use the .pad wrapper — the header
+  // must pin to the top without needing to scroll up to reach the back button.
+  if (openThread) return <Thread thread={openThread} onBack={() => setOpenId(null)} />;
+
   return (
     <div className="pad">
       <div className="between" style={{ marginBottom: 10 }}>
-        {openThread
-          ? <button className="backbtn" onClick={() => setOpenId(null)}><span className="backbtn__ic"><svg viewBox="0 0 24 24" width="15" height="15"><path d="M15 4 L7 12 L15 20" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg></span><span>Messages</span></button>
-          : <BackButton />}
+        <BackButton />
       </div>
-      {openThread ? <Thread thread={openThread} /> : <ThreadList onOpen={open} />}
+      <ThreadList onOpen={open} />
     </div>
   );
 }
@@ -80,39 +83,57 @@ function ThreadList({ onOpen }: { onOpen: (id: string) => void }) {
   );
 }
 
-function Thread({ thread }: { thread: ChatThread }) {
-  const { messages, addMessage, myUid } = useStore();
+function Thread({ thread, onBack }: { thread: ChatThread; onBack: () => void }) {
+  const { messages, addMessage, myUid, nameForUid, jobs } = useStore();
   const msgs = useMemo(
     () => messages.filter((m) => m.threadId === thread.id).sort((a, b) => a.at - b.at),
     [messages, thread.id]
   );
   const [draft, setDraft] = useState("");
   const [showQuick, setShowQuick] = useState(false);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+
+  // keep the view pinned to the newest message
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [msgs.length]);
+
+  // resolve the counterparty + the linked job (for property + finished state)
+  const otherUid = thread.customerId && thread.cleanerUid
+    ? (thread.customerId === myUid ? thread.cleanerUid : thread.customerId)
+    : undefined;
+  const displayName = (otherUid && nameForUid(otherUid)) || thread.guest || "Chat";
+  const job = thread.jobId ? jobs.find((j) => j.id === thread.jobId) : undefined;
+  const propertyLine = job?.address || thread.property || "";
+  const finished = job ? (job.status === "completed" || job.status === "cancelled" || job.status === "declined") : false;
 
   function send(text: string) {
     const body = text.trim();
-    if (!body) return;
+    if (!body || finished) return;
     addMessage(thread.id, { id: crypto.randomUUID(), threadId: thread.id, from: "host", senderUid: myUid ?? undefined, body, at: Date.now(), channel: thread.kind === "cleaner" ? "airbnb" : "email" });
     setDraft(""); setShowQuick(false);
   }
 
-  // For a real cleaner<->customer thread, "mine" is decided by the author uid so
-  // both sides see their own messages on the right. Falls back to from==="host"
-  // for the seeded/guest threads which have no senderUid.
+  // "mine" by author uid so both sides see their own on the right (Messenger).
   const isMine = (m: ChatMessage) => (m.senderUid ? m.senderUid === myUid : m.from === "host");
 
   let lastDay = "";
   return (
-    <>
-      <div className="row" style={{ gap: 10, marginBottom: 10 }}>
-        <ThreadAvatar t={thread} size={34} />
-        <div>
-          <b style={{ fontSize: 15 }}>{thread.guest}</b>
-          <div className="tiny muted">{thread.property}{thread.dateRange ? ` · ${thread.dateRange}` : ""}</div>
+    <div className="chatview">
+      {/* sticky header — always reachable without scrolling */}
+      <div className="chathead">
+        <button className="chathead__back" onClick={onBack} aria-label="Back">
+          <svg viewBox="0 0 24 24" width="20" height="20"><path d="M15 4 L7 12 L15 20" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        </button>
+        <span className="chathead__av"><ThreadAvatar t={thread} size={36} /></span>
+        <div className="chathead__meta">
+          <b className="chathead__name">{displayName}</b>
+          {propertyLine && <div className="chathead__sub">{propertyLine}</div>}
         </div>
       </div>
 
-      <div className="chatscroll inboxscroll">
+      <div className="chatscroll chatview__scroll" ref={scrollRef}>
         {msgs.map((m) => {
           const day = dayLabel(m.at);
           const sep = day !== lastDay; lastDay = day;
@@ -123,33 +144,36 @@ function Thread({ thread }: { thread: ChatThread }) {
                 {m.title && <b style={{ display: "block", marginBottom: 4 }}>{m.title}</b>}
                 <span style={{ whiteSpace: "pre-wrap" }}>{m.body}</span>
                 <div className="bubble__t">{timeLabel(m.at)}</div>
-                <div className="msgtags">
-                  {m.channel === "email" && <span className="msgtag msgtag--ok">Email · sent</span>}
-                  {m.automated && <span className="msgtag">Automated</span>}
-                  {m.aiReply && <span className="msgtag msgtag--ai">AI reply</span>}
-                </div>
               </div>
             </div>
           );
         })}
       </div>
 
-      {showQuick && (
+      {showQuick && !finished && (
         <div className="quickreplies">
           {QUICK_REPLIES.map((qr, i) => <button key={i} className="quickreplies__item" onClick={() => send(qr)}>{qr}</button>)}
         </div>
       )}
 
-      <div className="chatbar inboxbar">
-        <input className="input" placeholder="Write a message…" value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) send(draft); }} />
-        <button className="btn sm" onClick={() => send(draft)}>Send</button>
-      </div>
-      <div className="row" style={{ gap: 16, marginTop: 8 }}>
-        <button className="linkbtn" onClick={() => setShowQuick((v) => !v)}>Quick replies</button>
-      </div>
-    </>
+      {finished ? (
+        <div className="chatfinished">This booking is finished — messaging is closed.</div>
+      ) : (
+        <>
+          <div className="chatbar chatview__bar">
+            <button className="chatbar__quick" onClick={() => setShowQuick((v) => !v)} aria-label="Quick replies">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" /></svg>
+            </button>
+            <input className="input" placeholder="Message…" value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(draft); } }} />
+            <button className="chatbar__send" onClick={() => send(draft)} disabled={!draft.trim()} aria-label="Send">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M3.4 20.6 21 12 3.4 3.4 3 10l12 2-12 2Z" /></svg>
+            </button>
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 

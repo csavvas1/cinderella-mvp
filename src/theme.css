@@ -662,6 +662,50 @@ body {
 .chatbar { display: flex; gap: 8px; align-items: center; padding-top: 8px; }
 .chatbar .input { flex: 1; }
 
+/* ---------- full-screen chat view (Messenger / IG style) ---------- */
+/* Fills the phone screen: sticky header on top, messages scroll in the middle,
+   composer pinned to the bottom. No .pad wrapper so the header never scrolls. */
+.chatview { display: flex; flex-direction: column; height: 100%; min-height: 0; background: var(--bg); }
+.chathead {
+  flex: none; display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px calc(10px); border-bottom: 1px solid var(--border);
+  background: var(--bg); position: sticky; top: 0; z-index: 5;
+}
+.chathead__back {
+  flex: none; width: 34px; height: 34px; display: grid; place-items: center;
+  border: none; background: transparent; color: var(--text); cursor: pointer; border-radius: 999px;
+}
+.chathead__back:active { background: var(--surface); }
+.chathead__av { flex: none; }
+.chathead__meta { min-width: 0; }
+.chathead__name { font-family: var(--font-display); font-size: 16px; line-height: 1.1; display: block; }
+.chathead__sub {
+  font-size: 12px; color: var(--muted); line-height: 1.2; margin-top: 1px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px;
+}
+.chatview__scroll { flex: 1; min-height: 0; padding: 12px 14px; gap: 6px; }
+.chatview__bar {
+  flex: none; padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--border); background: var(--bg); align-items: center; gap: 8px;
+}
+.chatview__bar .input {
+  border-radius: 999px; background: var(--surface); border-color: transparent;
+}
+.chatbar__quick, .chatbar__send {
+  flex: none; width: 38px; height: 38px; border-radius: 999px; border: none; cursor: pointer;
+  display: grid; place-items: center;
+}
+.chatbar__quick { background: var(--surface); color: var(--muted); }
+.chatbar__send { background: var(--indigo); color: #fff; }
+.chatbar__send:disabled { opacity: .45; cursor: default; }
+.chatfinished {
+  flex: none; text-align: center; font-size: 12.5px; color: var(--muted);
+  padding: 14px 16px calc(14px + env(safe-area-inset-bottom)); border-top: 1px solid var(--border);
+}
+/* tighter consecutive-bubble spacing for a cleaner thread */
+.chatview__scroll .bubble { max-width: 76%; box-shadow: 0 1px 1px rgba(20,21,26,.04); }
+:root[data-theme="dark"] .bubble.them { background: #262833; }
+
 /* ---------- weekly goal ---------- */
 .goalcard { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; box-shadow: var(--shadow); margin-top: 10px; }
 .goalbar { height: 8px; border-radius: 999px; background: var(--surface); margin-top: 8px; overflow: hidden; }
