@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Check } from "lucide-react";
 import { useClickOutside } from "../hooks/useClickOutside";
 
 export default function Dropdown({
@@ -32,7 +33,7 @@ export default function Dropdown({
               onClick={() => { onChange(o); setOpen(false); }}
             >
               {o}
-              {o === value && <span className="tpick__tick">✓</span>}
+              {o === value && <span className="tpick__tick"><Check size={16} /></span>}
             </button>
           ))}
         </div>

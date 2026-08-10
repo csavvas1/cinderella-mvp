@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X } from "lucide-react";
+import { X, Check, Circle } from "lucide-react";
 import { useStore } from "../../context/AppStore";
 import { getConfig, priceJob, currentMonthKey } from "../../data/platform";
 import { monthlyPerformance, rewardForMonth, type MonthlyPerf, type ReferralReward } from "../../data/referral";
@@ -224,10 +224,10 @@ export default function Referrals() {
 
             <div className="subhead" style={{ marginTop: 14 }}>What they need each month</div>
             <div className="goals">
-              <div className="goalrow met"><span className="gck">✓</span> Be verified on {APP_NAME}</div>
-              <div className="goalrow met"><span className="gck">✓</span> Work at least {REFERRAL.minHours} hours</div>
-              <div className="goalrow met"><span className="gck">✓</span> Keep a {REFERRAL.minRating.toFixed(1)}★ rating or better</div>
-              <div className="goalrow met"><span className="gck">✓</span> No more than {REFERRAL.maxCancellations} cancellations</div>
+              <div className="goalrow met"><span className="gck"><Check size={15} /></span> Be verified on {APP_NAME}</div>
+              <div className="goalrow met"><span className="gck"><Check size={15} /></span> Work at least {REFERRAL.minHours} hours</div>
+              <div className="goalrow met"><span className="gck"><Check size={15} /></span> Keep a {REFERRAL.minRating.toFixed(1)}★ rating or better</div>
+              <div className="goalrow met"><span className="gck"><Check size={15} /></span> No more than {REFERRAL.maxCancellations} cancellations</div>
             </div>
 
             <div className="subhead" style={{ marginTop: 16 }}>Example</div>
@@ -297,7 +297,7 @@ function RefereeModal({ data, onClose }: {
         <div className="goals">
           {checks.map((c) => (
             <div key={c.label} className={"goalrow " + (c.met ? "met" : "unmet")}>
-              <span className="gck">{c.met ? "✓" : "○"}</span> {c.label}
+              <span className="gck">{c.met ? <Check size={15} /> : <Circle size={15} />}</span> {c.label}
             </div>
           ))}
         </div>

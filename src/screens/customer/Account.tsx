@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { X } from "lucide-react";
+import { X, Check } from "lucide-react";
 import { useStore } from "../../context/AppStore";
 import { BrandIcon } from "../../components/PaymentPicker";
 import DetailsModal from "../../components/DetailsModal";
@@ -612,7 +612,7 @@ export default function Account() {
                       : <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="6" y="3" width="12" height="18" rx="1.5" /><path d="M9.5 7h1M13.5 7h1M9.5 11h1M13.5 11h1M9.5 15h1M13.5 15h1" /></svg>}
                   </span>
                   <span className="ptype__t">{o.t}</span>
-                  <span className="ptype__check">{form.propertyType === o.v ? "✓" : ""}</span>
+                  <span className="ptype__check">{form.propertyType === o.v ? <Check size={16} /> : null}</span>
                 </button>
               ))}
             </div>

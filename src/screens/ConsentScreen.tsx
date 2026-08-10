@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Check } from "lucide-react";
 import { useStore } from "../context/AppStore";
 import { CUSTOMER_DOC_IDS, getLegalDoc } from "../data/legal";
 import LegalDocModal from "../components/LegalDocModal";
@@ -36,7 +37,7 @@ export default function ConsentScreen() {
               style={{ borderTop: i === 0 ? "none" : "1px solid var(--border)" }}>
               <span className="legalrow__txt">
                 <b>{d.title}</b>
-                {seen && <span className="tiny muted">✓ Opened</span>}
+                {seen && <span className="tiny muted"><Check size={13} style={{ verticalAlign: "-2px" }} /> Opened</span>}
               </span>
               <span className="dayrow__chev">›</span>
             </button>

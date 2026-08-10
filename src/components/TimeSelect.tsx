@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Check } from "lucide-react";
 import { useClickOutside } from "../hooks/useClickOutside";
 
 const SLOTS: string[] = (() => {
@@ -46,7 +47,7 @@ export default function TimeSelect({
               onClick={() => { onChange(t); setOpen(false); }}
             >
               {t}
-              {t === value && <span className="tpick__tick">✓</span>}
+              {t === value && <span className="tpick__tick"><Check size={16} /></span>}
             </button>
           ))}
         </div>

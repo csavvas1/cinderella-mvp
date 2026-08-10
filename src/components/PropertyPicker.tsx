@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Check } from "lucide-react";
 import type { PropertyAddress } from "../types";
 import { useClickOutside } from "../hooks/useClickOutside";
 
@@ -53,7 +54,7 @@ export default function PropertyPicker({
                 <b>{a.nickname}</b>
                 {a.nickname !== a.address && <span className="muted tiny">{a.address}</span>}
               </span>
-              {a.id === value && <span className="proppick__tick">✓</span>}
+              {a.id === value && <span className="proppick__tick"><Check size={16} /></span>}
             </button>
           ))}
         </div>

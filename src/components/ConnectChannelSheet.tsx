@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { X } from "lucide-react";
+import { X, Check } from "lucide-react";
 import type { PropertyAddress } from "../types";
 import { useStore } from "../context/AppStore";
 import { monetisationEnabled } from "../data/platform";
@@ -107,7 +107,7 @@ export default function ConnectChannelSheet({
                   <span className="chan-name">{p.name}</span>
                   {st === "confirmed" ? (
                     <button className="chan-btn chan-btn--on" onClick={() => disconnect(p.id)}>
-                      ✓ Connected
+                      <Check size={14} style={{ verticalAlign: "-2px" }} /> Connected
                     </button>
                   ) : st === "connecting" ? (
                     <button className="chan-btn" disabled>Connecting…</button>

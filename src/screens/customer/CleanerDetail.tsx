@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, Star } from "lucide-react";
+import { X, Star, Check, Circle } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { CLEANERS, autoAcceptDecision, isWeekend, occurrenceDates, cleanerBadges } from "../../data/cleaners";
 import { priceJob, cleanerCancelRate, monetisationEnabled } from "../../data/platform";
@@ -349,12 +349,12 @@ export default function CleanerDetail() {
           <div className="infolines">
             {decision.decision === "auto" ? (
               <div className="infoline">
-                <span className="infoline__ic ok">✓</span>
+                <span className="infoline__ic ok"><Check size={16} /></span>
                 <span>Instant confirmation</span>
               </div>
             ) : (
               <div className="infoline">
-                <span className="infoline__ic wait">○</span>
+                <span className="infoline__ic wait"><Circle size={16} /></span>
                 <span>Needs {cleaner.name.split(" ")[0]}'s approval — you'll be notified</span>
               </div>
             )}

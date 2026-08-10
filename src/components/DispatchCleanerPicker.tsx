@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { X, Star } from "lucide-react";
+import { X, Star, Check, Plus } from "lucide-react";
 import { useStore } from "../context/AppStore";
 import { cleanerBadges, marketStats } from "../data/cleaners";
 import Avatar from "./Avatar";
@@ -120,7 +120,7 @@ export default function DispatchCleanerPicker({
                   <div className="clcard__rate">€{c.rateWeekday}</div>
                   <div className="muted tiny">/ hour</div>
                   {mode === "priority" && (
-                    <span className={"dpick__check" + (on ? " on" : "")} style={{ marginTop: 6 }}>{on ? "✓" : "+"}</span>
+                    <span className={"dpick__check" + (on ? " on" : "")} style={{ marginTop: 6 }}>{on ? <Check size={16} /> : <Plus size={16} />}</span>
                   )}
                 </div>
               </div>

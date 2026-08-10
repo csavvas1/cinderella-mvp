@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X } from "lucide-react";
+import { X, Check } from "lucide-react";
 import { getLegalDoc } from "../data/legal";
 import LegalDocModal from "./LegalDocModal";
 
@@ -41,7 +41,7 @@ export default function ConsentGate({
                 style={{ borderTop: i === 0 ? "none" : "1px solid var(--border)" }}>
                 <span className="legalrow__txt">
                   <b>{d.title}</b>
-                  {seen && <span className="tiny muted">✓ Opened</span>}
+                  {seen && <span className="tiny muted"><Check size={13} style={{ verticalAlign: "-2px" }} /> Opened</span>}
                 </span>
                 <span className="tiny muted">Read ›</span>
               </button>

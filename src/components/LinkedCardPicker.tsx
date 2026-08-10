@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Check } from "lucide-react";
 import type { Card } from "../types";
 import { BrandIcon } from "./PaymentPicker";
 import { useClickOutside } from "../hooks/useClickOutside";
@@ -35,18 +36,18 @@ export default function LinkedCardPicker({
           <button type="button" className={"paypick__opt" + (!value ? " sel" : "")} onClick={() => { onChange(undefined); setOpen(false); }}>
             <span className="paybrand" style={{ background: "var(--surface)" }}>—</span>
             <span className="paypick__txt">No default card</span>
-            {!value && <span className="paypick__tick">✓</span>}
+            {!value && <span className="paypick__tick"><Check size={16} /></span>}
           </button>
           <button type="button" className={"paypick__opt" + (isApple ? " sel" : "")} onClick={() => { onChange("applepay"); setOpen(false); }}>
             <BrandIcon brand="applepay" />
             <span className="paypick__txt">Apple Pay</span>
-            {isApple && <span className="paypick__tick">✓</span>}
+            {isApple && <span className="paypick__tick"><Check size={16} /></span>}
           </button>
           {cards.map((c) => (
             <button key={c.id} type="button" className={"paypick__opt" + (c.id === value ? " sel" : "")} onClick={() => { onChange(c.id); setOpen(false); }}>
               <BrandIcon brand={c.brand} />
               <span className="paypick__txt">{c.nickname} <span className="muted tiny">···· {c.last4}</span></span>
-              {c.id === value && <span className="paypick__tick">✓</span>}
+              {c.id === value && <span className="paypick__tick"><Check size={16} /></span>}
             </button>
           ))}
         </div>

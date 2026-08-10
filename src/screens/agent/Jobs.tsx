@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { Check } from "lucide-react";
 import { useStore } from "../../context/AppStore";
 import type { Job } from "../../types";
 
@@ -135,12 +136,12 @@ export default function Jobs() {
                         title="Acknowledge change"
                         onClick={(e) => { e.stopPropagation(); acknowledgeJob(j.id); }}
                       >
-                        ✓
+                        <Check size={16} />
                       </button>
                     </div>
                   ) : (
                     <span className={"badge " + (pending ? "amber" : "green")}>
-                      {pending ? "Accept" : "✓"}
+                      {pending ? "Accept" : <Check size={16} />}
                     </span>
                   )}
                 </div>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Check } from "lucide-react";
 import type { Card } from "../types";
 import { useClickOutside } from "../hooks/useClickOutside";
 
@@ -77,7 +78,7 @@ export default function PaymentPicker({
                 {o.label}
                 {o.sub && <span className="muted tiny" style={{ marginLeft: 6 }}>{o.sub}</span>}
               </span>
-              {o.id === value && <span className="paypick__tick">✓</span>}
+              {o.id === value && <span className="paypick__tick"><Check size={16} /></span>}
             </button>
           ))}
         </div>
