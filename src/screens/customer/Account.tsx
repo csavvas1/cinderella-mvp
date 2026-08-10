@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { X, Check } from "lucide-react";
+import { X, Check, ArrowRight } from "lucide-react";
 import { useStore } from "../../context/AppStore";
 import { BrandIcon } from "../../components/PaymentPicker";
 import DetailsModal from "../../components/DetailsModal";
@@ -738,7 +738,7 @@ export default function Account() {
             <input className="input" value={cardForm.nickname} placeholder="e.g. Personal" onChange={(e) => setCardForm({ ...cardForm, nickname: e.target.value })} />
             <p className="tiny muted" style={{ marginTop: 10, lineHeight: 1.4 }}>You'll enter your card on JCC's secure page. Charged only after a completed cleaning.</p>
             <div style={{ height: 14 }} />
-            <button className="btn" onClick={addCardViaJCC}>Continue to secure checkout →</button>
+            <button className="btn" onClick={addCardViaJCC}>Continue to secure checkout <ArrowRight size={16} style={{ verticalAlign: "-3px" }} /></button>
           </div>
         </div>
       )}

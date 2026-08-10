@@ -6,6 +6,7 @@ import { cityFromAddress } from "../../data/addressPresets";
 import TimeSelect from "../../components/TimeSelect";
 import PropertyPicker from "../../components/PropertyPicker";
 import DatePicker from "../../components/DatePicker";
+import { ArrowRight } from "lucide-react";
 import type { Recurrence } from "../../types";
 
 function finishTime(time: string, hours: number) {
@@ -251,7 +252,7 @@ export default function Book() {
             <span className="timerange__lbl">Start</span>
             <span className="timerange__val">{time}</span>
           </div>
-          <span className="timerange__arrow">→</span>
+          <span className="timerange__arrow"><ArrowRight size={14} /></span>
           <div className="timerange__leg">
             <span className="timerange__lbl">End</span>
             <span className="timerange__val">{ends}</span>
@@ -271,7 +272,7 @@ export default function Book() {
 
       <div style={{ height: 18 }} />
       <button className="btn" onClick={findCleaners} disabled={!canSubmit} style={{ opacity: canSubmit ? 1 : 0.5 }}>
-        {hasProperty ? "Find cleaners →" : "Browse cleaners & rates →"}
+        {hasProperty ? <>Find cleaners <ArrowRight size={16} style={{ verticalAlign: "-3px" }} /></> : <>Browse cleaners & rates <ArrowRight size={16} style={{ verticalAlign: "-3px" }} /></>}
       </button>
       {hasProperty && incomplete && (
         <p className="tiny muted" style={{ textAlign: "center", marginTop: 8 }}>

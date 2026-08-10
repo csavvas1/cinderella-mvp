@@ -4,6 +4,7 @@ import { useStore } from "../../context/AppStore";
 import BackButton from "../../components/BackButton";
 import CameraCapture, { type CapturedPhoto } from "../../components/CameraCapture";
 import MapPicker from "../../components/MapPicker";
+import { ArrowRight } from "lucide-react";
 
 export default function JobDetail() {
   const { id } = useParams();
@@ -83,7 +84,7 @@ export default function JobDetail() {
               <div key={r.label} className="jd__diff">
                 <span className="jd__diff-k">{r.label}</span>
                 <span className="jd__diff-old">{r.from}</span>
-                <span className="jd__diff-arrow">→</span>
+                <span className="jd__diff-arrow"><ArrowRight size={14} /></span>
                 <span className="jd__diff-new">{r.to}</span>
               </div>
             ));
@@ -140,7 +141,7 @@ export default function JobDetail() {
       {j.status !== "completed" && (
         <a className="maploc__btn" style={{ marginTop: 12 }} href={mapsUrl} target="_blank" rel="noreferrer">
           <span>Open in Maps</span>
-          <span className="maploc__arrow">→</span>
+          <span className="maploc__arrow"><ArrowRight size={14} /></span>
         </a>
       )}
 
