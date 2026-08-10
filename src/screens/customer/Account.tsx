@@ -22,11 +22,14 @@ import { CLEANER_DOC_IDS, LEGAL_DOCS } from "../../data/legal";
 import type { Booking, Card, PropertyAddress } from "../../types";
 
 // "done" indicator for a configured agent setup row (rates, payout, etc) — a
-// small green check pill instead of the word "Set".
+// filled green verified-seal, matching the identity-verification badge style.
 function DoneTick({ label }: { label?: string }) {
   return (
     <span className="donetick" aria-label={label || "Done"} title={label}>
-      <Check size={15} strokeWidth={3} />
+      <svg viewBox="0 0 24 24" width="24" height="24" role="img">
+        <path d="M12 1.5 15 4l3.7-.3 1.2 3.5L23 9.4l-1.5 3.4L23 16.2l-3.1 2.2-1.2 3.5L15 21.6 12 24l-3-2.4-3.7.3-1.2-3.5L1 16.2l1.5-3.4L1 9.4l3.1-2.2L5.3 3.7 9 4Z" fill="currentColor" />
+        <path d="M8.6 12.4 11 14.8l4.6-5.2" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
     </span>
   );
 }
