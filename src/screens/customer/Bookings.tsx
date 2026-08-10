@@ -256,11 +256,16 @@ export default function Bookings() {
                 cancelledBookings={cancelledList}
                 onEdit={(b) => setEditFor(b)}
                 onMessage={async (b) => {
-                  // resolve the booking's real agent via its linked job; only
-                  // real (non-mock) cleaners have a chat thread.
-                  const job = jobs.find((j) => j.id === b.jobId || j.bookingId === b.id);
+                  // resolve the booking's real agent via its linked job. Match ONLY
+                  // a job where I am the customer and the cleaner is a different
+                  // real account — avoids picking a job where I'm the cleaner
+                  // (which would build a self-thread).
+                  const job = jobs.find((j) =>
+                    (j.id === b.jobId || j.bookingId === b.id) &&
+                    j.customerUid === myUid &&
+                    !!j.cleanerUid && j.cleanerUid !== myUid);
                   const cleanerUid = job?.cleanerUid;
-                  if (myUid && cleanerUid) {
+                  if (myUid && cleanerUid && cleanerUid !== myUid) {
                     const tid = await createThread(myUid, cleanerUid, job?.id, `Cleaning · ${b.date}`);
                     if (tid) { nav("/messages?thread=" + tid); return; }
                   }

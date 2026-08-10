@@ -70,8 +70,8 @@ export default function JobDetail() {
         </span>
       </div>
 
-      {/* Message the customer — only when both sides are real accounts */}
-      {j.customerUid && j.cleanerUid && (
+      {/* Message the customer — only when both sides are real, distinct accounts */}
+      {j.customerUid && j.cleanerUid && j.customerUid !== j.cleanerUid && (
         <button className="btn secondary sm" style={{ marginTop: 8, marginBottom: 4 }}
           onClick={async () => {
             const tid = await createThread(j.customerUid!, j.cleanerUid!, j.id, `Cleaning · ${j.date}`);

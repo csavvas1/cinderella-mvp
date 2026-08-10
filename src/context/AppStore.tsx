@@ -1564,6 +1564,11 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     },
     createThread: async (customerUid, cleanerUid, jobId, subject) => {
       if (!isRealUser || !currentKey || !customerUid || !cleanerUid) return null;
+      // never create a self-thread (customer and cleaner the same account) — that
+      // row is invisible to the "other" party and just clutters the inbox.
+      if (customerUid === cleanerUid) { /* eslint-disable-next-line no-console */ console.error("createThread: customer == cleaner, refused"); return null; }
+      // the caller must be one of the two parties
+      if (currentKey !== customerUid && currentKey !== cleanerUid) return null;
       const uid = currentKey;
       const { data, error } = await supabase
         .from("message_threads")
