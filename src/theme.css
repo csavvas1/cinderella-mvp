@@ -673,7 +673,8 @@ body {
 }
 .chathead {
   flex: none; display: flex; align-items: center; gap: 10px;
-  padding: calc(env(safe-area-inset-top) + 12px) 12px 12px;
+  /* clear the Dynamic Island / notch at the top of the phone frame */
+  padding: calc(env(safe-area-inset-top) + 54px) 14px 12px;
   border-bottom: 1px solid var(--border); background: var(--bg);
 }
 .chathead__back {
@@ -690,7 +691,7 @@ body {
 }
 .chatview__scroll { flex: 1; min-height: 0; padding: 12px 14px; gap: 6px; }
 .chatview__bar {
-  flex: none; padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+  flex: none; padding: 10px 12px calc(20px + env(safe-area-inset-bottom));
   border-top: 1px solid var(--border); background: var(--bg); align-items: center; gap: 8px;
 }
 .chatview__bar .input {
@@ -705,7 +706,7 @@ body {
 .chatbar__send:disabled { opacity: .45; cursor: default; }
 .chatfinished {
   flex: none; text-align: center; font-size: 12.5px; color: var(--muted);
-  padding: 14px 16px calc(14px + env(safe-area-inset-bottom)); border-top: 1px solid var(--border);
+  padding: 14px 16px calc(24px + env(safe-area-inset-bottom)); border-top: 1px solid var(--border);
 }
 /* message row = optional avatar + bubble (Messenger style) */
 .msgrow { display: flex; align-items: flex-end; gap: 6px; }
