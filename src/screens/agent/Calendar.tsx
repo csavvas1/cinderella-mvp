@@ -105,36 +105,35 @@ function JobCalendar({ jobs, daySchedule }: { jobs: Job[]; daySchedule: Record<s
         <b>{monthName}</b>
         <button className="iconbtn" onClick={() => setMonth(new Date(y, m + 1, 1))}>›</button>
       </div>
-      <div className="calgrid calhead">
+      <div className="calgrid calhead dotcal">
         {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => <div key={i} className="caldow">{d}</div>)}
       </div>
-      <div className="calgrid">
+      <div className="calgrid dotcal">
         {cells.map((day, i) => {
           if (day === null) return <div key={i} />;
           const date = iso(day);
           const list = (byDate[date] ?? []).filter((j) => j.status !== "declined");
           const count = list.length;
           const isPast = date < today;
+          // up to 3 status dots under the day number (Google-calendar style):
+          // pending -> wait (amber), completed -> done (green), else up (indigo).
           const dots = list.slice(0, 3).map((j) =>
             j.status === "pending" ? "wait" : j.status === "completed" ? "done" : "up");
-          const extra = count - dots.length;
           const cls =
             "calcell" +
             (count ? " has" : "") +
             (date === today ? " today" : "") +
             (isPast ? " past" : "") +
             (selected === date ? " sel" : "");
-          // day mark colour (same as the customer/standard calendar): pending ->
-          // wait (amber), any active -> up (indigo), all completed -> done (green).
-          const mark = !count ? "" :
-            list.some((j) => j.status === "pending") ? "wait" :
-            list.some((j) => j.status === "approved" || j.status === "modified") ? "up" :
-            list.every((j) => j.status === "completed") ? "done" : "up";
           return (
             <button key={i} className={cls} disabled={isPast && count === 0}
               onClick={() => { if (!(isPast && count === 0)) setSelected(date); }}>
-              <span className={"calmark" + (mark ? " calmark--" + mark : "")}>{day}</span>
-              {count > 1 && <span className="cmore">+{count - 1}</span>}
+              <span className="calnum">{day}</span>
+              {count > 0 && (
+                <span className="caldots" aria-label={`${count} booking${count === 1 ? "" : "s"}`}>
+                  {dots.map((d, k) => <i key={k} className={"cdot " + d} />)}
+                </span>
+              )}
             </button>
           );
         })}

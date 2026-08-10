@@ -856,20 +856,23 @@ function CalendarView({
         <b>{monthName}</b>
         <button className="iconbtn" onClick={() => setMonth(new Date(y, m + 1, 1))}>›</button>
       </div>
-      <div className="calgrid calhead">
+      <div className="calgrid calhead dotcal">
         {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => <div key={i} className="caldow">{d}</div>)}
       </div>
-      <div className="calgrid">
+      <div className="calgrid dotcal">
         {cells.map((day, i) => {
           if (day === null) return <div key={i} />;
           const date = iso(day);
           const dayBookings = byDate[date] ?? [];
-          const cleanStatus = dayBookings.length
-            ? (dayBookings.some((b) => b.status === "confirmed" || b.status === "upcoming") ? "up"
-              : dayBookings.some((b) => b.status === "awaiting") ? "wait" : "done")
-            : null;
           const hasCancelled = (cancelledByDate[date] ?? []).length > 0;
           const isPast = date < today;
+          // one status dot per booking (up to 3): confirmed/upcoming -> up
+          // (indigo), awaiting -> wait (amber), else done (green). A cancelled-
+          // only day shows a single red dot.
+          const dots: string[] = dayBookings.slice(0, 3).map((b) =>
+            b.status === "confirmed" || b.status === "upcoming" ? "up"
+              : b.status === "awaiting" ? "wait" : "done");
+          if (dots.length === 0 && hasCancelled) dots.push("cancelled");
           const cls =
             "calcell" +
             (dayBookings.length || hasCancelled ? " has" : "") +
@@ -877,12 +880,14 @@ function CalendarView({
             (isPast ? " past" : "") +
             (selected === date ? " sel" : "");
           const clickable = !isPast || hasCancelled;
-          // a booked day marks the number inside a filled status-colored circle;
-          // cancelled shows a red ring. Clean, no text.
-          const mark = cleanStatus ? cleanStatus : hasCancelled ? "cancelled" : null;
           return (
             <button key={i} className={cls} disabled={!clickable} onClick={() => { if (clickable) setSelected((cur) => (cur === date ? null : date)); }}>
-              <span className={"calmark" + (mark ? " calmark--" + mark : "")}>{day}</span>
+              <span className="calnum">{day}</span>
+              {dots.length > 0 && (
+                <span className="caldots" aria-label={`${dots.length} booking${dots.length === 1 ? "" : "s"}`}>
+                  {dots.map((d, k) => <i key={k} className={"cdot " + d} />)}
+                </span>
+              )}
             </button>
           );
         })}
