@@ -100,13 +100,39 @@ export async function sendEmail(to: string, subject: string, p: EmailPayload): P
   const html = renderHtml(p);
   const text = renderText(p);
 
+  // Resend REST API is the PRIMARY transport — it sends clean UTF-8 HTML (the
+  // Gmail SMTP path via denomailer garbled the HTML / Greek brand into raw
+  // quoted-printable). Resend needs no domain for its onboarding sender.
+  const key = Deno.env.get("RESEND_API_KEY") ?? "";
+  if (key) {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ from, to, subject, text, html }),
+    });
+    if (res.ok) return { ok: true };
+    // fall through to Gmail only if Resend actually failed
+    const rErr = await res.text();
+    if (!(gmailUser && gmailPass)) return { ok: false, error: `resend: ${rErr}` };
+  }
+
+  // fallback: Gmail SMTP (only if no Resend key, or Resend errored)
   if (gmailUser && gmailPass) {
     try {
       const { SMTPClient } = await import("https://deno.land/x/denomailer@1.6.0/mod.ts");
       const client = new SMTPClient({
         connection: { hostname: "smtp.gmail.com", port: 465, tls: true, auth: { username: gmailUser, password: gmailPass } },
       });
-      await client.send({ from, to, subject, content: text, html });
+      await client.send({
+        from, to, subject,
+        content: "text/plain; charset=utf-8",
+        html,
+        // encoding hint so the HTML part isn't shown raw
+        mimeContent: [
+          { mimeType: "text/plain; charset=utf-8", content: text, transferEncoding: "quoted-printable" },
+          { mimeType: "text/html; charset=utf-8", content: html, transferEncoding: "quoted-printable" },
+        ],
+      });
       await client.close();
       return { ok: true };
     } catch (e) {
@@ -114,14 +140,5 @@ export async function sendEmail(to: string, subject: string, p: EmailPayload): P
     }
   }
 
-  // fallback: Resend REST API
-  const key = Deno.env.get("RESEND_API_KEY") ?? "";
-  if (!key) return { ok: true, skipped: true };
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from, to, subject, text, html }),
-  });
-  if (!res.ok) return { ok: false, error: await res.text() };
-  return { ok: true };
+  return { ok: true, skipped: true };
 }
