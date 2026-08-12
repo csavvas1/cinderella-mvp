@@ -120,11 +120,11 @@ export default function TabBar() {
   function AgentContent() {
     const jobsActive = isActive("/agent/jobs");
     const calActive = isActive("/agent/calendar");
+    const msgActive = isActive("/messages");
     const referActive = isActive("/agent/referrals");
-    // active tab index (Jobs=0, Calendar=1, Refer=2). EXACT offset (not clamped)
-    // so only the immediate neighbour (rel ±1) fills on a swipe — clamping made
-    // both the calendar and the wallet share rel=1 and light up together.
-    const activeIdx = referActive ? 2 : calActive ? 1 : 0;
+    // active tab index (Jobs=0, Calendar=1, Messages=2, Refer=3). EXACT offset
+    // (not clamped) so only the immediate neighbour (rel ±1) fills on a swipe.
+    const activeIdx = referActive ? 3 : msgActive ? 2 : calActive ? 1 : 0;
     const rel = (i: number) => i - activeIdx;
     return (
       <>
@@ -137,7 +137,11 @@ export default function TabBar() {
         <button data-rel={rel(1)} className={"wolt__round" + (calActive ? " active" : "") + popCls("a-cal")} onClick={() => tap("a-cal", () => nav("/agent/calendar"))} aria-label="Calendar" title="Calendar">
           <span className="ic"><Icon name="calendar" filled={false} /></span>
         </button>
-        <button data-rel={rel(2)} className={"wolt__round" + (referActive ? " active" : "") + popCls("a-earn")} onClick={() => tap("a-earn", () => nav("/agent/referrals"))} aria-label="Earnings" title="Earnings">
+        <button data-rel={rel(2)} className={"wolt__round wolt__round--badged" + (msgActive ? " active" : "") + popCls("a-msg")} onClick={() => tap("a-msg", () => nav("/messages"))} aria-label="Messages" title="Messages">
+          <span className="ic"><Icon name="messages" filled={false} /></span>
+          {unreadMessages > 0 && <span className="notifbadge notifbadge--ondark">{unreadMessages > 9 ? "9+" : unreadMessages}</span>}
+        </button>
+        <button data-rel={rel(3)} className={"wolt__round" + (referActive ? " active" : "") + popCls("a-earn")} onClick={() => tap("a-earn", () => nav("/agent/referrals"))} aria-label="Earnings" title="Earnings">
           <span className="ic"><Icon name="earn" filled={false} /></span>
         </button>
       </>

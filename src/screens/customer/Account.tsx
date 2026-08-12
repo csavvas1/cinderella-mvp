@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { X, Check, ArrowRight } from "lucide-react";
+import { X, Check, ArrowRight, Star } from "lucide-react";
 import { useStore } from "../../context/AppStore";
 import { BrandIcon } from "../../components/PaymentPicker";
 import DetailsModal from "../../components/DetailsModal";
@@ -77,6 +77,7 @@ export default function Account() {
     agentProfile, setAgentProfile,
     pushEnabled, requestPushPermission, disablePushNotifications,
     verification, submitVerification,
+    reviewsFor, myUid,
   } = useStore();
 
   const [pushBusy, setPushBusy] = useState(false);
@@ -823,6 +824,57 @@ export default function Account() {
       {agentActivated && (
         <>
           <div className="acct-sec acct-sec--agent">Cleaner</div>
+
+          {/* YOUR RATING — reviews customers left for this agent. Aggregate stars
+              + count, then the most recent few. Empty state before any review. */}
+          {(() => {
+            const myReviews = myUid ? reviewsFor(myUid) : [];
+            const count = myReviews.length;
+            const avg = count ? myReviews.reduce((s, r) => s + (r.rating || 0), 0) / count : 0;
+            return (
+              <div className="card" style={{ marginTop: 12 }}>
+                <div className="between" style={{ alignItems: "center" }}>
+                  <b style={{ fontSize: 14 }}>Your rating</b>
+                  {count > 0 && (
+                    <span className="ratesum">
+                      <span className="ratesum__stars">
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <Star key={n} size={15} fill={n <= Math.round(avg) ? "currentColor" : "none"} />
+                        ))}
+                      </span>
+                      <b className="ratesum__avg">{avg.toFixed(1)}</b>
+                      <span className="tiny muted">({count})</span>
+                    </span>
+                  )}
+                </div>
+                {count === 0 ? (
+                  <p className="tiny muted" style={{ margin: "8px 0 0" }}>
+                    No reviews yet. Complete cleanings and your customer ratings will appear here.
+                  </p>
+                ) : (
+                  <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 10 }}>
+                    {myReviews.slice(0, 3).map((r) => (
+                      <div key={r.id} className="agentrev">
+                        <div className="between" style={{ alignItems: "center" }}>
+                          <b style={{ fontSize: 13 }}>{r.author}</b>
+                          <span className="agentrev__stars">
+                            {[1, 2, 3, 4, 5].map((n) => (
+                              <Star key={n} size={12} fill={n <= (r.rating || 0) ? "currentColor" : "none"} />
+                            ))}
+                          </span>
+                        </div>
+                        {r.text && <div className="tiny muted" style={{ marginTop: 3 }}>{r.text}</div>}
+                        <div className="tiny muted" style={{ marginTop: 3, opacity: .7 }}>{r.date}</div>
+                      </div>
+                    ))}
+                    {count > 3 && (
+                      <div className="tiny muted" style={{ textAlign: "center" }}>+ {count - 3} more review{count - 3 === 1 ? "" : "s"}</div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* RATES & AVAILABILITY */}
           <div className="card row between" style={{ marginTop: 12, cursor: "pointer" }} onClick={() => setShowRates(true)}>

@@ -2482,6 +2482,8 @@ input[type="range"]::-webkit-slider-thumb {
   display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
   border: 1px solid var(--border); border-radius: 14px; background: var(--card);
   padding: 10px 12px; margin-bottom: 8px; cursor: pointer;
+  color: var(--text); /* button defaults to black text — force theme ink so the
+                         counterparty name is readable in dark mode too */
 }
 .threadrow__av { flex: none; }
 .threadrow__dot { width: 9px; height: 9px; border-radius: 999px; background: var(--indigo); flex: none; }
@@ -2825,3 +2827,10 @@ input[type="range"]::-webkit-slider-thumb {
 .reviewdone__title { font-size: 13.5px; font-weight: 800; color: var(--text); }
 .reviewdone__stars { display: inline-flex; gap: 1px; color: var(--star); }
 .reviewdone__view { font-size: 12.5px; font-weight: 800; color: var(--indigo); flex: 0 0 auto; }
+
+/* ---- agent "Your rating" card ---- */
+.ratesum { display: inline-flex; align-items: center; gap: 6px; }
+.ratesum__stars { display: inline-flex; gap: 1px; color: var(--star); }
+.ratesum__avg { font-size: 14px; color: var(--text); }
+.agentrev { border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; }
+.agentrev__stars { display: inline-flex; gap: 1px; color: var(--star); }

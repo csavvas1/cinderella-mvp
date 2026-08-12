@@ -27,7 +27,7 @@ captureJoinCode();
 
 // Tab order per side — swipe navigation cycles within the current side only.
 const CUSTOMER_TABS = ["/book", "/bookings", "/messages"];
-const AGENT_TABS = ["/agent/jobs", "/agent/calendar", "/agent/referrals"];
+const AGENT_TABS = ["/agent/jobs", "/agent/calendar", "/messages", "/agent/referrals"];
 
 // The page component shown for each swipeable tab path.
 const TAB_PAGE: Record<string, () => JSX.Element> = {
