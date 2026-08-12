@@ -55,7 +55,10 @@ export default function Referrals() {
   const inviteText = `Join me cleaning on ${APP_NAME}. Sign up with my link and we both earn a bonus: ${inviteLink}`;
 
   // --- work earnings this month (net of commission) ---
-  const done = jobs.filter((j) => j.status === "completed" && j.cleanerUid === myUid);
+  // Only completed jobs assigned to me, dated within the current month — the
+  // card header says "this month", so the figure must be month-bounded.
+  const done = jobs.filter((j) =>
+    j.status === "completed" && j.cleanerUid === myUid && (j.date ?? "").slice(0, 7) === month);
   const workEarn = done.reduce((s, j) => s + (j.cleanerPay ?? priceJob(j.ratePerHour * j.durationHours).cleanerPay), 0);
   const tasks = done.length;
   const hoursWorked = done.reduce((s, j) => s + j.durationHours, 0);

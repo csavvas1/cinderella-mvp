@@ -78,9 +78,7 @@ function JobCalendar({ jobs, daySchedule }: { jobs: Job[]; daySchedule: Record<s
     if (live.length === 0) return null;
     const hours = live.reduce((s, j) => s + j.durationHours, 0);
     const earn = live.reduce((s, j) => s + jobEarn(j), 0);
-    // total travel: distance-from-prev where known, else distance-from-home for the first
-    const km = live.reduce((s, j, i) => s + (i === 0 ? j.distanceFromHomeKm : (j.distanceFromPrevKm ?? 0)), 0);
-    return { count: live.length, hours, earn, km };
+    return { count: live.length, hours, earn };
   }, [selected, selJobs]);
 
   // ---- gap / overlap check between consecutive jobs on the selected day ----
@@ -169,7 +167,6 @@ function JobCalendar({ jobs, daySchedule }: { jobs: Job[]; daySchedule: Record<s
             <div className="card daysum">
               <div className="daysum__item"><b>{summary.count}</b><span>job{summary.count === 1 ? "" : "s"}</span></div>
               <div className="daysum__item"><b>{summary.hours}h</b><span>work</span></div>
-              <div className="daysum__item"><b>{summary.km.toFixed(1)}km</b><span>travel</span></div>
               <div className="daysum__item"><b>€{summary.earn.toFixed(0)}</b><span>earn</span></div>
             </div>
           )}
@@ -178,8 +175,6 @@ function JobCalendar({ jobs, daySchedule }: { jobs: Job[]; daySchedule: Record<s
           {selJobs.map((j, idx) => {
             const prev = idx > 0 ? selJobs[idx - 1] : null;
             const warn = prev ? turnaroundWarn(prev, j) : null;
-            const travelKm = idx === 0 ? j.distanceFromHomeKm : j.distanceFromPrevKm;
-            const travelLabel = idx === 0 ? "from home" : "from previous";
             return (
               <div key={j.id}>
                 {warn && <div className="turnwarn">Tight turnaround — {warn}</div>}
@@ -192,9 +187,6 @@ function JobCalendar({ jobs, daySchedule }: { jobs: Job[]; daySchedule: Record<s
                   </div>
                   <div className="tiny muted" style={{ marginTop: 4 }}>{j.customerName} · {j.address}</div>
                   <div className="tiny muted">{j.durationHours}h · €{jobEarn(j).toFixed(0)}</div>
-                  {travelKm != null && (
-                    <div className="tiny muted">{travelKm.toFixed(1)}km {travelLabel}</div>
-                  )}
                 </div>
               </div>
             );

@@ -150,6 +150,26 @@ function jobIsLive(status: Job["status"]): boolean {
   return status === "approved" || status === "modified";
 }
 
+// Local today as YYYY-MM-DD (for date-string comparison against booking/job dates).
+function localTodayISO(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+// Auto-complete: once a booking's day has passed, an accepted/awaiting booking is
+// treated as completed (drives reviews, earnings, reminders). Mirrors the server
+// cron sweep so the UI is correct instantly, before the next cron run. Cancelled/
+// declined/already-completed rows are left untouched.
+function autoCompletePastBooking(b: Booking): Booking {
+  const active = b.status === "confirmed" || b.status === "awaiting" || b.status === "upcoming";
+  return active && b.date < localTodayISO() ? { ...b, status: "completed" } : b;
+}
+function autoCompletePastJob(j: Job): Job {
+  // Only an ACCEPTED job auto-completes. A past still-pending request never got
+  // accepted, so it must not count as done — it's handled elsewhere as stale.
+  const active = j.status === "approved" || j.status === "modified";
+  return active && j.date < localTodayISO() ? { ...j, status: "completed" } : j;
+}
+
 // Mock email — a real app sends via a backend/SMTP. We log it so the flow is
 // observable in the prototype without any mail infrastructure.
 // Fire a real browser push for a notification whenever the browser supports it
@@ -959,7 +979,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     let bookings: Booking[] | null = null;
     try {
       const { data } = await supabase.from("bookings").select("*");
-      if (data) bookings = (data as BookingRow[]).map(rowToBooking);
+      if (data) bookings = (data as BookingRow[]).map(rowToBooking).map(autoCompletePastBooking);
     } catch { /* ignore */ }
 
     // load jobs this user is involved in — as the booker (customer_uid) OR as the
@@ -969,7 +989,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       const { data } = await supabase.from("jobs").select("*").or(`customer_uid.eq.${uid},cleaner_uid.eq.${uid}`);
       if (data) {
         const seen = new Set<string>();
-        ownedJobs = (data as JobRow[]).map(rowToJob).filter((j) => (seen.has(j.id) ? false : (seen.add(j.id), true)));
+        ownedJobs = (data as JobRow[]).map(rowToJob).map(autoCompletePastJob).filter((j) => (seen.has(j.id) ? false : (seen.add(j.id), true)));
       }
     } catch { /* ignore */ }
 

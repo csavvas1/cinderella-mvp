@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { X, Star } from "lucide-react";
+import { X, Star, Check } from "lucide-react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useStore } from "../../context/AppStore";
@@ -1029,42 +1029,73 @@ function CalendarView({
                   })()}
                 </div>
               </div>
-              {(b.status === "upcoming" || b.status === "confirmed" || b.status === "awaiting") && (
-                <div className="row" style={{ gap: 8, marginTop: 10 }}>
-                  <button className="btn sm secondary grow" onClick={() => onEdit(b)}>Modify</button>
-                  {/* Messaging is available for any active booking — including
-                      today / last-minute. It only closes once the booking is done
-                      (completed/cancelled), enforced read-only in the chat view. */}
-                  <button className="btn sm agent grow" onClick={() => onMessage(b)}>Message cleaner</button>
-                </div>
-              )}
-              {b.status === "completed" && (
-                <>
-                  {b.refund && (
-                    <div className={"refundtag " + b.refund.status}>
-                      {b.refund.status === "pending" ? "Refund under review"
-                        : b.refund.status === "approved" ? "Refund approved"
-                        : "Refund declined"}
+              {(() => {
+                // A booking is "past" once its day has gone by. Modify + Message
+                // are only for still-upcoming bookings; once the day has passed
+                // (or the job is completed) the only action is to review.
+                const isPast = b.date < today;
+                const active = b.status === "upcoming" || b.status === "confirmed" || b.status === "awaiting";
+                const reviewable = b.status === "completed" || (active && isPast);
+
+                if (active && !isPast) {
+                  return (
+                    <div className="row" style={{ gap: 8, marginTop: 10 }}>
+                      <button className="btn sm secondary grow" onClick={() => onEdit(b)}>Modify</button>
+                      {/* Messaging is available for any active, upcoming booking.
+                          It closes once the day has passed or the job is done. */}
+                      <button className="btn sm agent grow" onClick={() => onMessage(b)}>Message cleaner</button>
                     </div>
-                  )}
-                  {b.tip ? (
-                    <div className="refundtag approved" style={{ marginTop: 10 }}>You tipped €{b.tip}</div>
-                  ) : null}
-                  <button className={"btn sm grow" + (b.rating ? " secondary" : "")} style={{ marginTop: 10 }} onClick={() => onReview(b)}>
-                    {b.rating ? "Edit your review" : `Review ${b.cleanerName}`}
-                  </button>
-                  {!b.tip && (
-                    <button className="btn sm secondary grow" style={{ marginTop: 8 }} onClick={() => onTip(b)}>Leave a tip</button>
-                  )}
-                  {!b.refund && (
-                    refundOpen(b) ? (
-                      <button className="btn sm secondary" style={{ marginTop: 8 }} onClick={() => onRefund(b)}>Request refund</button>
-                    ) : (
-                      <div className="tiny muted" style={{ marginTop: 8 }}>Refund window closed (24h after the cleaning).</div>
-                    )
-                  )}
-                </>
-              )}
+                  );
+                }
+
+                if (reviewable) {
+                  return (
+                    <>
+                      {b.refund && (
+                        <div className={"refundtag " + b.refund.status}>
+                          {b.refund.status === "pending" ? "Refund under review"
+                            : b.refund.status === "approved" ? "Refund approved"
+                            : "Refund declined"}
+                        </div>
+                      )}
+                      {b.tip ? (
+                        <div className="refundtag approved" style={{ marginTop: 10 }}>You tipped €{b.tip}</div>
+                      ) : null}
+                      {b.rating ? (
+                        // Already reviewed — show a done state; tapping reopens
+                        // the review the customer left (pre-filled, editable).
+                        <button className="reviewdone" style={{ marginTop: 10 }} onClick={() => onReview(b)}>
+                          <span className="reviewdone__badge"><Check size={15} /></span>
+                          <span className="reviewdone__body">
+                            <span className="reviewdone__title">You reviewed {b.cleanerName}</span>
+                            <span className="reviewdone__stars">
+                              {[1, 2, 3, 4, 5].map((n) => (
+                                <Star key={n} size={13} fill={n <= (b.rating ?? 0) ? "currentColor" : "none"} />
+                              ))}
+                            </span>
+                          </span>
+                          <span className="reviewdone__view">View</span>
+                        </button>
+                      ) : (
+                        <button className="btn sm grow" style={{ marginTop: 10 }} onClick={() => onReview(b)}>
+                          Review {b.cleanerName}
+                        </button>
+                      )}
+                      {!b.tip && (
+                        <button className="btn sm secondary grow" style={{ marginTop: 8 }} onClick={() => onTip(b)}>Leave a tip</button>
+                      )}
+                      {!b.refund && (
+                        refundOpen(b) ? (
+                          <button className="btn sm secondary" style={{ marginTop: 8 }} onClick={() => onRefund(b)}>Request refund</button>
+                        ) : (
+                          <div className="tiny muted" style={{ marginTop: 8 }}>Refund window closed (24h after the cleaning).</div>
+                        )
+                      )}
+                    </>
+                  );
+                }
+                return null;
+              })()}
             </div>
           ))}
 
