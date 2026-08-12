@@ -134,6 +134,7 @@ export default function Account() {
   };
   const [removeProp, setRemoveProp] = useState<PropertyAddress | null>(null);
   const [revokingUid, setRevokingUid] = useState<string | null>(null); // partner being removed
+  const [confirmRevoke, setConfirmRevoke] = useState<{ addressId: string; userId: string; name: string } | null>(null);
   const [showExp, setShowExp] = useState(false);
   const _pm = prevMonthDefaults();
   const [expMonth, setExpMonth] = useState(_pm.month);
@@ -501,12 +502,7 @@ export default function Account() {
                   <span className="propmember__name">{m.name}</span>
                   <button className="propmember__remove"
                     disabled={revokingUid === m.userId}
-                    onClick={async () => {
-                      setRevokingUid(m.userId);
-                      const res = await revokePropertyMember(a.id, m.userId);
-                      setRevokingUid(null);
-                      if (res.error) alert(res.error);
-                    }}>
+                    onClick={() => setConfirmRevoke({ addressId: a.id, userId: m.userId, name: m.name })}>
                     {revokingUid === m.userId ? "Removing…" : "Remove"}
                   </button>
                 </div>
@@ -806,6 +802,33 @@ export default function Account() {
           </div>
         );
       })()}
+
+      {/* CONFIRM REVOKE — owner removing a partner's access */}
+      {confirmRevoke && (
+        <div className="modal__backdrop center" onClick={() => setConfirmRevoke(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div style={{ textAlign: "center", marginBottom: 6 }}><b style={{ fontSize: 17 }}>Remove access?</b></div>
+            <p className="sub" style={{ textAlign: "center" }}>
+              <b>{confirmRevoke.name}</b> will lose access to this property and its cleaning schedule. You can re-share the invite link anytime.
+            </p>
+            <div style={{ height: 12 }} />
+            <button className="btn danger"
+              disabled={revokingUid === confirmRevoke.userId}
+              onClick={async () => {
+                const target = confirmRevoke;
+                setRevokingUid(target.userId);
+                const res = await revokePropertyMember(target.addressId, target.userId);
+                setRevokingUid(null);
+                setConfirmRevoke(null);
+                if (res.error) alert(res.error);
+              }}>
+              {revokingUid === confirmRevoke.userId ? "Removing…" : `Remove ${confirmRevoke.name}`}
+            </button>
+            <div style={{ height: 8 }} />
+            <button className="btn secondary" onClick={() => setConfirmRevoke(null)}>Cancel</button>
+          </div>
+        </div>
+      )}
 
       {/* PAYMENT — hidden during the free launch (no in-app charges) */}
       {monetisationEnabled() && (

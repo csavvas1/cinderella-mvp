@@ -1494,6 +1494,18 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     reconcileDispatch,
     deleteAddress: (id) => {
       const addr = acct.addresses.find((a) => a.id === id);
+      // SHARED-TO-ME case: I'm a partner, not the owner. "Deleting" it just
+      // ends MY access — remove my property_members row (RLS allows deleting my
+      // own membership) and drop it from my local list. Do NOT touch the address
+      // or its bookings (they belong to the owner).
+      if (addr?.isShared) {
+        patchAcct({ addresses: acct.addresses.filter((a) => a.id !== id) });
+        if (isRealUser && currentKey) {
+          supabase.from("property_members").delete()
+            .eq("address_id", id).eq("user_id", currentKey).then(logErr("leave property"));
+        }
+        return;
+      }
       // bookings tied to this property that are about to be cancelled
       const affected = addr
         ? acct.bookings.filter((b) => b.addressNickname === addr.nickname && b.status !== "completed" && b.status !== "cancelled")
