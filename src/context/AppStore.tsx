@@ -1328,18 +1328,33 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loggedIn, currentKey]);
 
-  // ---- live data: re-hydrate when my bookings / properties / sharing change ----
-  // Keeps the calendar + property list current without a manual refresh. Any
-  // change on these tables (mine via RLS, or a shared-property row) triggers a
-  // debounced re-hydrate. Coarse but simple; the debounce coalesces bursts.
+  // ---- live data: re-hydrate when my data changes ----
+  // Keeps the calendar, property list, notifications, cards, verification and
+  // reviews current without a manual refresh. Changes on the "profile" tables
+  // trigger a debounced hydrateProfile; review changes refetch the shared
+  // reviews. The debounce coalesces bursts.
   useEffect(() => {
     if (!isRealUser || !currentKey) return;
     const uid = currentKey;
     let timer: ReturnType<typeof setTimeout> | null = null;
+    let revTimer: ReturnType<typeof setTimeout> | null = null;
+    // profile/data re-hydrate (bookings, addresses, cards, verification, notifications, profile)
     const bump = () => {
       if (timer) clearTimeout(timer);
-      // don't reset the role/launch side on a background refresh
       timer = setTimeout(() => { void hydrateProfile(uid, currentEmail || "", false); }, 400);
+    };
+    // reviews live in a separate app-wide map — refetch just those
+    const bumpReviews = () => {
+      if (revTimer) clearTimeout(revTimer);
+      revTimer = setTimeout(() => {
+        supabase.from("reviews").select("*").then(({ data, error }) => {
+          if (error || !data) return;
+          const grouped: UserReviews = {};
+          for (const row of data as ReviewRow[]) (grouped[row.cleaner_id] ??= []).push(rowToReview(row));
+          for (const k of Object.keys(grouped)) grouped[k].sort((a, b) => (a.date < b.date ? 1 : -1));
+          setDbReviews(grouped);
+        });
+      }, 400);
     };
     const ch = supabase
       .channel("live-" + uid)
@@ -1347,8 +1362,12 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       .on("postgres_changes", { event: "*", schema: "public", table: "jobs" }, bump)
       .on("postgres_changes", { event: "*", schema: "public", table: "addresses" }, bump)
       .on("postgres_changes", { event: "*", schema: "public", table: "property_members" }, bump)
+      .on("postgres_changes", { event: "*", schema: "public", table: "notifications" }, bump)
+      .on("postgres_changes", { event: "*", schema: "public", table: "cards" }, bump)
+      .on("postgres_changes", { event: "*", schema: "public", table: "identity_verifications" }, bump)
+      .on("postgres_changes", { event: "*", schema: "public", table: "reviews" }, bumpReviews)
       .subscribe();
-    return () => { if (timer) clearTimeout(timer); supabase.removeChannel(ch); };
+    return () => { if (timer) clearTimeout(timer); if (revTimer) clearTimeout(revTimer); supabase.removeChannel(ch); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loggedIn, currentKey]);
 

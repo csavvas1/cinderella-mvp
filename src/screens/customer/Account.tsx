@@ -964,21 +964,27 @@ export default function Account() {
             })()}
           </div>
 
-          {/* Warn the agent when their profile is incomplete — without a rate,
-              a service city AND a work schedule they won't appear to customers. */}
+          {/* Warn the agent when their profile is incomplete. To appear in
+              customer search they need ALL of: rates, a service city, a work
+              schedule, a payout method, AND a verified identity (this mirrors
+              the server-side public_agents gate). */}
           {(() => {
             const rateSet = agentProfile.rateWeekday > 0 && agentProfile.rateWeekend > 0;
             const schedSet = Object.values(sched).some((s) => s && s.length);
             const citySet = serviceCities.length > 0;
-            if (rateSet && schedSet && citySet) return null;
+            const payoutSet = !!agentProfile.payoutType;
+            const idVerified = verified;
+            if (rateSet && schedSet && citySet && payoutSet && idVerified) return null;
             const missing = [
               !rateSet && "your rates",
               !citySet && "at least one city you work in",
               !schedSet && "a work schedule",
+              !payoutSet && "a payout method (Get paid)",
+              !idVerified && "identity verification",
             ].filter(Boolean);
             return (
               <div className="note amber" style={{ marginTop: 8 }}>
-                You won't appear to customers yet. Add {missing.join(", ")} under Rates &amp; availability so people can find and book you.
+                You won't appear to customers yet. To be listed and bookable, add {missing.join(", ")}.
               </div>
             );
           })()}
