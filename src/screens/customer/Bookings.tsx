@@ -370,7 +370,8 @@ export default function Bookings() {
                 ...(text ? [{ label: "Comment", value: text }] : []),
               ],
             });
-            setReviewFor(null);
+            // NOTE: do not close here — the modal shows a thank-you step and
+            // closes itself via onClose after a short delay.
           }}
         />
       )}
@@ -554,23 +555,37 @@ function SeriesModal({ sample, onClose, onSave, onCancelSeries }: {
 function ReviewModal({ booking, onClose, onSubmit }: {
   booking: Booking; onClose: () => void; onSubmit: (rating: number, text: string) => void;
 }) {
-  // Two guided steps: pick the stars, then (optionally) add a comment. If the
-  // booking was already reviewed we jump straight to the comment step for edits.
+  // Two guided steps then a thank-you: pick stars → optional comment → confirm.
+  // One review per completed job — no edit, so this only ever opens unreviewed.
   const [rating, setRating] = useState(booking.rating ?? 0);
   const [hover, setHover] = useState(0);
   const [text, setText] = useState(booking.reviewText ?? "");
-  const [step, setStep] = useState<1 | 2>(booking.rating ? 2 : 1);
+  const [step, setStep] = useState<1 | 2 | "done">(1);
 
   const LABELS = ["", "Poor", "Fair", "Good", "Great", "Excellent"];
   const shown = hover || rating;
 
+  // On the thank-you step, auto-dismiss shortly after so the user isn't stuck.
+  useEffect(() => {
+    if (step !== "done") return;
+    const t = setTimeout(onClose, 1900);
+    return () => clearTimeout(t);
+  }, [step]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function submit() {
+    onSubmit(rating, text.trim()); // persists + notifies (parent no longer closes)
+    setStep("done");
+  }
+
   return (
-    <Modal onClose={onClose} title={booking.rating ? `Edit review` : `Rate ${booking.cleanerName}`}>
-      {/* progress */}
-      <div className="revsteps" aria-hidden>
-        <span className={"revstep" + (step >= 1 ? " on" : "")} />
-        <span className={"revstep" + (step >= 2 ? " on" : "")} />
-      </div>
+    <Modal onClose={onClose} title={step === "done" ? "" : `Rate ${booking.cleanerName}`}>
+      {/* progress (hidden on the thank-you step) */}
+      {step !== "done" && (
+        <div className="revsteps" aria-hidden>
+          <span className={"revstep" + ((step === 1 || step === 2) ? " on" : "")} />
+          <span className={"revstep" + (step === 2 ? " on" : "")} />
+        </div>
+      )}
 
       {step === 1 && (
         <div className="revpane">
@@ -615,9 +630,28 @@ function ReviewModal({ booking, onClose, onSubmit }: {
           <textarea className="input revcomment" rows={3} placeholder="What went well? Anything they could improve?"
             value={text} onChange={(e) => setText(e.target.value)} />
           <div style={{ height: 12 }} />
-          <button className="btn" style={{ width: "100%" }} onClick={() => onSubmit(rating, text.trim())}>
-            {booking.rating ? "Update review" : "Submit review"}
+          <button className="btn" style={{ width: "100%" }} onClick={submit}>
+            Submit review
           </button>
+        </div>
+      )}
+
+      {step === "done" && (
+        <div className="revpane revthanks">
+          <span className="revthanks__badge">
+            <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7" /></svg>
+          </span>
+          <b className="revthanks__title">Thank you!</b>
+          <span className="revthanks__stars">
+            {[1, 2, 3, 4, 5].map((n) => (
+              <Star key={n} size={20} fill={n <= rating ? "currentColor" : "none"} />
+            ))}
+          </span>
+          <p className="sub" style={{ textAlign: "center", margin: "6px 0 0" }}>
+            Your review for {booking.cleanerName} has been sent.
+          </p>
+          <div style={{ height: 14 }} />
+          <button className="btn" style={{ width: "100%" }} onClick={onClose}>Done</button>
         </div>
       )}
     </Modal>
@@ -1085,22 +1119,21 @@ function CalendarView({
                         </div>
                       )}
                       {b.rating ? (
-                        // Already reviewed — show a done state; tapping reopens
-                        // the review the customer left (pre-filled, editable).
-                        // Refund (if still available) goes full-width below it.
+                        // Already reviewed — ONE review per completed job. Show a
+                        // static thank-you (no tap, no edit): what's typed is
+                        // typed. Refund (if still open) goes full-width below.
                         <>
-                          <button className="reviewdone" style={{ marginTop: 10 }} onClick={() => onReview(b)}>
-                            <span className="reviewdone__badge"><Check size={15} /></span>
-                            <span className="reviewdone__body">
-                              <span className="reviewdone__title">You reviewed {b.cleanerName}</span>
-                              <span className="reviewdone__stars">
+                          <div className="reviewthanks" style={{ marginTop: 10 }}>
+                            <span className="reviewthanks__badge"><Check size={16} /></span>
+                            <div className="reviewthanks__body">
+                              <b className="reviewthanks__title">Thanks for your review!</b>
+                              <span className="reviewthanks__stars">
                                 {[1, 2, 3, 4, 5].map((n) => (
-                                  <Star key={n} size={13} fill={n <= (b.rating ?? 0) ? "currentColor" : "none"} />
+                                  <Star key={n} size={14} fill={n <= (b.rating ?? 0) ? "currentColor" : "none"} />
                                 ))}
                               </span>
-                            </span>
-                            <span className="reviewdone__view">View</span>
-                          </button>
+                            </div>
+                          </div>
                           {canRefund && (
                             <button className="btn sm danger grow" style={{ marginTop: 8 }} onClick={() => onRefund(b)}>Request refund</button>
                           )}
@@ -1118,7 +1151,10 @@ function CalendarView({
                         </div>
                       )}
                       {!b.refund && !refundOpen(b) && (
-                        <div className="tiny muted" style={{ marginTop: 8 }}>Refund window closed (24h after the cleaning).</div>
+                        <div className="refundclosed" style={{ marginTop: 8 }}>
+                          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+                          <span>Refund window closed · 24h after the cleaning</span>
+                        </div>
                       )}
                     </>
                   );
