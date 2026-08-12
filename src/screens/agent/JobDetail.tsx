@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useStore } from "../../context/AppStore";
 import BackButton from "../../components/BackButton";
 import MapPicker from "../../components/MapPicker";
-import { ArrowRight, MapPin, MessageCircle } from "lucide-react";
+import { ArrowRight, MapPin, MessageCircle, Phone, X } from "lucide-react";
 
 export default function JobDetail() {
   const { id } = useParams();
@@ -163,13 +163,19 @@ export default function JobDetail() {
           </button>
         </div>
       ) : isLive ? (
-        <div className="row" style={{ gap: 10 }}>
+        <>
           {/* call only on the day of the job, and only if we have a number */}
           {isJobDay && j.customerPhone && (
-            <a className="btn secondary grow" href={`tel:${j.customerPhone.replace(/[^\d+]/g, "")}`} style={{ textAlign: "center" }}>Call</a>
+            <a className="actionbtn actionbtn--call" style={{ marginBottom: 10 }} href={`tel:${j.customerPhone.replace(/[^\d+]/g, "")}`}>
+              <span className="actionbtn__ic"><Phone size={17} /></span>
+              <span>Call customer</span>
+            </a>
           )}
-          <button className="btn danger grow" onClick={() => setShowCancel(true)}>Cancel</button>
-        </div>
+          <button className="actionbtn actionbtn--cancel" onClick={() => setShowCancel(true)}>
+            <span className="actionbtn__ic"><X size={18} /></span>
+            <span>Cancel job</span>
+          </button>
+        </>
       ) : null}
 
       {showCancel && (

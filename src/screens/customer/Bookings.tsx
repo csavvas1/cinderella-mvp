@@ -590,7 +590,7 @@ function ReviewModal({ booking, onClose, onSubmit }: {
             <button className="revrecap__edit" type="button" onClick={() => setStep(1)}>Change</button>
           </div>
           <p className="sub revpane__q">Add a comment for {booking.cleanerName} <span className="muted">(optional)</span></p>
-          <textarea className="input" rows={4} placeholder="What went well? Anything they could improve?"
+          <textarea className="input revcomment" rows={3} placeholder="What went well? Anything they could improve?"
             value={text} onChange={(e) => setText(e.target.value)} />
           <div style={{ height: 12 }} />
           <div className="row" style={{ gap: 8 }}>
@@ -1049,6 +1049,9 @@ function CalendarView({
                 }
 
                 if (reviewable) {
+                  // Refund can be requested while inside the 24h window and none
+                  // is open yet. Drives whether Review sits alone or paired.
+                  const canRefund = !b.refund && refundOpen(b);
                   return (
                     <>
                       {b.refund && (
@@ -1058,38 +1061,41 @@ function CalendarView({
                             : "Refund declined"}
                         </div>
                       )}
-                      {b.tip ? (
-                        <div className="refundtag approved" style={{ marginTop: 10 }}>You tipped €{b.tip}</div>
-                      ) : null}
                       {b.rating ? (
                         // Already reviewed — show a done state; tapping reopens
                         // the review the customer left (pre-filled, editable).
-                        <button className="reviewdone" style={{ marginTop: 10 }} onClick={() => onReview(b)}>
-                          <span className="reviewdone__badge"><Check size={15} /></span>
-                          <span className="reviewdone__body">
-                            <span className="reviewdone__title">You reviewed {b.cleanerName}</span>
-                            <span className="reviewdone__stars">
-                              {[1, 2, 3, 4, 5].map((n) => (
-                                <Star key={n} size={13} fill={n <= (b.rating ?? 0) ? "currentColor" : "none"} />
-                              ))}
+                        // Refund (if still available) goes full-width below it.
+                        <>
+                          <button className="reviewdone" style={{ marginTop: 10 }} onClick={() => onReview(b)}>
+                            <span className="reviewdone__badge"><Check size={15} /></span>
+                            <span className="reviewdone__body">
+                              <span className="reviewdone__title">You reviewed {b.cleanerName}</span>
+                              <span className="reviewdone__stars">
+                                {[1, 2, 3, 4, 5].map((n) => (
+                                  <Star key={n} size={13} fill={n <= (b.rating ?? 0) ? "currentColor" : "none"} />
+                                ))}
+                              </span>
                             </span>
-                          </span>
-                          <span className="reviewdone__view">View</span>
-                        </button>
+                            <span className="reviewdone__view">View</span>
+                          </button>
+                          {canRefund && (
+                            <button className="btn sm secondary grow" style={{ marginTop: 8 }} onClick={() => onRefund(b)}>Request refund</button>
+                          )}
+                        </>
                       ) : (
-                        <button className="btn sm grow" style={{ marginTop: 10 }} onClick={() => onReview(b)}>
-                          Review {b.cleanerName}
-                        </button>
+                        // Not yet reviewed — Review is primary, Request refund
+                        // sits beside it (equal width) so the two actions align.
+                        <div className="row" style={{ gap: 8, marginTop: 10 }}>
+                          <button className="btn sm grow" onClick={() => onReview(b)}>
+                            Review {b.cleanerName}
+                          </button>
+                          {canRefund && (
+                            <button className="btn sm secondary grow" onClick={() => onRefund(b)}>Request refund</button>
+                          )}
+                        </div>
                       )}
-                      {!b.tip && (
-                        <button className="btn sm secondary grow" style={{ marginTop: 8 }} onClick={() => onTip(b)}>Leave a tip</button>
-                      )}
-                      {!b.refund && (
-                        refundOpen(b) ? (
-                          <button className="btn sm secondary" style={{ marginTop: 8 }} onClick={() => onRefund(b)}>Request refund</button>
-                        ) : (
-                          <div className="tiny muted" style={{ marginTop: 8 }}>Refund window closed (24h after the cleaning).</div>
-                        )
+                      {!b.refund && !refundOpen(b) && (
+                        <div className="tiny muted" style={{ marginTop: 8 }}>Refund window closed (24h after the cleaning).</div>
                       )}
                     </>
                   );
