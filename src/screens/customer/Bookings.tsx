@@ -69,6 +69,22 @@ export default function Bookings() {
   const [seriesFor, setSeriesFor] = useState<string | null>(null);
   const [cancelTicket, setCancelTicket] = useState<Booking | null>(null);
 
+  // Deep-link from a review-reminder email: ?review=<bookingId> jumps to that
+  // booking's day AND opens the review sheet. Retries until bookings load, then
+  // strips the param so a refresh is clean.
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    const rid = sp.get("review");
+    if (!rid) return;
+    const bk = bookings.find((b) => b.id === rid);
+    if (!bk) return; // bookings not loaded yet — effect reruns when they are
+    sessionStorage.setItem("focus-booking", rid); // calendar jumps to its day
+    setReviewFor(bk);
+    sp.delete("review");
+    const clean = window.location.pathname + (sp.toString() ? `?${sp}` : "") + window.location.hash;
+    window.history.replaceState({}, "", clean);
+  }, [bookings]);
+
   // color + nickname per PROPERTY (asset). Two listings on one home share color.
   const propMeta = useMemo(() => {
     // stable color per distinct property, keyed by first-seen order
@@ -587,18 +603,17 @@ function ReviewModal({ booking, onClose, onSubmit }: {
                 <Star key={n} size={18} fill={n <= rating ? "currentColor" : "none"} />
               ))}
             </span>
-            <button className="revrecap__edit" type="button" onClick={() => setStep(1)}>Change</button>
+            {/* "Change" is the only way back to the stars — no separate Back
+                button, which kept the layout tall and pushed Submit off-screen. */}
+            <button className="revrecap__edit" type="button" onClick={() => setStep(1)}>Change rating</button>
           </div>
-          <p className="sub revpane__q">Add a comment for {booking.cleanerName} <span className="muted">(optional)</span></p>
+          <p className="sub revpane__q" style={{ marginBottom: 8 }}>Add a comment <span className="muted">(optional)</span></p>
           <textarea className="input revcomment" rows={3} placeholder="What went well? Anything they could improve?"
             value={text} onChange={(e) => setText(e.target.value)} />
           <div style={{ height: 12 }} />
-          <div className="row" style={{ gap: 8 }}>
-            <button className="btn secondary" style={{ flex: "0 0 auto" }} onClick={() => setStep(1)}>Back</button>
-            <button className="btn grow" onClick={() => onSubmit(rating, text.trim())}>
-              {booking.rating ? "Update review" : "Submit review"}
-            </button>
-          </div>
+          <button className="btn" style={{ width: "100%" }} onClick={() => onSubmit(rating, text.trim())}>
+            {booking.rating ? "Update review" : "Submit review"}
+          </button>
         </div>
       )}
     </Modal>
@@ -842,7 +857,10 @@ function EditModal({ booking, onClose, onSave }: {
 
 /* ---------------- generic modal ---------------- */
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: any }) {
-  return (
+  // Portal to body so the sheet escapes the swipe-tab transform + its
+  // margin-bottom (which squeezed the sheet and, with the keyboard open, pushed
+  // the submit button off-screen). Full-height bottom sheet, keyboard-safe.
+  return createPortal(
     <div className="modal__backdrop" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="between" style={{ marginBottom: 12 }}>
@@ -851,7 +869,8 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -1079,7 +1098,7 @@ function CalendarView({
                             <span className="reviewdone__view">View</span>
                           </button>
                           {canRefund && (
-                            <button className="btn sm secondary grow" style={{ marginTop: 8 }} onClick={() => onRefund(b)}>Request refund</button>
+                            <button className="btn sm danger grow" style={{ marginTop: 8 }} onClick={() => onRefund(b)}>Request refund</button>
                           )}
                         </>
                       ) : (
@@ -1087,10 +1106,10 @@ function CalendarView({
                         // sits beside it (equal width) so the two actions align.
                         <div className="row" style={{ gap: 8, marginTop: 10 }}>
                           <button className="btn sm grow" onClick={() => onReview(b)}>
-                            Review {b.cleanerName}
+                            Review
                           </button>
                           {canRefund && (
-                            <button className="btn sm secondary grow" onClick={() => onRefund(b)}>Request refund</button>
+                            <button className="btn sm danger grow" onClick={() => onRefund(b)}>Request refund</button>
                           )}
                         </div>
                       )}

@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
     return { net, vat: gross - net, gross };
   };
 
-  type Row = { date: string; desc: string; net: number; vat: number; gross: number };
+  type Row = { date: string; desc: string; sub?: string; net: number; vat: number; gross: number };
   let rows: Row[] = [];
   let title = "";
 
@@ -123,8 +123,10 @@ Deno.serve(async (req) => {
       .order("date", { ascending: true });
     rows = (data ?? []).map((b) => {
       const v = splitVat(Number(b.total ?? 0));
-      const loc = String(b.address_nickname || b.address || "");
-      return { date: `${b.date}${b.time ? " " + b.time : ""}`, desc: `${loc}${b.cleaner_name ? " · " + b.cleaner_name : ""}`, ...v };
+      const loc = String(b.address_nickname || "");
+      const addr = String(b.address || "");
+      const head = `${loc || addr}${b.cleaner_name ? " · " + b.cleaner_name : ""}`;
+      return { date: `${b.date}${b.time ? " " + b.time : ""}`, desc: head, sub: loc && addr ? addr : "", ...v };
     });
   } else {
     title = "Earnings Statement";
@@ -139,7 +141,9 @@ Deno.serve(async (req) => {
       // NOTE: no VAT split on earnings — whether the cleaner charges VAT depends
       // on their own VAT-registration status, so we report income only and leave
       // VAT to their own accountant. VAT columns are used for expenses.
-      return { date: `${j.date}${j.time ? " " + j.time : ""}`, desc: String(j.customer_name || j.address || ""), net: income, vat: 0, gross: income };
+      const cust = String(j.customer_name || "");
+      const addr = String(j.address || "");
+      return { date: `${j.date}${j.time ? " " + j.time : ""}`, desc: cust || addr, sub: cust && addr ? addr : "", net: income, vat: 0, gross: income };
     });
   }
 
@@ -177,13 +181,20 @@ Deno.serve(async (req) => {
     return out === s ? s : out + "…";
   };
 
-  // ---- header band ----
-  page.drawRectangle({ x: 0, y: A4.h - 96, width: A4.w, height: 96, color: rgb(0.98, 0.98, 0.99) });
-  T(BRAND, M, A4.h - 44, 22, bold, accent);
-  R(title, A4.w - M, A4.h - 40, 13, bold, ink);
-  R(win.label, A4.w - M, A4.h - 56, 10.5, font, muted);
-  if (VAT_NUMBER) R(`VAT No.: ${VAT_NUMBER}`, A4.w - M, A4.h - 72, 8.5, font, muted);
-  y = A4.h - 118;
+  // ---- header band ---- full-bleed accent banner with white wordmark + title
+  const bandH = 104;
+  page.drawRectangle({ x: 0, y: A4.h - bandH, width: A4.w, height: bandH, color: accent });
+  // thin darker underline for depth
+  page.drawRectangle({ x: 0, y: A4.h - bandH, width: A4.w, height: 3, color: rgb(0, 0, 0), opacity: 0.12 });
+  const white = rgb(1, 1, 1);
+  const faint = rgb(0.86, 0.92, 0.98); // soft white for sub-lines on the band
+  T(BRAND, M, A4.h - 46, 24, bold, white);
+  T("Professional cleaning services · Cyprus", M, A4.h - 66, 9.5, font, faint);
+  R(title, A4.w - M, A4.h - 44, 14, bold, white);
+  R(win.label, A4.w - M, A4.h - 62, 11, font, faint);
+  if (VAT_NUMBER) R(`VAT No.: ${VAT_NUMBER}`, A4.w - M, A4.h - 78, 8.5, font, faint);
+  // set the faint white a touch transparent for the sub-lines
+  y = A4.h - bandH - 26;
 
   // ---- table header ----
   // Expenses:  Date | Description | Net | VAT 19% | Gross
@@ -216,14 +227,15 @@ Deno.serve(async (req) => {
   page.drawLine({ start: { x: M, y }, end: { x: rightEdge, y }, thickness: 1, color: line });
   y -= 16;
 
-  const rowH = 17;
+  // taller rows carry a bold description line + a muted address line beneath.
+  const rowH = 30;
   const newPageIfNeeded = () => {
-    if (y < M + 90) {
+    if (y < M + 100) {
       page = pdf.addPage([A4.w, A4.h]);
       y = A4.h - M;
       headerRow(y); y -= 6;
       page.drawLine({ start: { x: M, y }, end: { x: rightEdge, y }, thickness: 1, color: line });
-      y -= 16;
+      y -= 18;
     }
   };
 
@@ -233,18 +245,22 @@ Deno.serve(async (req) => {
   } else {
     rows.forEach((r, i) => {
       newPageIfNeeded();
-      if (i % 2 === 1) page.drawRectangle({ x: M - 4, y: y - 4, width: rightEdge - M + 8, height: rowH, color: zebra });
-      T(r.date, xDate, y, 9, font, ink);
-      T(clip(r.desc, 9, descRight - xDesc), xDesc, y, 9, font, ink);
+      // zebra band spans the full row height (both text lines)
+      if (i % 2 === 1) page.drawRectangle({ x: M - 6, y: y - rowH + 10, width: rightEdge - M + 12, height: rowH, color: zebra });
+      const line1 = y;                 // top line (date, desc, money)
+      const line2 = y - 12;            // muted address line
+      T(r.date, xDate, line1, 9, bold, ink);
+      T(clip(r.desc, 9.5, descRight - xDesc), xDesc, line1, 9.5, bold, ink);
+      if (r.sub) T(clip(r.sub, 8.5, descRight - xDesc), xDesc, line2, 8.5, font, muted);
       if (isEarn) {
-        R(eur(r.net), colIncome, y, 9, font, ink);
+        R(eur(r.net), colIncome, line1, 10, bold, ink);
       } else {
-        R(eur(r.net), colNet, y, 9, font, ink);
-        R(eur(r.vat), colVat, y, 9, font, ink);
-        R(eur(r.gross), colGross, y, 9, font, ink);
+        R(eur(r.net), colNet, line1, 9, font, ink);
+        R(eur(r.vat), colVat, line1, 9, font, muted);
+        R(eur(r.gross), colGross, line1, 10, bold, ink);
       }
-      // separator under each row so the eye tracks across columns cleanly
-      page.drawLine({ start: { x: M, y: y - 5 }, end: { x: rightEdge, y: y - 5 }, thickness: 0.5, color: line });
+      // hairline separator under the whole row
+      page.drawLine({ start: { x: M, y: y - rowH + 8 }, end: { x: rightEdge, y: y - rowH + 8 }, thickness: 0.5, color: line });
       y -= rowH;
     });
   }

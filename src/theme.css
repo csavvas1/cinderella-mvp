@@ -1401,51 +1401,42 @@ input[type="range"]::-webkit-slider-thumb {
 }
 .estcard__use:active { transform: scale(.97); }
 
-/* ---------- action buttons (maps / message) — icon-led, gradient, pro ---------- */
-/* One rule for both the <a> (maps) and <button> (message) so they are pixel-
-   identical: reset native control quirks, fixed height, border-box sizing. */
+/* ---------- action buttons (maps / message / call / cancel) — tonal, pro ----------
+   Soft tinted surface + a solid COLOURED icon chip + coloured label. This reads
+   like a modern settings/action row (iOS / Revolut) rather than a saturated
+   demo brick. One rule for both <a> and <button> so they're pixel-identical.
+   Per-variant colour is driven by a single --acc custom property. */
 .actionbtn {
   box-sizing: border-box;
-  /* icon + label are a CENTRED group, not stretched across the width — the fill
-     spans the button but the content stays middle so it looks balanced/pro */
-  display: flex; align-items: center; justify-content: center; gap: 10px;
-  width: 100%; min-height: 54px; margin: 0;
-  padding: 0 16px; border: none; -webkit-appearance: none; appearance: none;
-  text-decoration: none; cursor: pointer;
-  color: #fff; border-radius: 15px;
-  font-family: inherit; font-size: 15px; font-weight: 800; line-height: 1;
-  letter-spacing: -.01em; text-align: center;
-  background: linear-gradient(135deg, var(--agent) 0%, #0284c7 100%);
-  box-shadow: 0 8px 20px -6px rgba(14,165,233,.5), inset 0 1px 0 rgba(255,255,255,.22);
-  transition: transform .12s ease, box-shadow .22s ease, filter .22s ease;
+  --acc: var(--agent);
+  --acc-soft: var(--agent-soft);
+  display: flex; align-items: center; gap: 13px;
+  width: 100%; min-height: 60px; margin: 0;
+  padding: 0 15px; -webkit-appearance: none; appearance: none;
+  text-decoration: none; cursor: pointer; text-align: left;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border); border-radius: 16px;
+  font-family: inherit; font-size: 15px; font-weight: 800; line-height: 1.2;
+  letter-spacing: -.01em;
+  box-shadow: 0 2px 8px -3px rgba(16,17,26,.10);
+  transition: transform .12s ease, box-shadow .2s ease, border-color .2s ease, background .2s ease;
 }
-.actionbtn:hover { filter: brightness(1.05); box-shadow: 0 12px 26px -6px rgba(14,165,233,.6), inset 0 1px 0 rgba(255,255,255,.28); }
-.actionbtn:active { transform: translateY(1px) scale(.99); }
-/* icon sits in a frosted round chip, tucked next to the centred label */
+.actionbtn:hover { border-color: var(--acc); background: var(--acc-soft); box-shadow: 0 8px 20px -8px rgba(16,17,26,.22); }
+.actionbtn:active { transform: scale(.99); }
+/* solid coloured chip — the colour pop lives here, not across the whole bar */
 .actionbtn__ic {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 30px; height: 30px; flex: 0 0 30px; border-radius: 9px;
-  background: rgba(255,255,255,.22);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.25);
+  width: 40px; height: 40px; flex: 0 0 40px; border-radius: 12px;
+  background: var(--acc); color: #fff;
+  box-shadow: 0 4px 10px -3px color-mix(in srgb, var(--acc) 55%, transparent);
 }
-/* message variant — indigo gradient so the two buttons are clearly distinct */
-.actionbtn--msg {
-  background: linear-gradient(135deg, var(--indigo) 0%, var(--indigo-dark) 100%);
-  box-shadow: 0 8px 20px -6px rgba(79,70,229,.5), inset 0 1px 0 rgba(255,255,255,.22);
-}
-.actionbtn--msg:hover { box-shadow: 0 12px 26px -6px rgba(79,70,229,.6), inset 0 1px 0 rgba(255,255,255,.28); }
-/* call variant — green, for the on-the-day phone action */
-.actionbtn--call {
-  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
-  box-shadow: 0 8px 20px -6px rgba(22,163,74,.5), inset 0 1px 0 rgba(255,255,255,.22);
-}
-.actionbtn--call:hover { box-shadow: 0 12px 26px -6px rgba(22,163,74,.6), inset 0 1px 0 rgba(255,255,255,.28); }
-/* cancel variant — red, destructive */
-.actionbtn--cancel {
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-  box-shadow: 0 8px 20px -6px rgba(220,38,38,.5), inset 0 1px 0 rgba(255,255,255,.22);
-}
-.actionbtn--cancel:hover { box-shadow: 0 12px 26px -6px rgba(220,38,38,.6), inset 0 1px 0 rgba(255,255,255,.28); }
+/* label takes remaining space; a subtle chevron feel via the accent on hover */
+.actionbtn > span:last-child { flex: 1; }
+/* maps = sky (default --acc). message = indigo. call = green. cancel = red. */
+.actionbtn--msg    { --acc: var(--indigo); --acc-soft: var(--indigo-soft); }
+.actionbtn--call   { --acc: #16a34a; --acc-soft: #e7f6ec; }
+.actionbtn--cancel { --acc: #dc2626; --acc-soft: #fdeaea; color: #b91c1c; }
 
 /* job detail typography — tighter + cleaner */
 .jd__name { font-size: 21px; font-weight: 900; letter-spacing: -0.5px; margin: 2px 0; }
