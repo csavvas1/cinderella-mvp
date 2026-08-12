@@ -1016,10 +1016,10 @@ export default function Account() {
           <div className="card row between" style={{ marginTop: 12, cursor: "pointer" }} onClick={() => setShowVerify(true)}>
             <b style={{ fontSize: 14 }}>Identity verification</b>
             {verified
-              ? <span className="verbadge"><svg viewBox="0 0 24 24" width="20" height="20" aria-label="Verified"><path d="M12 2 14.9 4.1 18.5 4 19.6 7.4 22.5 9.5 21 12.8 22.5 16.1 19.6 18.2 18.5 21.6 14.9 21.5 12 23.6 9.1 21.5 5.5 21.6 4.4 18.2 1.5 16.1 3 12.8 1.5 9.5 4.4 7.4 5.5 4 9.1 4.1Z" fill="#1d9bf0" /><path d="M9.6 12.4 11.3 14.1 14.8 10.2" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
+              ? <DoneTick label="Identity verified" />
               : verifyStatus === "submitted"
                 ? <span className="statuspill statuspill--warn">Under review</span>
-                : <span className="verpill">Verify</span>}
+                : <span className="statuspill statuspill--warn">Verify</span>}
           </div>
         </>
       )}
