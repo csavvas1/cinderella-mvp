@@ -316,6 +316,7 @@ interface AppState {
   addManualStay: (s: ExternalBooking) => void;         // add a booked stay by hand
   removeExternalBooking: (id: string) => void;         // remove a single stay
   joinProperty: (code: string) => Promise<{ error?: string }>; // join a shared property by code
+  revokePropertyMember: (addressId: string, memberUid: string) => Promise<{ error?: string }>; // owner removes a partner
 
   cards: Card[];
   addCard: (c: Card) => void;
@@ -948,17 +949,22 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         ...rowToAddress(r),
         isShared: r.user_id !== uid,
       }));
-      // Count partners per property so the card can show a discrete "N people
-      // have access" badge. RLS lets the owner see members of their properties.
+      // Partners per property: count + identities so the owner can review and
+      // revoke access. RLS lets the owner see members of their properties.
       if (addresses?.length) {
         try {
-          const { data: members } = await supabase.from("property_members").select("address_id");
+          const { data: members } = await supabase.from("property_members").select("address_id, user_id");
           if (members) {
-            const counts = new Map<string, number>();
-            for (const m of members as { address_id: string }[]) {
-              counts.set(m.address_id, (counts.get(m.address_id) ?? 0) + 1);
+            const byAddr = new Map<string, { userId: string; name: string }[]>();
+            for (const m of members as { address_id: string; user_id: string }[]) {
+              const list = byAddr.get(m.address_id) ?? [];
+              list.push({ userId: m.user_id, name: nameFor(m.user_id) || "Partner" });
+              byAddr.set(m.address_id, list);
             }
-            addresses = addresses.map((a) => ({ ...a, memberCount: counts.get(a.id) ?? 0 }));
+            addresses = addresses.map((a) => {
+              const ms = byAddr.get(a.id) ?? [];
+              return { ...a, memberCount: ms.length, members: ms };
+            });
           }
         } catch { /* ignore */ }
       }
@@ -1798,6 +1804,35 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) return { error: data.error || "Could not join." };
+        await hydrateProfile(currentKey, currentEmail || "");
+        return {};
+      } catch (e) {
+        return { error: (e as Error).message };
+      }
+    },
+
+    // Owner removes a partner's access to a shared property (service-role edge
+    // function verifies ownership). Optimistically drop from the local card, then
+    // re-hydrate so counts/members stay in sync.
+    revokePropertyMember: async (addressId, memberUid) => {
+      if (!isRealUser || !currentKey) return { error: "Sign in first." };
+      // optimistic local update
+      patchAcct({
+        addresses: acct.addresses.map((a) => a.id === addressId
+          ? { ...a, members: (a.members ?? []).filter((m) => m.userId !== memberUid), memberCount: Math.max(0, (a.memberCount ?? 1) - 1) }
+          : a),
+      });
+      try {
+        const { data: sess } = await supabase.auth.getSession();
+        const token = sess.session?.access_token;
+        if (!token) return { error: "Sign in first." };
+        const res = await fetch(`${String(import.meta.env.VITE_SUPABASE_URL || "").replace(/\/+$/, "")}/functions/v1/revoke-property-member`, {
+          method: "POST",
+          headers: { "content-type": "application/json", apikey: import.meta.env.VITE_SUPABASE_ANON_KEY, authorization: `Bearer ${token}` },
+          body: JSON.stringify({ address_id: addressId, member_uid: memberUid }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return { error: data.error || "Could not remove access." };
         await hydrateProfile(currentKey, currentEmail || "");
         return {};
       } catch (e) {

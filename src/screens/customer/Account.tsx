@@ -67,7 +67,7 @@ const THEME_OPTS = [
 export default function Account() {
   const {
     userName, userEmail, userPhone, setUserPhone, accountNo,
-    addresses, addAddress, updateAddress, deleteAddress,
+    addresses, addAddress, updateAddress, deleteAddress, revokePropertyMember,
     cards, addCard, deleteCard, logout, themePref, setThemePref,
     agentActivated, activateAgent, deactivateAgent, bookings, updateBooking, notify,
     launchSide, setLaunchSide, setRole, changePassword,
@@ -133,6 +133,7 @@ export default function Account() {
     finally { setBeds24Busy(null); }
   };
   const [removeProp, setRemoveProp] = useState<PropertyAddress | null>(null);
+  const [revokingUid, setRevokingUid] = useState<string | null>(null); // partner being removed
   const [showExp, setShowExp] = useState(false);
   const _pm = prevMonthDefaults();
   const [expMonth, setExpMonth] = useState(_pm.month);
@@ -489,6 +490,29 @@ export default function Account() {
               <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13M10 11v6M14 11v6" /></svg>
             </button>
           </div>
+
+          {/* Access list — owner only. Each partner can be removed (revoke). */}
+          {!a.isShared && (a.members?.length ?? 0) > 0 && (
+            <div className="propmembers">
+              <div className="propmembers__label">People with access</div>
+              {a.members!.map((m) => (
+                <div key={m.userId} className="propmember">
+                  <span className="propmember__avatar">{(m.name || "P").trim().charAt(0).toUpperCase()}</span>
+                  <span className="propmember__name">{m.name}</span>
+                  <button className="propmember__remove"
+                    disabled={revokingUid === m.userId}
+                    onClick={async () => {
+                      setRevokingUid(m.userId);
+                      const res = await revokePropertyMember(a.id, m.userId);
+                      setRevokingUid(null);
+                      if (res.error) alert(res.error);
+                    }}>
+                    {revokingUid === m.userId ? "Removing…" : "Remove"}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       ))}
 

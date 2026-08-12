@@ -151,6 +151,7 @@ export interface PropertyAddress {
   shareCode?: string;   // invite code to share this property with a partner
   isShared?: boolean;   // true when this property was shared TO me (I'm a partner, not owner)
   memberCount?: number; // how many partners (besides the owner) have access to this property
+  members?: { userId: string; name: string }[]; // partners with access (owner-visible, for revoke)
   // ---- auto-dispatch (short-let checkout -> auto cleaning job) ----
   autoDispatch?: boolean;         // master toggle for this property
   dispatchCleanerIds?: string[];  // priority order; index 0 = first choice
