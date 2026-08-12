@@ -75,7 +75,7 @@ export default function Account() {
     connectedListings, disconnectPropertyFromBeds24,
     recordConsent, consents, hasAcceptedCurrent,
     agentProfile, setAgentProfile,
-    pushEnabled, requestPushPermission, disablePushNotifications,
+    pushEnabled, requestPushPermission, disablePushNotifications, emailNotifications, setEmailNotifications,
     verification, submitVerification,
     reviewsFor, myUid,
   } = useStore();
@@ -1035,6 +1035,12 @@ export default function Account() {
         }
         return null;
       })()}
+
+      <div className="card row between" style={{ marginTop: 12, cursor: "pointer" }}
+        onClick={() => setEmailNotifications(!emailNotifications)}>
+        <b style={{ fontSize: 14 }}>Email notifications</b>
+        <div className={"switch" + (emailNotifications ? " on" : "")}><div className="switch__dot" /></div>
+      </div>
 
       <div className="card row between" style={{ marginTop: 12 }}>
         <b style={{ fontSize: 14 }}>Appearance</b>

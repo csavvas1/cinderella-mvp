@@ -562,6 +562,8 @@ export interface ProfileFields {
   favourites?: string[]; // saved cleaner ids
   pro?: boolean;         // paid Pro tier (channel-manager access)
   autoMessageTemplate?: string; // template auto-sent on booking create
+  emailNotifications?: boolean; // master email alert channel (default on)
+  pushNotifications?: boolean;  // master push alert channel (default on)
 }
 
 // Shape of a row from public.users (snake_case columns).
@@ -583,6 +585,8 @@ export interface UsersRow {
   favourites: string[] | null;
   pro: boolean | null;
   auto_message_template: string | null;
+  email_notifications: boolean | null;
+  push_notifications: boolean | null;
 }
 
 // Postgres row -> local profile fields.
@@ -605,6 +609,8 @@ export function rowToProfile(row: UsersRow): ProfileFields {
     favourites: row.favourites ?? undefined,
     pro: row.pro ?? false,
     autoMessageTemplate: row.auto_message_template ?? undefined,
+    emailNotifications: row.email_notifications ?? true,
+    pushNotifications: row.push_notifications ?? true,
   };
 }
 
@@ -628,5 +634,7 @@ export function profileToRow(patch: Partial<ProfileFields>): Record<string, unkn
   if (patch.favourites !== undefined) out.favourites = patch.favourites;
   if (patch.pro !== undefined) out.pro = patch.pro;
   if (patch.autoMessageTemplate !== undefined) out.auto_message_template = patch.autoMessageTemplate;
+  if (patch.emailNotifications !== undefined) out.email_notifications = patch.emailNotifications;
+  if (patch.pushNotifications !== undefined) out.push_notifications = patch.pushNotifications;
   return out;
 }

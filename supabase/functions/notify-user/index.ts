@@ -30,6 +30,9 @@ if (VAPID_PUBLIC && VAPID_PRIVATE) {
 // Fire a Web Push to every saved subscription of a user (best-effort).
 async function pushToUser(userId: string, title: string, body: string, url = "/") {
   if (!VAPID_PUBLIC || !VAPID_PRIVATE) return;
+  // respect the user's push preference
+  const { data: pref } = await admin.from("users").select("push_notifications").eq("id", userId).maybeSingle();
+  if (pref && (pref as { push_notifications?: boolean }).push_notifications === false) return;
   const { data: subs } = await admin.from("push_subscriptions").select("endpoint, p256dh, auth").eq("user_id", userId);
   if (!subs?.length) return;
   const payload = JSON.stringify({ title, body, url, tag: `${userId}-${Date.now()}` });

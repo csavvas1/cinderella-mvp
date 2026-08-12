@@ -1,8 +1,22 @@
 // Shared branded email template used by send-email + welcome-email so every
 // transactional message looks identical: warm-charcoal wordmark header, white
 // body, optional detail card, optional CTA button, muted footer.
+import { createClient } from "jsr:@supabase/supabase-js@2";
 
 export const BRAND = "Σιντερέλλα";
+
+// Returns false only when the user explicitly opted OUT of email. Best-effort:
+// on any error we default to TRUE so important transactional mail (e.g. account
+// verification) is never silently dropped on a transient DB blip.
+export async function emailAllowed(
+  admin: ReturnType<typeof createClient>,
+  userId: string,
+): Promise<boolean> {
+  try {
+    const { data } = await admin.from("users").select("email_notifications").eq("id", userId).maybeSingle();
+    return data ? (data as { email_notifications?: boolean }).email_notifications !== false : true;
+  } catch { return true; }
+}
 
 export interface EmailPayload {
   subject?: string;

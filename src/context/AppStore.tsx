@@ -75,6 +75,8 @@ interface AccountData {
   consents?: ConsentRecord[];              // legal-document acceptance proof
   supplyWarningAckVersion?: number;        // highest supply-warning version dismissed via "don't show again"
   accountNo?: number;                      // friendly display number (read-only; UUID is the real id)
+  emailNotifications?: boolean;            // master email alert channel (default on)
+  pushNotifications?: boolean;             // master push alert channel (default on)
 }
 
 // One cleaner this account referred, with their monthly performance jobs.
@@ -401,6 +403,9 @@ interface AppState {
   pushEnabled: boolean;
   requestPushPermission: () => Promise<{ granted: boolean; error?: string }>;
   disablePushNotifications: () => Promise<{ error?: string }>;
+  // master email alert channel (persisted per user)
+  emailNotifications: boolean;
+  setEmailNotifications: (on: boolean) => void;
 
   dark: boolean;              // resolved theme (system pref applied)
   toggleDark: () => void;     // quick flip between light/dark (sets explicit pref)
@@ -2295,6 +2300,11 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       if (data) setEmailVerified(!!(data as { email_verified?: boolean }).email_verified);
     },
     pushEnabled,
+    emailNotifications: acct.emailNotifications ?? true,
+    setEmailNotifications: (on: boolean) => {
+      patchAcct({ emailNotifications: on });
+      writeProfile({ emailNotifications: on });
+    },
     requestPushPermission: async () => {
       // ask permission, subscribe to Web Push, and persist the subscription so
       // notifications arrive even when the app is closed

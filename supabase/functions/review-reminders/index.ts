@@ -14,7 +14,7 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
 import { json } from "../_shared/http.ts";
-import { sendEmail } from "../_shared/email.ts";
+import { sendEmail, emailAllowed } from "../_shared/email.ts";
 
 const admin = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -51,6 +51,9 @@ function dueAtUtc(dateISO: string, addDays: number): number {
 
 async function pushToUser(userId: string, title: string, body: string, url = "/") {
   if (!VAPID_PUBLIC || !VAPID_PRIVATE) return;
+  // respect the user's push preference
+  const { data: pref } = await admin.from("users").select("push_notifications").eq("id", userId).maybeSingle();
+  if (pref && (pref as { push_notifications?: boolean }).push_notifications === false) return;
   const { data: subs } = await admin.from("push_subscriptions")
     .select("endpoint, p256dh, auth").eq("user_id", userId);
   if (!subs?.length) return;
@@ -143,7 +146,7 @@ Deno.serve(async (_req) => {
 
     // 3) branded email (best-effort) with a "Leave a review" CTA button
     const to = await emailFor(b.user_id);
-    if (to) {
+    if (to && await emailAllowed(admin, b.user_id)) {
       await sendEmail(to, title, {
         subject: title,
         heading: title,
