@@ -1401,18 +1401,31 @@ input[type="range"]::-webkit-slider-thumb {
 }
 .estcard__use:active { transform: scale(.97); }
 
-/* ---------- open in maps button ---------- */
-.maploc__btn {
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  width: 100%; text-decoration: none;
-  background: var(--agent); color: #fff; border-radius: 11px;
-  padding: 13px 14px; font-size: 14px; font-weight: 800;
-  box-shadow: 0 4px 12px rgba(14,165,233,.28); transition: transform .08s, box-shadow .15s;
+/* ---------- action buttons (maps / message) — icon-led, gradient, pro ---------- */
+.actionbtn {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%; text-decoration: none; border: none; cursor: pointer;
+  color: #fff; border-radius: 14px;
+  padding: 14px 16px; font-family: inherit; font-size: 14.5px; font-weight: 800;
+  letter-spacing: -.01em; text-align: left;
+  background: linear-gradient(135deg, var(--agent) 0%, #0284c7 100%);
+  box-shadow: 0 6px 18px -4px rgba(14,165,233,.45), inset 0 1px 0 rgba(255,255,255,.18);
+  transition: transform .1s ease, box-shadow .2s ease, filter .2s ease;
 }
-.maploc__btn:active { transform: scale(.98); }
-.maploc__btn:hover { box-shadow: 0 6px 16px rgba(14,165,233,.36); }
-.maploc__arrow { font-weight: 900; transition: transform .15s; }
-.maploc__btn:hover .maploc__arrow { transform: translateX(3px); }
+.actionbtn:active { transform: translateY(1px) scale(.99); }
+.actionbtn:hover { filter: brightness(1.04); box-shadow: 0 10px 24px -6px rgba(14,165,233,.55), inset 0 1px 0 rgba(255,255,255,.22); }
+/* icon sits in a soft frosted chip so it reads as a distinct affordance */
+.actionbtn__ic {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; flex: 0 0 34px; border-radius: 10px;
+  background: rgba(255,255,255,.20);
+}
+/* message variant — indigo gradient so the two buttons are clearly different */
+.actionbtn--msg {
+  background: linear-gradient(135deg, var(--indigo) 0%, var(--indigo-dark) 100%);
+  box-shadow: 0 6px 18px -4px rgba(79,70,229,.45), inset 0 1px 0 rgba(255,255,255,.18);
+}
+.actionbtn--msg:hover { box-shadow: 0 10px 24px -6px rgba(79,70,229,.55), inset 0 1px 0 rgba(255,255,255,.22); }
 
 /* job detail typography — tighter + cleaner */
 .jd__name { font-size: 21px; font-weight: 900; letter-spacing: -0.5px; margin: 2px 0; }

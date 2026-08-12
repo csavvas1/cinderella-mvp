@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useStore } from "../../context/AppStore";
 import BackButton from "../../components/BackButton";
 import MapPicker from "../../components/MapPicker";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, MapPin, MessageCircle } from "lucide-react";
 
 export default function JobDetail() {
   const { id } = useParams();
@@ -133,22 +133,22 @@ export default function JobDetail() {
       )}
 
       {j.status !== "completed" && (
-        <a className="maploc__btn" style={{ marginTop: 12 }} href={mapsUrl} target="_blank" rel="noreferrer">
+        <a className="actionbtn" style={{ marginTop: 12 }} href={mapsUrl} target="_blank" rel="noreferrer">
+          <span className="actionbtn__ic"><MapPin size={18} /></span>
           <span>Open in Maps</span>
-          <span className="maploc__arrow"><ArrowRight size={14} /></span>
         </a>
       )}
 
       {/* Message the customer — mirrors the maps button, and (like maps) only
           while the job is still active. After completion, messaging closes. */}
       {j.status !== "completed" && j.customerUid && j.cleanerUid && j.customerUid !== j.cleanerUid && (
-        <button className="maploc__btn" style={{ marginTop: 10, width: "100%", cursor: "pointer" }}
+        <button className="actionbtn actionbtn--msg" style={{ marginTop: 10 }}
           onClick={async () => {
             const tid = await createThread(j.customerUid!, j.cleanerUid!, j.id, `Cleaning · ${j.date}`);
             if (tid) nav("/messages?thread=" + tid);
           }}>
+          <span className="actionbtn__ic"><MessageCircle size={18} /></span>
           <span>Message customer</span>
-          <span className="maploc__arrow"><ArrowRight size={14} /></span>
         </button>
       )}
 
