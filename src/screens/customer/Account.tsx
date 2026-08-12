@@ -8,7 +8,7 @@ import Listings from "./Listings";
 import Dropdown from "../../components/Dropdown";
 import TimeSelect from "../../components/TimeSelect";
 import CameraCapture, { type CapturedPhoto } from "../../components/CameraCapture";
-import { APP_NAME, APP_VERSION } from "../../data/brand";
+import { APP_NAME } from "../../data/brand";
 import { marketStats } from "../../data/cleaners";
 import { cardExpiryStatus, monetisationEnabled } from "../../data/platform";
 import { isBiometricAvailable } from "../../lib/webauthn";
@@ -1111,9 +1111,6 @@ export default function Account() {
 
       <div style={{ height: 18 }} />
       <button className="btn danger" onClick={logout}>Sign out</button>
-
-      <div style={{ height: 14 }} />
-      <p className="tiny muted" style={{ textAlign: "center" }}>{APP_NAME} · {APP_VERSION}</p>
 
       {/* ===================== MODALS ===================== */}
 
