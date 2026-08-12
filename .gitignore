@@ -25,3 +25,6 @@ supabase/.temp/
 # secrets — never commit
 vercel service role.txt
 *.service-role.txt
+
+supabase key.txt
+supa-token.txt

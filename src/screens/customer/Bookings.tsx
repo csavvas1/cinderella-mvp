@@ -534,19 +534,73 @@ function SeriesModal({ sample, onClose, onSave, onCancelSeries }: {
 function ReviewModal({ booking, onClose, onSubmit }: {
   booking: Booking; onClose: () => void; onSubmit: (rating: number, text: string) => void;
 }) {
+  // Two guided steps: pick the stars, then (optionally) add a comment. If the
+  // booking was already reviewed we jump straight to the comment step for edits.
   const [rating, setRating] = useState(booking.rating ?? 0);
+  const [hover, setHover] = useState(0);
   const [text, setText] = useState(booking.reviewText ?? "");
+  const [step, setStep] = useState<1 | 2>(booking.rating ? 2 : 1);
+
+  const LABELS = ["", "Poor", "Fair", "Good", "Great", "Excellent"];
+  const shown = hover || rating;
+
   return (
-    <Modal onClose={onClose} title={`Review ${booking.cleanerName}`}>
-      <div className="ratestars" style={{ justifyContent: "center", display: "flex", marginBottom: 12 }}>
-        {[1, 2, 3, 4, 5].map((n) => (
-          <button key={n} className={"rstar big" + (n <= rating ? " on" : "")} onClick={() => setRating(n)}><Star size={28} fill={n <= rating ? "currentColor" : "none"} /></button>
-        ))}
+    <Modal onClose={onClose} title={booking.rating ? `Edit review` : `Rate ${booking.cleanerName}`}>
+      {/* progress */}
+      <div className="revsteps" aria-hidden>
+        <span className={"revstep" + (step >= 1 ? " on" : "")} />
+        <span className={"revstep" + (step >= 2 ? " on" : "")} />
       </div>
-      <textarea className="input" rows={4} placeholder="How was the cleaning?" value={text} onChange={(e) => setText(e.target.value)} />
-      <div style={{ height: 12 }} />
-      <button className="btn" disabled={rating === 0} style={{ opacity: rating === 0 ? 0.5 : 1 }}
-        onClick={() => onSubmit(rating, text)}>Submit review</button>
+
+      {step === 1 && (
+        <div className="revpane">
+          <p className="sub revpane__q">How was your cleaning with {booking.cleanerName}?</p>
+          <div className="revstars" role="radiogroup" aria-label="Star rating">
+            {[1, 2, 3, 4, 5].map((n) => (
+              <button
+                key={n}
+                type="button"
+                role="radio"
+                aria-checked={rating === n}
+                aria-label={`${n} star${n === 1 ? "" : "s"}`}
+                className={"revstar" + (n <= shown ? " on" : "")}
+                onMouseEnter={() => setHover(n)}
+                onMouseLeave={() => setHover(0)}
+                onClick={() => { setRating(n); setHover(0); }}
+              >
+                <Star size={40} fill={n <= shown ? "currentColor" : "none"} />
+              </button>
+            ))}
+          </div>
+          <div className={"revlabel" + (shown ? " show" : "")}>{LABELS[shown] || "Tap a star"}</div>
+          <div style={{ height: 14 }} />
+          <button className="btn" disabled={rating === 0} style={{ opacity: rating === 0 ? 0.5 : 1 }}
+            onClick={() => setStep(2)}>Continue</button>
+        </div>
+      )}
+
+      {step === 2 && (
+        <div className="revpane">
+          <div className="revrecap">
+            <span className="revrecap__stars">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <Star key={n} size={18} fill={n <= rating ? "currentColor" : "none"} />
+              ))}
+            </span>
+            <button className="revrecap__edit" type="button" onClick={() => setStep(1)}>Change</button>
+          </div>
+          <p className="sub revpane__q">Add a comment for {booking.cleanerName} <span className="muted">(optional)</span></p>
+          <textarea className="input" rows={4} placeholder="What went well? Anything they could improve?"
+            value={text} onChange={(e) => setText(e.target.value)} />
+          <div style={{ height: 12 }} />
+          <div className="row" style={{ gap: 8 }}>
+            <button className="btn secondary" style={{ flex: "0 0 auto" }} onClick={() => setStep(1)}>Back</button>
+            <button className="btn grow" onClick={() => onSubmit(rating, text.trim())}>
+              {booking.rating ? "Update review" : "Submit review"}
+            </button>
+          </div>
+        </div>
+      )}
     </Modal>
   );
 }
@@ -895,7 +949,10 @@ function CalendarView({
             (date === today ? " today" : "") +
             (isPast ? " past" : "") +
             (selected === date ? " sel" : "");
-          const clickable = !isPast || hasCancelled;
+          // Past days are tappable when they hold any booking (so the customer
+          // can open a completed cleaning and leave/edit a review) or a
+          // cancelled one. Empty past days stay disabled.
+          const clickable = !isPast || hasCancelled || dayBookings.length > 0;
           return (
             <button key={i} className={cls} disabled={!clickable} onClick={() => { if (clickable) setSelected((cur) => (cur === date ? null : date)); }}>
               <span className="calnum">{day}</span>

@@ -307,6 +307,7 @@ export type NotifKind =
   | "refund_resolved"    // customer: refund approved/declined
   | "job_completed"      // customer: cleaner marked the job done
   | "review_new"         // agent: customer left a review
+  | "review_reminder"    // customer: nudge to review a completed cleaning
   | "tip_new"            // agent: customer tipped
   | "property_shared"    // customer: a partner shared a property with you
   | "message";           // both: a new chat message from the other party

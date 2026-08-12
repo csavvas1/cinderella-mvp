@@ -2021,6 +2021,10 @@ input[type="range"]::-webkit-slider-thumb {
 .calcell.today.sel .calnum { color: #fff; }
 /* past days (customer) — not selectable */
 .calcell.past { opacity: .38; cursor: default; }
+/* A past day that still has bookings is interactive (review access). Only the
+   truly disabled (empty past) cells stay dimmed. */
+.calcell.past:not(:disabled) { opacity: 1; cursor: pointer; }
+.calcell.past:disabled { cursor: default; }
 .calcell.past:active { transform: none; }
 
 .cdot { width: 6px; height: 6px; border-radius: 999px; display: inline-block; }
@@ -2758,3 +2762,20 @@ input[type="range"]::-webkit-slider-thumb {
   0%, 80%, 100% { opacity: .35; transform: scale(.85); }
   40% { opacity: 1; transform: scale(1.1); }
 }
+
+/* ---- 2-step review flow ---- */
+.revsteps { display: flex; gap: 6px; margin: 2px 0 14px; }
+.revstep { flex: 1; height: 4px; border-radius: 999px; background: var(--border); transition: background .2s; }
+.revstep.on { background: var(--indigo); }
+.revpane { animation: revfade .18s ease; }
+@keyframes revfade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.revpane__q { margin: 0 0 12px; text-align: center; }
+.revstars { display: flex; justify-content: center; gap: 6px; color: var(--star); }
+.revstar { background: none; border: none; padding: 4px; cursor: pointer; color: var(--border); transition: transform .08s, color .12s; }
+.revstar.on { color: var(--star); }
+.revstar:active { transform: scale(.9); }
+.revlabel { text-align: center; min-height: 20px; margin-top: 8px; font-weight: 700; color: var(--star); opacity: 0; transition: opacity .15s; }
+.revlabel.show { opacity: 1; }
+.revrecap { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.revrecap__stars { display: inline-flex; gap: 2px; color: var(--star); }
+.revrecap__edit { background: none; border: none; color: var(--indigo); font-weight: 700; cursor: pointer; font-size: 13px; }
