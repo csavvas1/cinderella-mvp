@@ -1328,6 +1328,30 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loggedIn, currentKey]);
 
+  // ---- live data: re-hydrate when my bookings / properties / sharing change ----
+  // Keeps the calendar + property list current without a manual refresh. Any
+  // change on these tables (mine via RLS, or a shared-property row) triggers a
+  // debounced re-hydrate. Coarse but simple; the debounce coalesces bursts.
+  useEffect(() => {
+    if (!isRealUser || !currentKey) return;
+    const uid = currentKey;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const bump = () => {
+      if (timer) clearTimeout(timer);
+      // don't reset the role/launch side on a background refresh
+      timer = setTimeout(() => { void hydrateProfile(uid, currentEmail || "", false); }, 400);
+    };
+    const ch = supabase
+      .channel("live-" + uid)
+      .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, bump)
+      .on("postgres_changes", { event: "*", schema: "public", table: "jobs" }, bump)
+      .on("postgres_changes", { event: "*", schema: "public", table: "addresses" }, bump)
+      .on("postgres_changes", { event: "*", schema: "public", table: "property_members" }, bump)
+      .subscribe();
+    return () => { if (timer) clearTimeout(timer); supabase.removeChannel(ch); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loggedIn, currentKey]);
+
   // Session bootstrap: resolve any existing Supabase session on load, and keep in
   // sync with auth changes. The demo account (currentKey === DEMO_EMAIL) is local
   // and must survive an initial "no session" result, so we don't clobber it.

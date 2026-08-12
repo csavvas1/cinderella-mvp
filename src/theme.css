@@ -2889,7 +2889,7 @@ input[type="range"]::-webkit-slider-thumb {
 
 /* Account rows: consistent height regardless of the trailing control
    (switch / segmini / pill / chevron / plain text). */
-.card.row.between { min-height: 56px; box-sizing: border-box; }
+.card.row.between { min-height: 52px; box-sizing: border-box; align-items: center; }
 .card.row.between > .segmini { flex: 0 0 auto; }
 
 /* ---- property access list (owner revoke) ---- */
