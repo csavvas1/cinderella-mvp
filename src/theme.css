@@ -2908,7 +2908,3 @@ input[type="range"]::-webkit-slider-thumb {
 }
 .propmember__remove:disabled { opacity: .55; cursor: default; }
 .propmember__remove:not(:disabled):hover { border-color: var(--red); background: color-mix(in srgb, var(--red) 8%, var(--bg)); }
-
-/* tick + label, for statuses that need words next to the seal (e.g. Disputes) */
-.donestatus { display: inline-flex; align-items: center; gap: 6px; }
-.donestatus__txt { font-size: 12.5px; font-weight: 800; color: var(--green); }
