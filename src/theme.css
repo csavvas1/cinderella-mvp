@@ -2834,3 +2834,20 @@ input[type="range"]::-webkit-slider-thumb {
 .ratesum__avg { font-size: 14px; color: var(--text); }
 .agentrev { border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; }
 .agentrev__stars { display: inline-flex; gap: 1px; color: var(--star); }
+
+/* ---- review card (agent "Your reviews" view) ---- */
+.reviewcard { border: 1px solid var(--border); border-radius: 14px; padding: 13px 14px; background: var(--card); }
+.reviewcard__head { display: flex; align-items: center; gap: 10px; }
+.reviewcard__avatar {
+  width: 34px; height: 34px; flex: 0 0 34px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--indigo-soft); color: var(--indigo); font-weight: 800; font-size: 14px;
+}
+.reviewcard__id { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
+.reviewcard__name { font-size: 14px; color: var(--text); font-weight: 800; }
+.reviewcard__date { font-size: 11.5px; color: var(--muted); }
+.reviewcard__stars { display: inline-flex; gap: 1px; color: var(--star); flex: 0 0 auto; }
+.reviewcard__text {
+  margin: 10px 0 0; font-size: 14px; line-height: 1.5; color: var(--text);
+  border-left: 3px solid var(--indigo-soft); padding-left: 11px;
+}

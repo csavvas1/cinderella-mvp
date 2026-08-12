@@ -50,7 +50,7 @@ function statusBadge(s: string) {
 export default function Bookings() {
   const { bookings, addresses, cancelBooking, addReview, updateBooking, updateSeries, cancelSeries,
     externalBookings, connectedListings, notify, sendEmail, openAccount, dismissBooking, addManualStay, removeExternalBooking,
-    setBookingLate, assignDispatchCleaner, jobs, createThread, myUid,
+    setBookingLate, assignDispatchCleaner, jobs, createThread, myUid, userName,
     } = useStore();
   const [manualOpen, setManualOpen] = useState(false);
   const [editManual, setEditManual] = useState<import("../../types").ExternalBooking | null>(null);
@@ -345,7 +345,9 @@ export default function Bookings() {
           onClose={() => setReviewFor(null)}
           onSubmit={(rating, text) => {
             const r: Review = {
-              id: "ur" + Date.now(), author: "Savvas (you)", rating, text,
+              // author = the reviewer's real account name (was hardcoded
+              // "Savvas (you)" which mislabelled every review).
+              id: "ur" + Date.now(), author: (userName || "Customer").trim(), rating, text,
               date: new Date().toISOString().slice(0, 10),
             };
             addReview(reviewFor.cleanerId, r);

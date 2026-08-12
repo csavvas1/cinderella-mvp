@@ -578,19 +578,22 @@ export default function Account() {
               {count === 0 && (
                 <p className="tiny muted">No reviews yet. Complete cleanings and your customer ratings will appear here.</p>
               )}
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 {myReviews.map((r) => (
-                  <div key={r.id} className="agentrev">
-                    <div className="between" style={{ alignItems: "center" }}>
-                      <b style={{ fontSize: 13.5 }}>{r.author}</b>
-                      <span className="agentrev__stars">
+                  <div key={r.id} className="reviewcard">
+                    <div className="reviewcard__head">
+                      <span className="reviewcard__avatar">{(r.author || "C").trim().charAt(0).toUpperCase()}</span>
+                      <div className="reviewcard__id">
+                        <b className="reviewcard__name">{r.author}</b>
+                        <span className="reviewcard__date">{r.date}</span>
+                      </div>
+                      <span className="reviewcard__stars">
                         {[1, 2, 3, 4, 5].map((n) => (
                           <Star key={n} size={13} fill={n <= (r.rating || 0) ? "currentColor" : "none"} />
                         ))}
                       </span>
                     </div>
-                    {r.text && <div className="tiny muted" style={{ marginTop: 4 }}>{r.text}</div>}
-                    <div className="tiny muted" style={{ marginTop: 5, opacity: .7 }}>{r.date}</div>
+                    {r.text && <p className="reviewcard__text">{r.text}</p>}
                   </div>
                 ))}
               </div>
@@ -879,7 +882,7 @@ export default function Account() {
             const count = myReviews.length;
             const avg = count ? myReviews.reduce((s, r) => s + (r.rating || 0), 0) / count : 0;
             return (
-              <button className="card row between" style={{ marginTop: 12, cursor: "pointer", width: "100%" }}
+              <button className="card row between" style={{ marginTop: 12, cursor: "pointer", width: "100%", color: "var(--text)", font: "inherit" }}
                 onClick={() => setShowReviews(true)}>
                 <b style={{ fontSize: 14 }}>Rating</b>
                 <span className="ratesum">
@@ -896,7 +899,6 @@ export default function Account() {
                   ) : (
                     <span className="tiny muted">No reviews yet</span>
                   )}
-                  <span className="pcard__chev">›</span>
                 </span>
               </button>
             );
