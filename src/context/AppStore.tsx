@@ -1365,6 +1365,9 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       .on("postgres_changes", { event: "*", schema: "public", table: "notifications" }, bump)
       .on("postgres_changes", { event: "*", schema: "public", table: "cards" }, bump)
       .on("postgres_changes", { event: "*", schema: "public", table: "identity_verifications" }, bump)
+      .on("postgres_changes", { event: "*", schema: "public", table: "connected_listings" }, bump)
+      .on("postgres_changes", { event: "*", schema: "public", table: "external_bookings" }, bump)
+      .on("postgres_changes", { event: "*", schema: "public", table: "consents" }, bump)
       .on("postgres_changes", { event: "*", schema: "public", table: "reviews" }, bumpReviews)
       .subscribe();
     return () => { if (timer) clearTimeout(timer); if (revTimer) clearTimeout(revTimer); supabase.removeChannel(ch); };
