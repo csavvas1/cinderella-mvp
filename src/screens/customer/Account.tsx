@@ -882,7 +882,7 @@ export default function Account() {
             const count = myReviews.length;
             const avg = count ? myReviews.reduce((s, r) => s + (r.rating || 0), 0) / count : 0;
             return (
-              <button className="card row between" style={{ marginTop: 12, cursor: "pointer", width: "100%", color: "var(--text)", font: "inherit" }}
+              <button className="card row between" style={{ marginTop: 12, cursor: "pointer", width: "100%", color: "var(--text)", font: "inherit", minHeight: 52, lineHeight: 1.5 }}
                 onClick={() => setShowReviews(true)}>
                 <b style={{ fontSize: 14 }}>Rating</b>
                 <span className="ratesum">

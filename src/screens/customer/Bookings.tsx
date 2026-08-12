@@ -346,8 +346,10 @@ export default function Bookings() {
           onSubmit={(rating, text) => {
             const r: Review = {
               // author = the reviewer's real account name (was hardcoded
-              // "Savvas (you)" which mislabelled every review).
-              id: "ur" + Date.now(), author: (userName || "Customer").trim(), rating, text,
+              // "Savvas (you)" which mislabelled every review). id must be a real
+              // UUID or the Postgres insert (id uuid) silently fails and the
+              // review never persists for the agent to see.
+              id: crypto.randomUUID(), author: (userName || "Customer").trim(), rating, text,
               date: new Date().toISOString().slice(0, 10),
             };
             addReview(reviewFor.cleanerId, r);

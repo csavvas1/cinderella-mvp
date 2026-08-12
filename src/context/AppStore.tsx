@@ -2283,7 +2283,11 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       .filter((n) => n.audience === role && !n.read && !bellHidesForAgent(role, n.kind)).length,
     notify: (n) => pushNotif(makeNotif(n)),
     sendEmail: (payload) => void sendEmailToSelf(payload),
-    emailVerified: isRealUser ? emailVerified : true,
+    // Email verification is PAUSED until a sending domain is bought + verified
+    // in Resend (no-domain Resend only delivers to the account owner, so real
+    // users never get the mail). Report everyone as verified so the nag banner
+    // stays hidden. Re-enable by restoring `isRealUser ? emailVerified : true`.
+    emailVerified: true,
     resendVerifyEmail: () => sendWelcomeEmail(acct.name),
     refreshEmailVerified: async () => {
       if (!isRealUser || !currentKey) return;
