@@ -2,22 +2,16 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useStore } from "../../context/AppStore";
 import BackButton from "../../components/BackButton";
-import CameraCapture, { type CapturedPhoto } from "../../components/CameraCapture";
 import MapPicker from "../../components/MapPicker";
 import { ArrowRight } from "lucide-react";
 
 export default function JobDetail() {
   const { id } = useParams();
   const nav = useNavigate();
-  const { jobs, setJobStatus, saveJobPhotos, acknowledgeJob, markJobSeen, myUid, createThread } = useStore();
+  const { jobs, setJobStatus, acknowledgeJob, markJobSeen, myUid, createThread } = useStore();
   // agent side: only surface a job assigned to THIS user as the cleaner. A
   // deep-link to a job the user merely booked as a customer must not open here.
   const j = jobs.find((x) => x.id === id && x.cleanerUid === myUid);
-  const [cam, setCam] = useState<null | "before" | "after">(null);
-  // proof photo URLs come straight off the job (persisted), so they survive a
-  // reload and are visible to both cleaner and customer.
-  const before = j?.beforePhotos ?? [];
-  const after = j?.afterPhotos ?? [];
   const [showCancel, setShowCancel] = useState(false);
   // Opening ANY job clears its alert on the Jobs/agent tabs — once the agent has
   // seen the job, the "new" badge shouldn't linger regardless of what they tap
@@ -69,17 +63,6 @@ export default function JobDetail() {
           {j.status === "modified" ? "Modified" : j.status}
         </span>
       </div>
-
-      {/* Message the customer — only when both sides are real, distinct accounts */}
-      {j.customerUid && j.cleanerUid && j.customerUid !== j.cleanerUid && (
-        <button className="btn secondary sm" style={{ marginTop: 8, marginBottom: 4 }}
-          onClick={async () => {
-            const tid = await createThread(j.customerUid!, j.cleanerUid!, j.id, `Cleaning · ${j.date}`);
-            if (tid) nav("/messages?thread=" + tid);
-          }}>
-          Message customer
-        </button>
-      )}
 
       {j.status === "modified" && (
         <div className="card jd__card" style={{ borderLeft: "3px solid var(--indigo)" }}>
@@ -156,41 +139,17 @@ export default function JobDetail() {
         </a>
       )}
 
-      {isLive && (
-        <>
-          <div className="h2">Proof photos</div>
-          <div className="card">
-            <p className="tiny muted" style={{ marginTop: 0 }}>Time-stamped before/after photos protect you against false refund claims.</p>
-            <div className="row" style={{ gap: 8 }}>
-              <button className={"proofbtn grow" + (before.length ? " done" : "")} onClick={() => setCam("before")}>
-                {before.length ? `✓ Before (${before.length})` : "Before"}
-              </button>
-              <button className={"proofbtn grow" + (after.length ? " done" : "")} onClick={() => setCam("after")}>
-                {after.length ? `✓ After (${after.length})` : "After"}
-              </button>
-            </div>
-            {(before.length > 0 || after.length > 0) && (
-              <div style={{ marginTop: 12 }}>
-                {before.length > 0 && <ProofStrip label="Before" urls={before} />}
-                {after.length > 0 && <ProofStrip label="After" urls={after} />}
-              </div>
-            )}
-          </div>
-        </>
-      )}
-
-      {cam && (
-        <CameraCapture
-          title={cam === "before" ? "Before photos" : "After photos"}
-          folder={`job/${j.id}/${cam}`}
-          onClose={() => setCam(null)}
-          onDone={(p) => {
-            const urls = p.map((x) => x.url).filter((u): u is string => !!u);
-            const existing = cam === "before" ? before : after;
-            saveJobPhotos(j.id, cam!, [...existing, ...urls]);
-            setCam(null);
-          }}
-        />
+      {/* Message the customer — mirrors the maps button, and (like maps) only
+          while the job is still active. After completion, messaging closes. */}
+      {j.status !== "completed" && j.customerUid && j.cleanerUid && j.customerUid !== j.cleanerUid && (
+        <button className="maploc__btn" style={{ marginTop: 10, width: "100%", cursor: "pointer" }}
+          onClick={async () => {
+            const tid = await createThread(j.customerUid!, j.cleanerUid!, j.id, `Cleaning · ${j.date}`);
+            if (tid) nav("/messages?thread=" + tid);
+          }}>
+          <span>Message customer</span>
+          <span className="maploc__arrow"><ArrowRight size={14} /></span>
+        </button>
       )}
 
       <div style={{ height: 18 }} />
@@ -229,21 +188,6 @@ export default function JobDetail() {
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function ProofStrip({ label, urls }: { label: string; urls: string[] }) {
-  return (
-    <div style={{ marginTop: 8 }}>
-      <div className="tiny muted" style={{ fontWeight: 800, marginBottom: 4 }}>{label}</div>
-      <div style={{ display: "flex", gap: 8, overflowX: "auto" }}>
-        {urls.map((u) => (
-          <a key={u} href={u} target="_blank" rel="noreferrer" style={{ flexShrink: 0 }}>
-            <img src={u} alt={label} style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 10, border: "1px solid var(--border)" }} />
-          </a>
-        ))}
-      </div>
     </div>
   );
 }

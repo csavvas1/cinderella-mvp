@@ -1585,8 +1585,11 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       const { data, error } = await supabase
         .from("message_threads")
         .upsert(
+          // One thread per (customer, cleaner) pair — Messenger-style. job_id is
+          // kept only as the latest context; it is NOT part of thread identity,
+          // so re-messaging from any booking reuses the same conversation.
           { customer_id: customerUid, cleaner_id: cleanerUid, job_id: jobId ?? null, subject },
-          { onConflict: "customer_id,cleaner_id,job_id" },
+          { onConflict: "customer_id,cleaner_id" },
         )
         .select()
         .single();

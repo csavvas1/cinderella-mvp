@@ -28,8 +28,18 @@ export default function Jobs() {
   // Agent side shows ONLY jobs assigned to THIS user as the cleaner. Jobs the
   // user booked as a customer (customer_uid = me, cleaner_uid = someone else)
   // also live in the store, but must not appear in the agent's own Jobs list.
+  const todayISO = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  })();
+  // The Jobs tab is the agent's forward-looking worklist: only jobs that still
+  // need attention. Completed jobs are always dropped; a past day's leftover
+  // approved/cancelled rows don't linger either. Pending/modified still surface
+  // even if the date slipped, since they demand a response.
   const relevant = jobs.filter((j) =>
     j.cleanerUid === myUid &&
+    j.status !== "completed" && j.status !== "declined" &&
+    (j.date >= todayISO || j.status === "pending" || j.status === "modified") &&
     (j.status === "pending" || j.status === "approved" || j.status === "modified" ||
       (j.status === "cancelled" && !j.dismissedByAgent)));
   const nPending = relevant.filter((j) => j.status === "pending").length;

@@ -2021,9 +2021,9 @@ input[type="range"]::-webkit-slider-thumb {
 .calcell.today.sel .calnum { color: #fff; }
 /* past days (customer) — not selectable */
 .calcell.past { opacity: .38; cursor: default; }
-/* A past day that still has bookings is interactive (review access). Only the
-   truly disabled (empty past) cells stay dimmed. */
-.calcell.past:not(:disabled) { opacity: 1; cursor: pointer; }
+/* Past days stay visually greyed. Those still holding a booking remain tappable
+   (to open the day panel and review), signalled by the pointer cursor only. */
+.calcell.past:not(:disabled) { cursor: pointer; }
 .calcell.past:disabled { cursor: default; }
 .calcell.past:active { transform: none; }
 

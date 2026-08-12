@@ -904,8 +904,6 @@ function CalendarView({
     return map;
   }, [cancelledBookings]);
 
-  const nowD = new Date();
-  const atCurrentMonth = y === nowD.getFullYear() && m === nowD.getMonth();
   const monthName = month.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
   const cells: (number | null)[] = [...Array(startDow).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
 
@@ -921,10 +919,9 @@ function CalendarView({
   return (
     <div style={{ marginTop: 8 }}>
       <div className="between" style={{ marginBottom: 10 }}>
-        <button className="iconbtn" disabled={atCurrentMonth} style={{ opacity: atCurrentMonth ? 0.35 : 1 }}
-          onClick={() => { if (!atCurrentMonth) setMonth(new Date(y, m - 1, 1)); }}>‹</button>
+        <button className="iconbtn" disabled style={{ opacity: 0.35 }} aria-label="Previous month (disabled)">‹</button>
         <b>{monthName}</b>
-        <button className="iconbtn" onClick={() => setMonth(new Date(y, m + 1, 1))}>›</button>
+        <button className="iconbtn" disabled style={{ opacity: 0.35 }} aria-label="Next month (disabled)">›</button>
       </div>
       <div className="calgrid calhead dotcal">
         {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => <div key={i} className="caldow">{d}</div>)}
@@ -1053,14 +1050,12 @@ function CalendarView({
                   {b.tip ? (
                     <div className="refundtag approved" style={{ marginTop: 10 }}>You tipped €{b.tip}</div>
                   ) : null}
-                  <div className="row" style={{ gap: 8, marginTop: 10 }}>
-                    <button className="btn sm secondary grow" onClick={() => onReview(b)}>
-                      {b.rating ? "Edit review" : "Leave a review"}
-                    </button>
-                    {!b.tip && (
-                      <button className="btn sm secondary grow" onClick={() => onTip(b)}>Tip</button>
-                    )}
-                  </div>
+                  <button className={"btn sm grow" + (b.rating ? " secondary" : "")} style={{ marginTop: 10 }} onClick={() => onReview(b)}>
+                    {b.rating ? "Edit your review" : `Review ${b.cleanerName}`}
+                  </button>
+                  {!b.tip && (
+                    <button className="btn sm secondary grow" style={{ marginTop: 8 }} onClick={() => onTip(b)}>Leave a tip</button>
+                  )}
                   {!b.refund && (
                     refundOpen(b) ? (
                       <button className="btn sm secondary" style={{ marginTop: 8 }} onClick={() => onRefund(b)}>Request refund</button>

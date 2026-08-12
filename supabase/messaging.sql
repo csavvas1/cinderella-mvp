@@ -14,9 +14,9 @@ create table if not exists message_threads (
   subject         text not null default '',
   last_message_at timestamptz not null default now(),
   created_at      timestamptz not null default now(),
-  -- one thread per (customer, cleaner, job) trio. job_id NULL groups as one
-  -- general thread per pair.
-  unique (customer_id, cleaner_id, job_id)
+  -- one thread per (customer, cleaner) pair — Messenger-style. job_id is kept as
+  -- context only (see messaging_one_thread_per_pair.sql for the migration).
+  unique (customer_id, cleaner_id)
 );
 create index if not exists message_threads_customer_idx on message_threads (customer_id);
 create index if not exists message_threads_cleaner_idx  on message_threads (cleaner_id);
