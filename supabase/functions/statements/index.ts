@@ -188,8 +188,7 @@ Deno.serve(async (req) => {
   page.drawRectangle({ x: 0, y: A4.h - bandH, width: A4.w, height: 3, color: rgb(0, 0, 0), opacity: 0.12 });
   const white = rgb(1, 1, 1);
   const faint = rgb(0.86, 0.92, 0.98); // soft white for sub-lines on the band
-  T(BRAND, M, A4.h - 46, 24, bold, white);
-  T("Professional cleaning services · Cyprus", M, A4.h - 66, 9.5, font, faint);
+  T(BRAND, M, A4.h - 50, 24, bold, white);
   R(title, A4.w - M, A4.h - 44, 14, bold, white);
   R(win.label, A4.w - M, A4.h - 62, 11, font, faint);
   if (VAT_NUMBER) R(`VAT No.: ${VAT_NUMBER}`, A4.w - M, A4.h - 78, 8.5, font, faint);

@@ -11,7 +11,14 @@ import type { ChatMessage, ChatThread } from "../../types";
 function timeLabel(at: number) { return new Date(at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }); }
 function dayLabel(at: number) { return new Date(at).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short", year: "numeric" }); }
 
-function ThreadAvatar({ t, size = 30 }: { t: ChatThread; size?: number }) {
+function ThreadAvatar({ t, size = 30, photo }: { t: ChatThread; size?: number; photo?: string }) {
+  // Prefer the counterparty's real uploaded photo when we have one.
+  if (photo) {
+    return (
+      <img src={photo} alt="" className="threadrow__photo"
+        style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover" }} />
+    );
+  }
   if (t.kind === "cleaner") {
     return (
       <span className="threadrow__cleaner" style={{ width: size, height: size }}>
@@ -20,6 +27,12 @@ function ThreadAvatar({ t, size = 30 }: { t: ChatThread; size?: number }) {
     );
   }
   return <PlatformIcon platform={t.platform} size={size} />;
+}
+
+// The counterparty uid on a thread, from the current user's perspective.
+function otherUid(t: ChatThread, myUid: string | null): string | undefined {
+  if (!t.customerId || !t.cleanerUid) return undefined;
+  return t.customerId === myUid ? t.cleanerUid : t.customerId;
 }
 
 export default function Messages() {
@@ -44,14 +57,17 @@ export default function Messages() {
 }
 
 function ThreadList({ onOpen }: { onOpen: (id: string) => void }) {
-  const { messageThreads, pro, myUid, nameForUid, jobs } = useStore();
+  const { messageThreads, pro, myUid, nameForUid, photoForUid, jobs } = useStore();
   const [q, setQ] = useState("");
   const [autoOpen, setAutoOpen] = useState(false);
   // live name for a thread's counterparty (not the frozen guest field)
   const nameOf = (t: ChatThread) => {
-    const other = t.customerId && t.cleanerUid
-      ? (t.customerId === myUid ? t.cleanerUid : t.customerId) : undefined;
+    const other = otherUid(t, myUid);
     return (other && nameForUid(other)) || t.guest || "Chat";
+  };
+  const photoOf = (t: ChatThread) => {
+    const other = otherUid(t, myUid);
+    return other ? photoForUid(other) : undefined;
   };
   const propOf = (t: ChatThread) => {
     const job = t.jobId ? jobs.find((j) => j.id === t.jobId) : undefined;
@@ -79,7 +95,7 @@ function ThreadList({ onOpen }: { onOpen: (id: string) => void }) {
       {list.length === 0 && <div className="note">No messages yet.</div>}
       {list.map((t) => (
         <button key={t.id} className="threadrow" onClick={() => onOpen(t.id)}>
-          <span className="threadrow__av"><ThreadAvatar t={t} /></span>
+          <span className="threadrow__av"><ThreadAvatar t={t} photo={photoOf(t)} /></span>
           <div className="grow" style={{ minWidth: 0 }}>
             <div className="between">
               <b style={{ fontSize: 14 }}>{nameOf(t)}</b>
@@ -96,7 +112,7 @@ function ThreadList({ onOpen }: { onOpen: (id: string) => void }) {
 }
 
 function Thread({ thread, onBack }: { thread: ChatThread; onBack: () => void }) {
-  const { messages, addMessage, myUid, nameForUid, jobs } = useStore();
+  const { messages, addMessage, myUid, nameForUid, photoForUid, jobs } = useStore();
   const msgs = useMemo(
     () => messages.filter((m) => m.threadId === thread.id).sort((a, b) => a.at - b.at),
     [messages, thread.id]
@@ -112,10 +128,9 @@ function Thread({ thread, onBack }: { thread: ChatThread; onBack: () => void }) 
   }, [msgs.length]);
 
   // resolve the counterparty + the linked job (for property + finished state)
-  const otherUid = thread.customerId && thread.cleanerUid
-    ? (thread.customerId === myUid ? thread.cleanerUid : thread.customerId)
-    : undefined;
-  const displayName = (otherUid && nameForUid(otherUid)) || thread.guest || "Chat";
+  const otherId = otherUid(thread, myUid);
+  const displayName = (otherId && nameForUid(otherId)) || thread.guest || "Chat";
+  const otherPhoto = otherId ? photoForUid(otherId) : undefined;
   const job = thread.jobId ? jobs.find((j) => j.id === thread.jobId) : undefined;
   const propertyLine = job?.address || thread.property || "";
   const finished = job ? (job.status === "completed" || job.status === "cancelled" || job.status === "declined") : false;
@@ -141,7 +156,7 @@ function Thread({ thread, onBack }: { thread: ChatThread; onBack: () => void }) 
         <button className="chathead__back" onClick={onBack} aria-label="Back">
           <svg viewBox="0 0 24 24" width="20" height="20"><path d="M15 4 L7 12 L15 20" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
         </button>
-        <span className="chathead__av"><ThreadAvatar t={thread} size={36} /></span>
+        <span className="chathead__av"><ThreadAvatar t={thread} size={36} photo={otherPhoto} /></span>
         <div className="chathead__meta">
           <b className="chathead__name">{displayName}</b>
           {propertyLine && <div className="chathead__sub">{propertyLine}</div>}
@@ -163,7 +178,7 @@ function Thread({ thread, onBack }: { thread: ChatThread; onBack: () => void }) 
               <div className={"msgrow " + (mine ? "msgrow--me" : "msgrow--them")}>
                 {!mine && (
                   <span className="msgrow__av">
-                    {lastOfRun ? <ThreadAvatar t={thread} size={26} /> : null}
+                    {lastOfRun ? <ThreadAvatar t={thread} size={26} photo={otherPhoto} /> : null}
                   </span>
                 )}
                 <div className={"bubble " + (mine ? "me" : "them")}>

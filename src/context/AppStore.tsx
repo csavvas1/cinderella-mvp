@@ -421,6 +421,7 @@ interface AppState {
   refresh: () => Promise<void>;      // pull-to-refresh: re-fetch the signed-in account's data
   myUid: string | null;              // the signed-in user's id (uid), for ownership filters
   nameForUid: (uid: string) => string; // live display-name resolver (counterparty in chat)
+  photoForUid: (uid: string) => string | undefined; // live profile-photo resolver (counterparty in chat)
 }
 
 const KEY = "cinderella-state-v11";
@@ -1217,6 +1218,21 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       }
     }
     return "";
+  }
+  // Live profile-photo resolver for a chat counterparty. Agents carry an
+  // optional uploaded photoUrl in the public directory; returns undefined when
+  // there's no photo (the UI then falls back to the default avatar).
+  function photoFor(uid: string): string | undefined {
+    if (uid === currentKey) return acct.agentProfile?.photoUrl || undefined;
+    const c = realCleaners.find((x) => x.id === uid);
+    if (c?.photoUrl) return c.photoUrl;
+    for (const j of jobs) {
+      if (j.cleanerUid === uid && j.cleanerId) {
+        const cc = realCleaners.find((x) => x.id === j.cleanerId);
+        if (cc?.photoUrl) return cc.photoUrl;
+      }
+    }
+    return undefined;
   }
 
   // ---- messaging: load my threads + messages on login (real users only) ----
@@ -2343,6 +2359,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     // live counterparty-name resolver for the chat UI (re-resolves at render once
     // jobs/cleaners are loaded, so a name isn't frozen blank from fetch-time).
     nameForUid: (uid: string) => nameFor(uid),
+    photoForUid: (uid: string) => photoFor(uid),
     // pull-to-refresh: re-pull this account's data from Supabase (no app restart,
     // no white flash). Only meaningful for a real signed-in user; the demo
     // account has nothing to re-fetch, so resolve immediately.

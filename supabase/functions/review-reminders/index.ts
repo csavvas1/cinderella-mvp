@@ -36,7 +36,7 @@ const REMINDER_HOUR = 18;
 // Public app origin for deep links (set as a function secret). Falls back to the
 // production domain. The review deep link opens the app straight on the booking's
 // review sheet: <SITE_URL>/?review=<bookingId>.
-const SITE_URL = (Deno.env.get("SITE_URL") || "https://cinderella.cy").replace(/\/+$/, "");
+const SITE_URL = (Deno.env.get("SITE_URL") || "https://cinderella-mvp.vercel.app").replace(/\/+$/, "");
 // Cyprus is UTC+2 (winter) / UTC+3 (summer). Use +3 as the conservative offset
 // so the nudge never fires before local 18:00 (worst case it lands ~1h late in
 // winter, which is fine). Adjust here if exact DST handling is ever needed.
