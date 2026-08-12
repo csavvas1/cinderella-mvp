@@ -118,6 +118,7 @@ export default function Account() {
   const [addChoice, setAddChoice] = useState(false);       // manual vs connect chooser
   const [connectNew, setConnectNew] = useState(false);     // connect-accounts view (no property yet)
   const [showListings, setShowListings] = useState(false); // full-screen My Listings view
+  const [showReviews, setShowReviews] = useState(false); // full-screen customer reviews of me
   const [editId, setEditId] = useState<string | null>(null);
   const [showAddCard, setShowAddCard] = useState(false);
   const [cardForm, setCardForm] = useState({ nickname: "", number: "" });
@@ -552,6 +553,52 @@ export default function Account() {
         />
       )}
 
+      {showReviews && (() => {
+        const myReviews = myUid ? reviewsFor(myUid) : [];
+        const count = myReviews.length;
+        const avg = count ? myReviews.reduce((s, r) => s + (r.rating || 0), 0) / count : 0;
+        return (
+          <div className="modal__backdrop" onClick={() => setShowReviews(false)}>
+            <div className="modal" onClick={(e) => e.stopPropagation()}>
+              <div className="between" style={{ marginBottom: 14 }}>
+                <b style={{ fontSize: 16 }}>Your reviews</b>
+                <button className="iconbtn" onClick={() => setShowReviews(false)} aria-label="Close"><X size={16} /></button>
+              </div>
+              <div className="row between" style={{ alignItems: "center", marginBottom: 14 }}>
+                <span className="ratesum">
+                  <span className="ratesum__stars">
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <Star key={n} size={16} fill={n <= Math.round(avg) ? "currentColor" : "none"} />
+                    ))}
+                  </span>
+                  <b className="ratesum__avg" style={{ fontSize: 16 }}>{avg.toFixed(1)}</b>
+                </span>
+                <span className="tiny muted">{count} review{count === 1 ? "" : "s"}</span>
+              </div>
+              {count === 0 && (
+                <p className="tiny muted">No reviews yet. Complete cleanings and your customer ratings will appear here.</p>
+              )}
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {myReviews.map((r) => (
+                  <div key={r.id} className="agentrev">
+                    <div className="between" style={{ alignItems: "center" }}>
+                      <b style={{ fontSize: 13.5 }}>{r.author}</b>
+                      <span className="agentrev__stars">
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <Star key={n} size={13} fill={n <= (r.rating || 0) ? "currentColor" : "none"} />
+                        ))}
+                      </span>
+                    </div>
+                    {r.text && <div className="tiny muted" style={{ marginTop: 4 }}>{r.text}</div>}
+                    <div className="tiny muted" style={{ marginTop: 5, opacity: .7 }}>{r.date}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
 
       {showAdd && (
         <div className="modal__backdrop" onClick={() => { setShowAdd(false); setEditId(null); resetForm(); }}>
@@ -825,18 +872,19 @@ export default function Account() {
         <>
           <div className="acct-sec acct-sec--agent">Cleaner</div>
 
-          {/* YOUR RATING — reviews customers left for this agent. Aggregate stars
-              + count, then the most recent few. Empty state before any review. */}
+          {/* RATING — a button opening the full reviews view. Shows stars, the
+              average and the review count; details live in the sub-view. */}
           {(() => {
             const myReviews = myUid ? reviewsFor(myUid) : [];
             const count = myReviews.length;
             const avg = count ? myReviews.reduce((s, r) => s + (r.rating || 0), 0) / count : 0;
             return (
-              <div className="card" style={{ marginTop: 12 }}>
-                <div className="between" style={{ alignItems: "center" }}>
-                  <b style={{ fontSize: 14 }}>Your rating</b>
-                  {count > 0 && (
-                    <span className="ratesum">
+              <button className="card row between" style={{ marginTop: 12, cursor: "pointer", width: "100%" }}
+                onClick={() => setShowReviews(true)}>
+                <b style={{ fontSize: 14 }}>Rating</b>
+                <span className="ratesum">
+                  {count > 0 ? (
+                    <>
                       <span className="ratesum__stars">
                         {[1, 2, 3, 4, 5].map((n) => (
                           <Star key={n} size={15} fill={n <= Math.round(avg) ? "currentColor" : "none"} />
@@ -844,35 +892,13 @@ export default function Account() {
                       </span>
                       <b className="ratesum__avg">{avg.toFixed(1)}</b>
                       <span className="tiny muted">({count})</span>
-                    </span>
+                    </>
+                  ) : (
+                    <span className="tiny muted">No reviews yet</span>
                   )}
-                </div>
-                {count === 0 ? (
-                  <p className="tiny muted" style={{ margin: "8px 0 0" }}>
-                    No reviews yet. Complete cleanings and your customer ratings will appear here.
-                  </p>
-                ) : (
-                  <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 10 }}>
-                    {myReviews.slice(0, 3).map((r) => (
-                      <div key={r.id} className="agentrev">
-                        <div className="between" style={{ alignItems: "center" }}>
-                          <b style={{ fontSize: 13 }}>{r.author}</b>
-                          <span className="agentrev__stars">
-                            {[1, 2, 3, 4, 5].map((n) => (
-                              <Star key={n} size={12} fill={n <= (r.rating || 0) ? "currentColor" : "none"} />
-                            ))}
-                          </span>
-                        </div>
-                        {r.text && <div className="tiny muted" style={{ marginTop: 3 }}>{r.text}</div>}
-                        <div className="tiny muted" style={{ marginTop: 3, opacity: .7 }}>{r.date}</div>
-                      </div>
-                    ))}
-                    {count > 3 && (
-                      <div className="tiny muted" style={{ textAlign: "center" }}>+ {count - 3} more review{count - 3 === 1 ? "" : "s"}</div>
-                    )}
-                  </div>
-                )}
-              </div>
+                  <span className="pcard__chev">›</span>
+                </span>
+              </button>
             );
           })()}
 
