@@ -1009,7 +1009,12 @@ export default function Account() {
             <b style={{ fontSize: 14 }}>Disputes</b>
             {disputesActionNeeded > 0
               ? <span className="statuspill statuspill--warn">{disputesActionNeeded} to review</span>
-              : <DoneTick label="All clear" />}
+              : (
+                <span className="donestatus">
+                  <DoneTick label="No pending disputes" />
+                  <span className="donestatus__txt">No pending disputes</span>
+                </span>
+              )}
           </div>
 
           {/* VERIFICATION */}
