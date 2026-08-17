@@ -33,9 +33,6 @@ export default function CleanerList() {
   const hasWeekday = dates.some((d) => !isWeekend(d));
   const mixed = hasWeekend && hasWeekday;
   const weekend = hasWeekend && !hasWeekday; // pure weekend
-  // Pricing snapshot from the REAL cleaner pool (the live agents), not mock data.
-  const stats = marketStats(weekend ? "weekend" : "weekday", cleaners);
-  const wkendStats = marketStats("weekend", cleaners);
   // sort/filter use weekday rate as the base when mixed (consistent reference)
   const rateOf = (c: Cleaner) => (weekend ? c.rateWeekend : c.rateWeekday);
 
@@ -80,6 +77,22 @@ export default function CleanerList() {
     });
   }, [cleaners, dates.join(), time, duration, bookings, minRating, maxWkday, maxWkend, verifiedOnly, weekend, mixed, draft.city, hasSlot]);
 
+  // Cleaners actually bookable for this slot: city + availability only.
+  // Deliberately ignores the price/rating/verified UI filters so the market
+  // snapshot stays stable while the user tweaks them.
+  const availablePool = useMemo(() => {
+    if (!hasSlot) return cleaners; // browse-only: whole pool, as before
+    return cleaners.filter((c) => {
+      if (draft.city && c.serviceCities?.length && !c.serviceCities.includes(draft.city)) return false;
+      return isCleanerFree(c.id, dates, time, duration, bookings, undefined, c);
+    });
+  }, [cleaners, hasSlot, draft.city, dates.join(), time, duration, bookings]);
+
+  const stats = marketStats(weekend ? "weekend" : "weekday", availablePool);
+  const wkendStats = marketStats("weekend", availablePool);
+  const noneAvail = stats.count === 0;
+  const dash = "—";
+
   // ranking
   const ranked = useMemo(() => {
     const arr = [...filtered];
@@ -115,19 +128,19 @@ export default function CleanerList() {
       <div className="mkt">
         {mixed ? (
           <>
-            <div className="mkt__item"><div className="mkt__val">€{stats.avg}</div><div className="mkt__lbl">Avg wkday</div></div>
+            <div className="mkt__item"><div className="mkt__val">{noneAvail ? dash : `€${stats.avg}`}</div><div className="mkt__lbl">Avg wkday</div></div>
             <div className="mkt__sep" />
-            <div className="mkt__item"><div className="mkt__val">€{wkendStats.avg}</div><div className="mkt__lbl">Avg wknd</div></div>
+            <div className="mkt__item"><div className="mkt__val">{noneAvail ? dash : `€${wkendStats.avg}`}</div><div className="mkt__lbl">Avg wknd</div></div>
             <div className="mkt__sep" />
-            <div className="mkt__item"><div className="mkt__val"><Star size={14} fill="currentColor" strokeWidth={0} style={{ verticalAlign: "-2px" }} /> {stats.avgRating}</div><div className="mkt__lbl">Avg rating</div></div>
+            <div className="mkt__item"><div className="mkt__val">{noneAvail ? dash : <><Star size={14} fill="currentColor" strokeWidth={0} style={{ verticalAlign: "-2px" }} /> {stats.avgRating}</>}</div><div className="mkt__lbl">Avg rating</div></div>
           </>
         ) : (
           <>
-            <div className="mkt__item"><div className="mkt__val">€{stats.avg}</div><div className="mkt__lbl">Avg / hr</div></div>
+            <div className="mkt__item"><div className="mkt__val">{noneAvail ? dash : `€${stats.avg}`}</div><div className="mkt__lbl">Avg / hr</div></div>
             <div className="mkt__sep" />
-            <div className="mkt__item"><div className="mkt__val">€{stats.typical}</div><div className="mkt__lbl">{stats.typicalLabel.replace(" (median)", "")}</div></div>
+            <div className="mkt__item"><div className="mkt__val">{noneAvail ? dash : `€${stats.typical}`}</div><div className="mkt__lbl">{stats.typicalLabel.replace(" (median)", "")}</div></div>
             <div className="mkt__sep" />
-            <div className="mkt__item"><div className="mkt__val"><Star size={14} fill="currentColor" strokeWidth={0} style={{ verticalAlign: "-2px" }} /> {stats.avgRating}</div><div className="mkt__lbl">Avg rating</div></div>
+            <div className="mkt__item"><div className="mkt__val">{noneAvail ? dash : <><Star size={14} fill="currentColor" strokeWidth={0} style={{ verticalAlign: "-2px" }} /> {stats.avgRating}</>}</div><div className="mkt__lbl">Avg rating</div></div>
           </>
         )}
       </div>
