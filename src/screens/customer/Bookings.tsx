@@ -956,8 +956,10 @@ function CalendarView({
     setSelected(bk.date);
   }, [bookings]);
 
+  const now = new Date();
   const y = month.getFullYear();
   const m = month.getMonth();
+  const isCurrentMonth = y === now.getFullYear() && m === now.getMonth();
   const first = new Date(y, m, 1);
   const startDow = (first.getDay() + 6) % 7; // make Monday=0
   const daysInMonth = new Date(y, m + 1, 0).getDate();
@@ -991,7 +993,7 @@ function CalendarView({
   return (
     <div style={{ marginTop: 8 }}>
       <div className="between" style={{ marginBottom: 10 }}>
-        <button className="iconbtn" onClick={() => setMonth(new Date(y, m - 1, 1))}>‹</button>
+        <button className="iconbtn" disabled={isCurrentMonth} style={isCurrentMonth ? { opacity: 0.35 } : undefined} onClick={() => setMonth(new Date(y, m - 1, 1))}>‹</button>
         <b>{monthName}</b>
         <button className="iconbtn" onClick={() => setMonth(new Date(y, m + 1, 1))}>›</button>
       </div>
