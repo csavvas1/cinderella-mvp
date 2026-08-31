@@ -630,23 +630,6 @@ export default function Account() {
               <b style={{ fontSize: 16 }}>{editId ? "Edit property" : "Add a property"}</b>
               <button className="iconbtn" onClick={() => { setShowAdd(false); setEditId(null); resetForm(); }} aria-label="Close"><X size={16} /></button>
             </div>
-            <div className="label">Photo (optional)</div>
-            <input ref={propPhotoInput} type="file" accept="image/*" style={{ display: "none" }}
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadPropPhoto(f); e.target.value = ""; }} />
-            <button type="button" className={"propphoto" + (form.photoUrl ? " propphoto--set" : "")}
-              onClick={() => propPhotoInput.current?.click()} disabled={propPhotoBusy}>
-              {form.photoUrl ? (
-                <>
-                  <img src={form.photoUrl} alt="Property" className="propphoto__img" />
-                  <span className="propphoto__edit">{propPhotoBusy ? "Uploading…" : "Change photo"}</span>
-                </>
-              ) : (
-                <span className="propphoto__add">
-                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5" /><circle cx="8.5" cy="10" r="1.6" /><path d="m4 18 5-4.5 3.5 3 3-2.5L20 18" /></svg>
-                  {propPhotoBusy ? "Uploading…" : "Add a cover photo"}
-                </span>
-              )}
-            </button>
             <div className="label">Nickname (optional)</div>
             <input className="input" value={form.nickname} placeholder="e.g. Seaside Apartment" onChange={(e) => setForm({ ...form, nickname: e.target.value })} />
             <div className="label">Address</div>
