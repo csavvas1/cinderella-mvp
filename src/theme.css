@@ -2603,11 +2603,18 @@ input[type="range"]::-webkit-slider-thumb {
   min-width: 26px; height: 26px; border-radius: 999px; /* sizing so today's disc fits */
 }
 /* reserve dot-row height so cells with/without bookings stay the same size */
-.dotcal .caldots { display: flex; gap: 4px; height: 8px; align-items: center; justify-content: center; }
-.dotcal .caldots .cdot { width: 7px; height: 7px; }
-/* today: hairline indigo ring around the number (accent), no fill */
+.dotcal .caldots { display: flex; height: 8px; align-items: center; justify-content: center; }
+/* Apple Calendar pill: 1 dot = 7×7 circle, 2 = elongated pill, 3 = longer pill.
+   Background set via inline style (linear-gradient) from JS so colours compose freely. */
+.cdot-pill {
+  display: block; height: 7px; border-radius: 999px; flex-shrink: 0;
+}
+.cdot-pill[data-count="1"] { width: 7px; }
+.cdot-pill[data-count="2"] { width: 16px; }
+.cdot-pill[data-count="3"] { width: 24px; }
+/* today: Apple style — filled indigo disc, white number */
 .dotcal .calcell.today .calnum {
-  box-shadow: inset 0 0 0 1.5px var(--indigo); color: var(--indigo); font-weight: 800;
+  background: var(--indigo); color: #fff; font-weight: 800;
 }
 /* past days: muted number + dimmed (base .calcell.past opacity). No strike. */
 .dotcal .calcell.past .calnum { color: var(--muted); }
@@ -2618,7 +2625,8 @@ input[type="range"]::-webkit-slider-thumb {
   border-color: var(--indigo); color: var(--text);
 }
 .dotcal .calcell.sel .calnum { color: var(--text); }
-.dotcal .calcell.today.sel { box-shadow: inset 0 0 0 1.5px var(--indigo); }
+.dotcal .calcell.today.sel .calnum { background: var(--indigo); color: #fff; }
+/* past today still shows disc but dimmed via cell opacity */
 
 /* plan pill next to the email on the profile card */
 .planbadge {

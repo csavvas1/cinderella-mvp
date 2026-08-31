@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { X, Star, Check } from "lucide-react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
@@ -912,6 +912,21 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
   );
 }
 
+/* ---- Apple Calendar pill helpers ---- */
+const DOT_COLOR: Record<string, string> = {
+  up: "#4f46e5",
+  wait: "#d97706",
+  done: "#16a34a",
+  cancelled: "#dc2626",
+};
+function pillStyle(statuses: string[]): React.CSSProperties {
+  const colors = statuses.map((s) => DOT_COLOR[s] ?? "#4f46e5");
+  if (colors.length === 1) return { background: colors[0] };
+  const step = 100 / colors.length;
+  const stops = colors.map((c, i) => `${c} ${i * step}% ${(i + 1) * step}%`);
+  return { background: `linear-gradient(to right, ${stops.join(", ")})` };
+}
+
 /* ---------------- calendar ---------------- */
 function CalendarView({
   bookings, cancelledBookings, onEdit, onMessage, onReview, onRefund, onTip, onAddForDay,
@@ -990,29 +1005,29 @@ function CalendarView({
           const dayBookings = byDate[date] ?? [];
           const hasCancelled = (cancelledByDate[date] ?? []).length > 0;
           const isPast = date < today;
-          // one status dot per booking (up to 3): confirmed/upcoming -> up
-          // (indigo), awaiting -> wait (amber), else done (green). A cancelled-
-          // only day shows a single red dot.
-          const dots: string[] = dayBookings.slice(0, 3).map((b) =>
+          // Apple Calendar pill: confirmed/upcoming → up (indigo),
+          // awaiting → wait (amber), else done (green). Cancelled-only day → single red pill.
+          const dotStatuses: string[] = dayBookings.slice(0, 3).map((b) =>
             b.status === "confirmed" || b.status === "upcoming" ? "up"
               : b.status === "awaiting" ? "wait" : "done");
-          if (dots.length === 0 && hasCancelled) dots.push("cancelled");
+          if (dotStatuses.length === 0 && hasCancelled) dotStatuses.push("cancelled");
           const cls =
             "calcell" +
             (dayBookings.length || hasCancelled ? " has" : "") +
             (date === today ? " today" : "") +
             (isPast ? " past" : "") +
             (selected === date ? " sel" : "");
-          // Past days are tappable when they hold any booking (so the customer
-          // can open a completed cleaning and leave/edit a review) or a
-          // cancelled one. Empty past days stay disabled.
           const clickable = !isPast || hasCancelled || dayBookings.length > 0;
           return (
             <button key={i} className={cls} disabled={!clickable} onClick={() => { if (clickable) setSelected((cur) => (cur === date ? null : date)); }}>
               <span className="calnum">{day}</span>
-              {dots.length > 0 && (
-                <span className="caldots" aria-label={`${dots.length} booking${dots.length === 1 ? "" : "s"}`}>
-                  {dots.map((d, k) => <i key={k} className={"cdot " + d} />)}
+              {dotStatuses.length > 0 && (
+                <span className="caldots" aria-label={`${dotStatuses.length} booking${dotStatuses.length === 1 ? "" : "s"}`}>
+                  <span
+                    className="cdot-pill"
+                    data-count={dotStatuses.length}
+                    style={pillStyle(dotStatuses)}
+                  />
                 </span>
               )}
             </button>
@@ -1023,10 +1038,10 @@ function CalendarView({
       <div className="callegend">
         <div className="callegend__grp">
           <span className="callegend__lbl">Cleaning status</span>
-          <span><span className="cdot up" /> Confirmed</span>
-          <span><span className="cdot wait" /> Awaiting</span>
-          <span><span className="cdot done" /> Completed</span>
-          <span><span className="cdot cancelled" /> Cancelled</span>
+          <span><span className="cdot-pill" data-count="1" style={{ background: DOT_COLOR.up }} /> Confirmed</span>
+          <span><span className="cdot-pill" data-count="1" style={{ background: DOT_COLOR.wait }} /> Awaiting</span>
+          <span><span className="cdot-pill" data-count="1" style={{ background: DOT_COLOR.done }} /> Completed</span>
+          <span><span className="cdot-pill" data-count="1" style={{ background: DOT_COLOR.cancelled }} /> Cancelled</span>
         </div>
       </div>
 

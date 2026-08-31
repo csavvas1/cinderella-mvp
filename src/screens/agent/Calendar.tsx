@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useStore } from "../../context/AppStore";
 import type { Job } from "../../types";
@@ -14,6 +14,27 @@ export default function Calendar() {
       <JobCalendar jobs={visible} daySchedule={agentProfile.daySchedule ?? {}} />
     </div>
   );
+}
+
+// Map job status to CSS color value for the Apple-style pill indicator
+const DOT_COLOR: Record<string, string> = {
+  up: "#4f46e5",    // indigo  — approved/accepted
+  wait: "#d97706",  // amber   — pending
+  done: "#16a34a",  // green   — completed
+  cancelled: "#dc2626", // red — cancelled
+};
+
+// Build inline background style for 1/2/3-segment pill (Apple Calendar style)
+function pillStyle(statuses: string[]): React.CSSProperties {
+  const colors = statuses.map((s) => DOT_COLOR[s] ?? "#4f46e5");
+  if (colors.length === 1) return { background: colors[0] };
+  const step = 100 / colors.length;
+  const stops = colors.map((c, i) => {
+    const from = i * step;
+    const to = (i + 1) * step;
+    return `${c} ${from}% ${to}%`;
+  });
+  return { background: `linear-gradient(to right, ${stops.join(", ")})` };
 }
 
 function pad(n: number) { return String(n).padStart(2, "0"); }
@@ -113,9 +134,9 @@ function JobCalendar({ jobs, daySchedule }: { jobs: Job[]; daySchedule: Record<s
           const list = (byDate[date] ?? []).filter((j) => j.status !== "declined");
           const count = list.length;
           const isPast = date < today;
-          // up to 3 status dots under the day number (Google-calendar style):
+          // up to 3 status dots under the day number (Apple Calendar pill style):
           // pending -> wait (amber), completed -> done (green), else up (indigo).
-          const dots = list.slice(0, 3).map((j) =>
+          const dotStatuses = list.slice(0, 3).map((j) =>
             j.status === "pending" ? "wait" : j.status === "completed" ? "done" : "up");
           const cls =
             "calcell" +
@@ -127,9 +148,13 @@ function JobCalendar({ jobs, daySchedule }: { jobs: Job[]; daySchedule: Record<s
             <button key={i} className={cls} disabled={isPast && count === 0}
               onClick={() => { if (!(isPast && count === 0)) setSelected(date); }}>
               <span className="calnum">{day}</span>
-              {count > 0 && (
-                <span className="caldots" aria-label={`${count} booking${count === 1 ? "" : "s"}`}>
-                  {dots.map((d, k) => <i key={k} className={"cdot " + d} />)}
+              {dotStatuses.length > 0 && (
+                <span className="caldots" aria-label={`${count} job${count === 1 ? "" : "s"}`}>
+                  <span
+                    className="cdot-pill"
+                    data-count={dotStatuses.length}
+                    style={pillStyle(dotStatuses)}
+                  />
                 </span>
               )}
             </button>
@@ -140,9 +165,9 @@ function JobCalendar({ jobs, daySchedule }: { jobs: Job[]; daySchedule: Record<s
       <div className="callegend">
         <div className="callegend__grp">
           <span className="callegend__lbl">Job status</span>
-          <span><span className="cdot up" /> Accepted</span>
-          <span><span className="cdot wait" /> Pending</span>
-          <span><span className="cdot done" /> Completed</span>
+          <span><span className="cdot-pill" data-count="1" style={{ background: DOT_COLOR.up }} /> Accepted</span>
+          <span><span className="cdot-pill" data-count="1" style={{ background: DOT_COLOR.wait }} /> Pending</span>
+          <span><span className="cdot-pill" data-count="1" style={{ background: DOT_COLOR.done }} /> Completed</span>
         </div>
       </div>
 
