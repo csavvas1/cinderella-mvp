@@ -253,7 +253,7 @@ export default function CleanerList() {
                 </div>
                 <div className="clcard__meta">
                   <span className="stars"><Star size={14} fill="currentColor" strokeWidth={0} style={{ verticalAlign: "-2px" }} /> {c.rating.toFixed(1)}</span>
-                  <span className="muted tiny">· {c.reviewsCount}</span>
+                  <span className="muted tiny">({c.reviewsCount})</span>
                 </div>
                 <div className="badgerow">
                   {cleanerBadges(c).map((b) => <span key={b.label} className={"minibadge " + b.cls}>{b.label}</span>)}
@@ -335,7 +335,7 @@ function FavouritesView({
                 </div>
                 <div className="clcard__meta">
                   <span className="stars"><Star size={14} fill="currentColor" strokeWidth={0} style={{ verticalAlign: "-2px" }} /> {c.rating.toFixed(1)}</span>
-                  <span className="muted tiny">· {c.reviewsCount}</span>
+                  <span className="muted tiny">({c.reviewsCount})</span>
                 </div>
                 <div className="badgerow">
                   {cleanerBadges(c).map((b) => <span key={b.label} className={"minibadge " + b.cls}>{b.label}</span>)}
@@ -378,7 +378,7 @@ function FavouritesView({
                 </div>
                 <div className="clcard__meta">
                   <span className="stars"><Star size={14} fill="currentColor" strokeWidth={0} style={{ verticalAlign: "-2px" }} /> {c.rating.toFixed(1)}</span>
-                  <span className="muted tiny">· {c.reviewsCount}</span>
+                  <span className="muted tiny">({c.reviewsCount})</span>
                 </div>
                 <span className="busytag">{status.reason}</span>
               </div>
