@@ -201,23 +201,7 @@ export default function Account() {
   const spentCount = bookings.filter((b) => b.status === "completed").length;
 
   const [form, setForm] = useState<{ nickname: string; address: string; photoUrl: string; propertyType: "apartment" | "house"; apartmentNumber: string; floor: string; bedrooms: number; bathrooms: number; kitchens: number; commonRooms: number }>({ nickname: "", address: "", photoUrl: "", propertyType: "apartment", apartmentNumber: "", floor: "", bedrooms: 1, bathrooms: 1, kitchens: 1, commonRooms: 1 });
-  const [propPhotoBusy, setPropPhotoBusy] = useState(false);
-  const propPhotoInput = useRef<HTMLInputElement>(null);
-  // upload a property cover photo -> Supabase Storage -> stash publicUrl on the form
-  async function uploadPropPhoto(f: File) {
-    setPropPhotoBusy(true);
-    try {
-      const { data: sess } = await supabase.auth.getSession();
-      const uid = sess.session?.user.id ?? "anon";
-      const path = `${uid}/property/${Date.now()}-${f.name.replace(/[^\w.]+/g, "_")}`;
-      const { error } = await supabase.storage.from("proofs").upload(path, f, { upsert: false });
-      if (error) throw error;
-      const { data: pub } = supabase.storage.from("proofs").getPublicUrl(path);
-      setForm((prev) => ({ ...prev, photoUrl: pub.publicUrl }));
-    } catch { /* ignore upload failure */ }
-    finally { setPropPhotoBusy(false); }
-  }
-  const [addrFocus, setAddrFocus] = useState(false);
+const [addrFocus, setAddrFocus] = useState(false);
   // Connect sheet: which property is being connected (null = closed)
   const [connectProp, setConnectProp] = useState<PropertyAddress | null>(null);
 
