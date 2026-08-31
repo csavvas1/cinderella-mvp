@@ -338,11 +338,7 @@ export default function CleanerDetail() {
           <div className="label">Pay with</div>
           <PaymentPicker cards={cards} value={cardId} onChange={setCardId} />
         </>
-      ) : (
-        <p className="tiny muted" style={{ margin: "4px 2px 0" }}>
-          You arrange payment directly with your cleaner. No payment is taken in the app.
-        </p>
-      )}
+      ) : null}
 
       {canBook ? (
         <>
@@ -377,6 +373,7 @@ export default function CleanerDetail() {
           <button className="btn" onClick={() => { if (showSupplyWarning) setSupplyWarn(true); else confirm(); }}>
             {decision.decision === "auto" ? "Confirm booking" : "Request booking"} · €{total}
           </button>
+          <div style={{ height: "env(safe-area-inset-bottom, 16px)" }} />
         </>
       ) : (
         <>
