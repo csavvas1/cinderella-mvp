@@ -2163,7 +2163,9 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       (j.status === "pending" || j.status === "modified" ||
       (j.status === "approved" && j.autoAccepted) ||
       (j.status === "cancelled" && !j.dismissedByAgent))).length,
-    markJobSeen: (id) => { setJobs((p) => p.map((j) => (j.id === id ? { ...j, seenByAgent: true } : j))); dbPatchJob(id, { seen_by_agent: true }); },
+    // dbPatchJob filters by customer_uid so it can't write agent-owned rows; use
+    // the service-role Edge Function (same path as saveJobPhotos) instead.
+    markJobSeen: (id) => { setJobs((p) => p.map((j) => (j.id === id ? { ...j, seenByAgent: true } : j))); void agentJobUpdate(id, { seen_by_agent: true }, undefined, undefined, null); },
     // Persist proof photos onto the job as the cleaner captures them. The cleaner
     // isn't the job's customer, so the write goes through the agent-job-update
     // Edge Function (service role, verifies caller = cleaner_uid).
