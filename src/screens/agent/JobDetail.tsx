@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useStore } from "../../context/AppStore";
 import BackButton from "../../components/BackButton";
-import MapPicker from "../../components/MapPicker";
 import { ArrowRight, MapPin, MessageCircle, Phone, X } from "lucide-react";
 
 export default function JobDetail() {
@@ -124,13 +123,6 @@ export default function JobDetail() {
         <div className="divider" />
         <div className="jd__row"><span className="jd__k">You earn</span><span className="price">€{earn}</span></div>
       </div>
-
-      {/* exact location pin the customer placed, so the agent finds the door */}
-      {hasPin && (
-        <div style={{ marginTop: 14 }}>
-          <MapPicker value={{ lat: j.lat!, lng: j.lng! }} height={200} readOnly />
-        </div>
-      )}
 
       {j.status !== "completed" && (
         <a className="actionbtn" style={{ marginTop: 12 }} href={mapsUrl} target="_blank" rel="noreferrer">
