@@ -991,9 +991,9 @@ function CalendarView({
   return (
     <div style={{ marginTop: 8 }}>
       <div className="between" style={{ marginBottom: 10 }}>
-        <button className="iconbtn" disabled style={{ opacity: 0.35 }} aria-label="Previous month (disabled)">‹</button>
+        <button className="iconbtn" onClick={() => setMonth(new Date(y, m - 1, 1))}>‹</button>
         <b>{monthName}</b>
-        <button className="iconbtn" disabled style={{ opacity: 0.35 }} aria-label="Next month (disabled)">›</button>
+        <button className="iconbtn" onClick={() => setMonth(new Date(y, m + 1, 1))}>›</button>
       </div>
       <div className="calgrid calhead dotcal">
         {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => <div key={i} className="caldow">{d}</div>)}

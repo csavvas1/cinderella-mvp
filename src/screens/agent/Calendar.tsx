@@ -68,8 +68,10 @@ function JobCalendar({ jobs, daySchedule }: { jobs: Job[]; daySchedule: Record<s
   const [month, setMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
   const [selected, setSelected] = useState<string | null>(null);
 
+  const now = new Date();
   const y = month.getFullYear();
   const m = month.getMonth();
+  const isCurrentMonth = y === now.getFullYear() && m === now.getMonth();
   const first = new Date(y, m, 1);
   const startDow = (first.getDay() + 6) % 7;
   const daysInMonth = new Date(y, m + 1, 0).getDate();
@@ -120,7 +122,7 @@ function JobCalendar({ jobs, daySchedule }: { jobs: Job[]; daySchedule: Record<s
   return (
     <div style={{ marginTop: 8 }}>
       <div className="between" style={{ marginBottom: 10 }}>
-        <button className="iconbtn" onClick={() => setMonth(new Date(y, m - 1, 1))}>‹</button>
+        <button className="iconbtn" disabled={isCurrentMonth} style={isCurrentMonth ? { opacity: 0.35 } : undefined} onClick={() => setMonth(new Date(y, m - 1, 1))}>‹</button>
         <b>{monthName}</b>
         <button className="iconbtn" onClick={() => setMonth(new Date(y, m + 1, 1))}>›</button>
       </div>
