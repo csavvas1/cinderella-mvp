@@ -1062,6 +1062,8 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     setCurrentKey(uid);
     setCurrentEmail(sessionEmail);
     setLoggedIn(true);
+    // clear any stale optimistic reviews from localStorage — real users get truth from DB
+    setAccounts((p) => p[uid] ? { ...p, [uid]: { ...p[uid], reviews: {} } } : p);
     // remember this account across sign-out so the login screen can offer a
     // quick Face ID unlock instead of forgetting who signed in.
     setLastAccount({ email: sessionEmail, name: profile?.name || "" });
@@ -2096,10 +2098,14 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
 
     reviews: acct.reviews,
     addReview: (cleanerId, r) => {
-      // optimistic: show it immediately in this session
-      patchAcct({ reviews: { ...acct.reviews, [cleanerId]: [r, ...(acct.reviews[cleanerId] ?? [])] } });
-      // and reflect it in the shared app-wide list so it survives a reopen
-      setDbReviews((p) => ({ ...p, [cleanerId]: [r, ...(p[cleanerId] ?? [])] }));
+      if (isRealUser) {
+        // real users: optimistic only via dbReviews (not acct.reviews which persists
+        // to localStorage and causes phantom reviews across sessions/accounts)
+        setDbReviews((p) => ({ ...p, [cleanerId]: [r, ...(p[cleanerId] ?? [])] }));
+      } else {
+        // demo/mock: keep the local acct path (no DB)
+        patchAcct({ reviews: { ...acct.reviews, [cleanerId]: [r, ...(acct.reviews[cleanerId] ?? [])] } });
+      }
       // persist to the shared reviews table (real users only; RLS: author_id = auth.uid())
       if (isRealUser && currentKey) {
         supabase.from("reviews")
@@ -2123,10 +2129,12 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     },
     reviewsFor: (cleanerId) => {
       const base = CLEANERS.find((c) => c.id === cleanerId)?.reviews ?? [];
-      // merge session-optimistic + shared-DB + mock base, de-duped by id.
+      // real users: DB only (acct.reviews persists to localStorage → phantom reviews)
+      // demo/mock: merge session-optimistic + mock base
+      const local = isRealUser ? [] : (acct.reviews[cleanerId] ?? []);
       const seen = new Set<string>();
       const out: Review[] = [];
-      for (const r of [...(acct.reviews[cleanerId] ?? []), ...(dbReviews[cleanerId] ?? []), ...base]) {
+      for (const r of [...local, ...(dbReviews[cleanerId] ?? []), ...base]) {
         if (seen.has(r.id)) continue;
         seen.add(r.id);
         out.push(r);
