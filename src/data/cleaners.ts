@@ -46,7 +46,7 @@ export function agentRowToCleaner(r: PublicAgentRow, fallbackName?: string): Cle
     rateWeekday: p.rateWeekday,
     rateWeekend: p.rateWeekend || p.rateWeekday,
     rating: r.customer_rating ?? 0,
-    reviewsCount: 0,           // agent's own review count comes from completed jobs (later)
+    reviewsCount: r.customer_reviews_count ?? 0,
     jobsDone: 0,
     city: p.city || "Limassol",
     serviceCities: p.serviceCities?.length ? p.serviceCities : (p.city ? [p.city] : []),

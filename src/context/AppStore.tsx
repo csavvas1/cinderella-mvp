@@ -2104,7 +2104,21 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       if (isRealUser && currentKey) {
         supabase.from("reviews")
           .insert({ ...reviewToRow(r), cleaner_id: cleanerId, author_id: currentKey })
-          .then(logErr("review insert"));
+          .then(async ({ error }) => {
+            logErr("review insert")({ error });
+            // re-fetch public_agents so the agent's updated rating/reviewsCount
+            // reflects in the cleaner list without requiring a full reload.
+            if (!error) {
+              const { data } = await supabase.from("public_agents").select("*");
+              if (data) {
+                const list = (data as PublicAgentRow[])
+                  .map((row) => agentRowToCleaner(row))
+                  .filter((c): c is Cleaner => c !== null)
+                  .filter((c) => c.id !== currentKey);
+                setRealCleaners(list);
+              }
+            }
+          });
       }
     },
     reviewsFor: (cleanerId) => {
