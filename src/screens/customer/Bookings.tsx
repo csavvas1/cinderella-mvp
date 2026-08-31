@@ -767,6 +767,21 @@ function EditModal({ booking, onClose, onSave }: {
 
   const [confirmCancel, setConfirmCancel] = useState(false);
 
+  const todayISO = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; })();
+  const isToday = date === todayISO;
+  const minTime = (() => {
+    if (!isToday) return undefined;
+    const now = new Date();
+    const plusOneHour = now.getTime() + 60 * 60 * 1000;
+    const d = new Date(plusOneHour);
+    const totalMin = d.getHours() * 60 + d.getMinutes();
+    const rounded = Math.ceil(totalMin / 30) * 30;
+    const cutoff = rounded - 30;
+    const h = Math.floor(cutoff / 60) % 24;
+    const m = cutoff % 60;
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  })();
+
   const chosen = cleaners.find((c) => c.id === cleanerId);
   const isRealChosen = !CLEANERS.some((c) => c.id === cleanerId);
   const currentAvailable = isCleanerFree(cleanerId, [date], time, duration, bookings, booking.id, isRealChosen ? chosen : undefined);
@@ -810,7 +825,7 @@ function EditModal({ booking, onClose, onSave }: {
           <div className="label">Date</div>
           <DatePicker value={date} onChange={setDate} />
           <div className="label">Time</div>
-          <TimeSelect value={time} onChange={setTime} />
+          <TimeSelect value={time} onChange={setTime} min={minTime} />
 
           <div className="label">Duration (hours)</div>
           <div className="between card" style={{ padding: 8 }}>

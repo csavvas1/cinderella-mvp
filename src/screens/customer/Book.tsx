@@ -105,6 +105,28 @@ export default function Book() {
   const durSet = duration > 0;
   const ends = timeSet && durSet ? finishTime(time, duration) : "";
 
+  // For today: earliest bookable slot = now + 1h, rounded up to next 30-min mark.
+  // minTime is the slot BEFORE the first visible one (TimeSelect filters t > min).
+  const todayISO = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; })();
+  const isToday = date === todayISO;
+  const minTime = (() => {
+    if (!isToday) return undefined;
+    const now = new Date();
+    const plusOneHour = now.getTime() + 60 * 60 * 1000;
+    const d = new Date(plusOneHour);
+    const totalMin = d.getHours() * 60 + d.getMinutes();
+    // round up to next 30-min boundary, then subtract 30 so TimeSelect's t > min shows that slot
+    const rounded = Math.ceil(totalMin / 30) * 30;
+    const cutoff = rounded - 30; // first VISIBLE slot will be `rounded`
+    const h = Math.floor(cutoff / 60) % 24;
+    const m = cutoff % 60;
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  })();
+  // clear selected time when it becomes invalid (date switched to today and time is now in the past)
+  useEffect(() => {
+    if (isToday && minTime && time && time <= minTime) setTime("");
+  }, [isToday, minTime]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // cleaning-time estimate from the selected property
   const estimate = addr ? estimateCleaningHours(addr) : null;
 
@@ -214,7 +236,7 @@ export default function Book() {
       <div className="row" style={{ gap: 12, marginTop: 6 }}>
         <div className="grow">
           <div className="label">Start time</div>
-          <TimeSelect value={time} onChange={setTime} />
+          <TimeSelect value={time} onChange={setTime} min={minTime} />
         </div>
         <div className="grow">
           <div className="label">Duration</div>
